@@ -7,35 +7,34 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 }
 
 $q = isset($_GET['q']) ? trim($_GET['q']) : '';
-if ($q === '') Response::error('q is required', 400);
+if ($q === '') {
+  Response::error('q is required', 400);
+}
 
 try {
   $cfg = require __DIR__ . '/../../config/maps.php';
 
-  $url = $cfg['ors']['base_url'] . '/geocode/search'
-       . '?text=' . urlencode($q)
-       . '&boundary.country=PH';
+  // Nominatim search (Philippines bias)
+  $url = $cfg['geocode']['base_url'] . '/search?format=jsonv2'
+      . '&q=' . urlencode($q . ', Philippines')
+      . '&limit=5';
 
   $data = HttpClient::getJson($url, [
-    'Authorization: ' . $cfg['ors']['api_key'],
-    'Accept: application/json'
+    // Nominatim requires a User-Agent
+    'User-Agent: WEBPROG_PROJ/1.0 (local dev)'
   ]);
 
   $results = [];
-  foreach (($data['features'] ?? []) as $f) {
-    $coords = $f['geometry']['coordinates'] ?? [null, null]; // [lng, lat]
-    $label  = $f['properties']['label'] ?? null;
-
-    if ($coords[0] === null || $coords[1] === null) continue;
-
+  foreach ($data as $item) {
     $results[] = [
-      'name' => $label,
-      'lat' => (float)$coords[1],
-      'lng' => (float)$coords[0],
+      'name' => $item['display_name'] ?? null,
+      'lat'  => isset($item['lat']) ? (float)$item['lat'] : null,
+      'lng'  => isset($item['lon']) ? (float)$item['lon'] : null,
     ];
   }
 
   Response::ok(['results' => $results]);
+
 } catch (Throwable $e) {
   Response::error($e->getMessage(), 500);
 }
