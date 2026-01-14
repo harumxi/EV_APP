@@ -1,51 +1,51 @@
 <?php
-require_once __DIR__ . '/../../core/Response.php';
-require_once __DIR__ . '/../../core/HttpClient.php';
+require_once __DIR__ . '/../../CORE/Database.php';
+require_once __DIR__ . '/../../CORE/Response.php';
+require_once __DIR__ . '/../../CORE/HttpClient.php';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-  Response::error('Method not allowed', 405);
+// Only allow POST
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    Response::error('Only POST method allowed', 405);
 }
 
-$olat = isset($_GET['origin_lat']) ? (float)$_GET['origin_lat'] : null;
-$olng = isset($_GET['origin_lng']) ? (float)$_GET['origin_lng'] : null;
-$dlat = isset($_GET['dest_lat']) ? (float)$_GET['dest_lat'] : null;
-$dlng = isset($_GET['dest_lng']) ? (float)$_GET['dest_lng'] : null;
+$input = json_decode(file_get_contents('php://input'), true);
 
-if ($olat === null || $olng === null || $dlat === null || $dlng === null) {
-  Response::error('origin_lat, origin_lng, dest_lat, dest_lng required', 400);
+if (!$input || !isset($input['user_id'], $input['origin'], $input['destination'])) {
+    Response::error('Required: user_id, origin[lat/lng], destination[lat/lng]', 400);
 }
 
 try {
-  $cfg = require __DIR__ . '/../../config/maps.php';
+    $db = Database::conn();
+    $cfg = require __DIR__ . '/../../CONFIG/maps.php';
 
-  $url = $cfg['ors']['base_url']
-       . '/v2/directions/' . $cfg['ors']['default_profile'] . '/geojson';
+    // 1. Check for Active EV
+    $check = $db->prepare("SELECT garage_id FROM user_garage WHERE user_id = ? AND is_active = 1 LIMIT 1");
+    $check->execute([(int)$input['user_id']]);
+    if (!$check->fetch()) {
+        Response::error('User has no active EV selected', 400);
+    }
 
-  $body = [
-    'coordinates' => [
-      [$olng, $olat],
-      [$dlng, $dlat],
-    ]
-  ];
-
-  $data = HttpClient::postJson($url, $body, [
-    'Authorization: ' . $cfg['ors']['api_key'],
-    'Accept: application/geo+json'
-  ]);
-
-  $routes = [];
-  foreach (($data['features'] ?? []) as $r) {
-    $sum = $r['properties']['summary'] ?? null;
-    if (!is_array($sum)) continue;
-
-    $routes[] = [
-      'distance_km' => isset($sum['distance']) ? round(((float)$sum['distance']) / 1000, 2) : null,
-      'duration_min' => isset($sum['duration']) ? (int)round(((float)$sum['duration']) / 60) : null,
-      'geometry' => $r['geometry'] ?? null
+    // 2. Fetch Distance from OpenRouteService
+    $url = $cfg['ors']['base_url'] . '/v2/directions/' . $cfg['ors']['default_profile'] . '/geojson';
+    $body = [
+        "coordinates" => [
+            [(float)$input['origin']['lng'], (float)$input['origin']['lat']], 
+            [(float)$input['destination']['lng'], (float)$input['destination']['lat']]
+        ]
     ];
-  }
 
-  Response::ok(['routes' => $routes]);
+    $data = HttpClient::postJson($url, $body, ['Authorization: ' . $cfg['ors']['api_key']]);
+
+    // 3. Log Trip and Return Results
+    if (isset($data['features'][0]['properties']['summary'])) {
+        $summary = $data['features'][0]['properties']['summary'];
+        Response::ok([
+            'distance_km' => round($summary['distance'] / 1000, 2),
+            'duration_min' => round($summary['duration'] / 60)
+        ]);
+    } else {
+        Response::error('Could not calculate route', 500);
+    }
 } catch (Throwable $e) {
-  Response::error($e->getMessage(), 500);
+    Response::error($e->getMessage(), 500);
 }
