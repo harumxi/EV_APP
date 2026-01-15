@@ -1,0 +1,45 @@
+.reactive-container {
+    width: 100%;
+    max-width: 1200px; 
+    margin: 0 auto;
+    min-height: 100vh;
+}
+
+.input-grid {
+    display: flex;
+    flex-direction: column; 
+    gap: 20px;
+    padding: 15px;
+}
+
+@media (min-width: 1024px) {
+    .input-grid {
+        flex-direction: row; 
+    }
+    .battery-card, .trip-card { flex: 1; }
+}
+
+.dashboard-layout {
+    display: grid;
+    grid-template-columns: 1fr; 
+    gap: 20px;
+    padding: 15px;
+}
+
+@media (min-width: 768px) {
+    .dashboard-layout {
+        grid-template-columns: 1.5fr 1fr; 
+    }
+}
+
+.route-option { position: relative; cursor: pointer; }
+.calc-popup {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    background: #333; color: white;
+    padding: 10px; border-radius: 8px; font-size: 11px; width: 100%;
+}
+
+.route-option:hover .calc-popup { display: block; }
+.route-option:active .calc-popup { display: block; }
