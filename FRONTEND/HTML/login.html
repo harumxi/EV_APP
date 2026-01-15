@@ -3,141 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
     <title>EnerGo - Login</title>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Work+Sans:wght@300;400;600&display=swap" rel="stylesheet">
     
-    <!-- Link to CSS file -->
-    <link rel="stylesheet" href="../UI_CSS/login.css">
+    <link rel="stylesheet" href="../CSS/login.css">
 </head>
 <body>
-    <div class="success-message" id="successMessage">Welcome to EnerGo!</div>
+    <div class="success-message" id="successMessage" role="alert">Welcome to EnerGo!</div>
 
     <div class="main-container">
-        <!-- Left Panel -->
         <div class="left-panel">
             <div class="logo">
-                <div class="logo-icon">⚡</div>
+                <div class="logo-icon" aria-hidden="true">⚡</div>
                 EnerGo
             </div>
             
             <div class="form-container">
-                <div class="welcome-section">
-                    <h1 class="welcome-title">Welcome</h1>
-                    <p class="welcome-subtitle">Power your journey with smart energy management. Connect to a sustainable future.</p>
-                </div>
-
-                <div class="form-content">
-                    <!-- Login Form -->
-                    <div class="form-panel" id="loginForm">
-                        <form id="loginFormElement">
-                            <div class="input-group">
-                                <label class="input-label">Email</label>
-                                <div class="input-wrapper">
-                                    <input type="email" class="input-field" id="loginEmail" required>
-                                </div>
-                            </div>
-
-                            <div class="input-group">
-                                <label class="input-label">Password</label>
-                                <div class="input-wrapper">
-                                    <input type="password" class="input-field" id="loginPassword" required>
-                                    <span class="password-toggle" onclick="togglePassword('loginPassword', this)">
-                                        <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                            <circle cx="12" cy="12" r="3"></circle>
-                                        </svg>
-                                    </span>
-                                </div>
-                                <div class="error-message" id="loginPasswordError">Password is required</div>
-                                <div class="forgot-password">
-                                    <a onclick="handleForgotPassword()">Forgot Password?</a>
-                                </div>
-                            </div>
-
-                            <button type="submit" class="submit-btn">
-                                <span>Login</span>
-                            </button>
-                        </form>
-
-                        <div class="toggle-form">
-                            Don't have an account? <a onclick="showSignup()">Create an Account</a>
-                        </div>
+                <div class="form-panel" id="loginForm">
+                    <div class="welcome-section">
+                        <h1 class="welcome-title">Welcome</h1>
+                        <p class="welcome-subtitle">Power your journey with smart energy management. Connect to a sustainable future.</p>
                     </div>
 
-                    <!-- Signup Form -->
-                    <div class="form-panel hidden" id="signupForm">
-                        <form id="signupFormElement">
-                            <div class="input-group">
-                                <label class="input-label">Full Name</label>
-                                <div class="input-wrapper">
-                                    <input type="text" class="input-field" id="signupName" required>
-                                </div>
-                                <div class="error-message" id="signupNameError">Name is required</div>
+                    <form id="loginFormElement">
+                        <div class="input-group">
+                            <label class="input-label" for="loginEmail">EMAIL</label>
+                            <div class="input-wrapper">
+                                <input type="email" class="input-field" id="loginEmail" name="email" 
+                                       placeholder="Enter your email" title="Please enter your registered email" required>
                             </div>
-
-                            <div class="input-group">
-                                <label class="input-label">Email Address</label>
-                                <div class="input-wrapper">
-                                    <input type="email" class="input-field" id="signupEmail" required>
-                                </div>
-                                <div class="error-message" id="signupEmailError">Valid email is required</div>
-                            </div>
-
-                            <div class="input-group">
-                                <label class="input-label">Password</label>
-                                <div class="input-wrapper">
-                                    <input type="password" class="input-field" id="signupPassword" required>
-                                    <span class="password-toggle" onclick="togglePassword('signupPassword', this)">
-                                        <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                            <circle cx="12" cy="12" r="3"></circle>
-                                        </svg>
-                                    </span>
-                                </div>
-                                <div class="error-message" id="signupPasswordError">Password must be at least 6 characters</div>
-                            </div>
-
-                            <div class="input-group">
-                                <label class="input-label">Confirm Password</label>
-                                <div class="input-wrapper">
-                                    <input type="password" class="input-field" id="confirmPassword" required>
-                                    <span class="password-toggle" onclick="togglePassword('confirmPassword', this)">
-                                        <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                            <circle cx="12" cy="12" r="3"></circle>
-                                        </svg>
-                                    </span>
-                                </div>
-                                <div class="error-message" id="confirmPasswordError">Passwords do not match</div>
-                            </div>
-
-                            <button type="submit" class="submit-btn">
-                                <span>Create Account</span>
-                            </button>
-                        </form>
-
-                        <div class="toggle-form">
-                            Already have an account? <a onclick="showLogin()">Login</a>
                         </div>
+
+                        <div class="input-group">
+                            <label class="input-label" for="loginPassword">PASSWORD</label>
+                            <div class="input-wrapper">
+                                <input type="password" class="input-field" id="loginPassword" name="password" 
+                                       placeholder="Enter your password" title="Please enter your password" required>
+                                <span class="password-toggle" onclick="togglePassword('loginPassword', this)" role="button" aria-label="Toggle password visibility">
+                                    <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                </span>
+                            </div>
+                            <div class="forgot-password">
+                                <a href="javascript:void(0)" onclick="handleForgotPassword()">Forgot Password?</a>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="submit-btn">
+                            <span>LOGIN</span> <span class="arrow">→</span>
+                        </button>
+                    </form>
+
+                    <div class="toggle-form">
+                        Don't have an account? <a href="javascript:void(0)" onclick="showSignup()">Create an Account</a>
+                    </div>
+                </div>
+
+                <div class="form-panel hidden" id="signupForm">
+                    <div class="welcome-section">
+                        <h1 class="welcome-title">Join EnerGo</h1>
+                        <p class="welcome-subtitle">Start your journey toward smart, sustainable energy management today.</p>
+                    </div>
+                    <form id="signupFormElement">
+                        <div class="input-group">
+                            <label class="input-label" for="signupName">FULL NAME</label>
+                            <input type="text" class="input-field" id="signupName" placeholder="Your Name" title="Enter your full name" required>
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label" for="signupEmail">EMAIL ADDRESS</label>
+                            <input type="email" class="input-field" id="signupEmail" placeholder="Email Address" title="Enter a valid email address" required>
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label" for="signupPassword">STRICT PASSWORD</label>
+                            <input type="password" class="input-field" id="signupPassword" placeholder="8+ chars, Uppercase, Number, Symbol" title="Password must be at least 8 characters with uppercase, number, and symbol" required>
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label" for="confirmPassword">CONFIRM PASSWORD</label>
+                            <input type="password" class="input-field" id="confirmPassword" placeholder="Confirm Password" title="Re-type your password" required>
+                        </div>
+                        <button type="submit" class="submit-btn">CREATE ACCOUNT</button>
+                    </form>
+                    <div class="toggle-form">
+                        Already have an account? <a href="javascript:void(0)" onclick="showLogin()">Login</a>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Right Panel with Background -->
         <div class="right-panel">
-            <img src="bg.jpg" class="bg-image" alt="City Background">
+            <img src="../bg.jpg" class="bg-image" alt="Futuristic city background" title="Cityscape Background">
             <div class="car-container">
-                <img src="car.png" alt="Electric Car">
+                <img src="../car.png" class="car-image" alt="Electric vehicle" title="Electric Vehicle Display">
             </div>
         </div>
     </div>
 
-    <!-- Link to JavaScript file -->
-    <script src="../UI_JS/login.js"></script>
+    <script src="../JS/login.js"></script>
 </body>
 </html>
