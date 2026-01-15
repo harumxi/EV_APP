@@ -1,46 +1,34 @@
-// Toggle to Signup
-window.showSignup = function() {
-    const login = document.getElementById('loginForm');
-    const signup = document.getElementById('signupForm');
-    
-    if (login && signup) {
-        login.classList.add('hidden');
-        signup.classList.remove('hidden');
-        console.log("Switched to Signup");
-    } else {
-        console.error("Could not find form elements. Check IDs.");
-    }
-};
-
-// Toggle to Login
-window.showLogin = function() {
-    const login = document.getElementById('loginForm');
-    const signup = document.getElementById('signupForm');
-    
-    if (login && signup) {
-        signup.classList.add('hidden');
-        login.classList.remove('hidden');
-        console.log("Switched to Login");
-    }
-};
-
-// STRICT Password Check for signup
-const strictPass = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-
-document.getElementById('signupFormElement').addEventListener('submit', async (e) => {
+// LOGIN LOGIC
+document.getElementById('loginFormElement').addEventListener('submit', async function(e) {
     e.preventDefault();
-    const pass = document.getElementById('signupPassword').value;
-    const confirm = document.getElementById('confirmPassword').value;
+    
+    const formData = {
+        email: document.getElementById('loginEmail').value,
+        password: document.getElementById('loginPassword').value
+    };
 
-    if (!strictPass.test(pass)) {
-        alert("Password must be 8+ chars, with an uppercase, number, and special character.");
-        return;
-    }
-    if (pass !== confirm) {
-        alert("Passwords do not match.");
-        return;
-    }
+    try {
+        // === ABSOLUTE URL ===
+        const response = await fetch('http://localhost/WEBPROG_PROJ/BACKEND/api/auth/login.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        });
 
-    // Backend fetch logic here...
-    alert("Validation passed. Ready to create account.");
+        const result = await response.json();
+
+        if (result.ok) {
+            // Save user session
+            localStorage.setItem('currentUser', JSON.stringify(result.user));
+            
+            // Redirect to your Garage/Dashboard
+            alert("Login Successful! Redirecting...");
+            window.location.href = 'garage.html'; 
+        } else {
+            alert(result.error || "Login failed.");
+        }
+    } catch (error) {
+        console.error("Login Error:", error);
+        alert("Cannot connect to server. Ensure XAMPP is running.");
+    }
 });

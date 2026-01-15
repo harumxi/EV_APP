@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>API Test Harness</title>
+    <style>
+        body { background: #1a1a1a; color: #00ff88; font-family: monospace; padding: 2rem; }
+        button { padding: 10px 20px; background: #00ff88; border: none; font-weight: bold; cursor: pointer; }
+        #output { background: #000; padding: 20px; margin-top: 20px; white-space: pre-wrap; border: 1px solid #333; }
+    </style>
+</head>
+<body>
+    <h1>🗺️ Map Logic Tester</h1>
+    <p>Click below to simulate a trip request from User ID 1.</p>
+    
+    <button onclick="testMapLogic()">SEND TEST REQUEST</button>
+
+    <div id="output">Results will appear here...</div>
+
+    <script>
+        async function testMapLogic() {
+            const output = document.getElementById('output');
+            output.innerHTML = "Sending request...";
+
+            // TEST DATA: User 1 (who has the active car)
+            // Route: Manila to Quezon City (Example coordinates)
+            const payload = {
+                user_id: 1, 
+                origin: { lat: 14.5995, lng: 120.9842 },      // Manila
+                destination: { lat: 14.6760, lng: 121.0437 }  // Quezon City
+            };
+
+            try {
+                // Absolute URL to XAMPP
+                const res = await fetch('http://localhost/WEBPROG_PROJ/BACKEND/api/trips/create.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                
+                // Display formatted JSON
+                output.innerHTML = JSON.stringify(data, null, 4);
+                
+                if(data.ok) {
+                    output.style.color = '#00ff88'; // Green for success
+                } else {
+                    output.style.color = '#ff4444'; // Red for error
+                }
+
+            } catch (err) {
+                output.innerHTML = "Network Error: " + err.message;
+                output.style.color = '#ff4444';
+            }
+        }
+    </script>
+</body>
+</html>
