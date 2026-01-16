@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Trip Planner</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; margin: 0; background: #f4f4f4; }
+        
+        /* Sidebar Styling */
+        #sidebar { width: 380px; padding: 20px; background: #fff; box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 1000; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        #map { flex-grow: 1; }
+
+        h2 { margin: 0; color: #333; }
+        p.subtitle { margin: 0 0 15px 0; font-size: 12px; color: #666; }
+
+        label { font-size: 12px; font-weight: bold; color: #555; margin-bottom: 5px; display: block; }
+        .input-group { display: flex; gap: 5px; }
+        
+        input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+        
+        /* Buttons */
+        button { background: #00C853; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; margin-top: 5px; }
+        button:hover { background: #009624; }
+        button.secondary { background: #e0e0e0; color: #333; width: auto; white-space: nowrap; margin-top: 0; }
+        button.secondary:hover { background: #d5d5d5; }
+
+        /* Route Cards */
+        .route-list { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .route-card { background: white; border: 1px solid #eee; padding: 15px; border-radius: 10px; cursor: pointer; transition: 0.2s; position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .route-card:hover { border-color: #00C853; background: #f9fff9; }
+        .route-card.selected { border: 2px solid #00C853; background: #e8f5e9; }
+        
+        .badge { position: absolute; top: -10px; right: 10px; background: #FF9800; color: white; font-size: 10px; font-weight: bold; padding: 4px 8px; border-radius: 12px; }
+        .badge.rec { background: #00C853; } /* Green for Recommended */
+
+        .big-stat { font-size: 18px; font-weight: bold; color: #333; margin-top: 5px; }
+        .stat-row { display: flex; justify-content: space-between; margin-top: 8px; font-size: 13px; color: #555; }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <h2>⚡ Trip Planner</h2>
+        <p class="subtitle">Smart Routing & Battery Prediction</p>
+
+        <div>
+            <label>Start Location (Origin)</label>
+            <div class="input-group">
+                <input type="text" id="origin" placeholder="e.g. Luneta Park">
+                <button class="secondary" onclick="useMyLocation()" title="Use Current Location">📍</button>
+            </div>
+        </div>
+
+        <div>
+            <label>Destination</label>
+            <input type="text" id="destination" placeholder="e.g. National University Fairview">
+        </div>
+
+        <div>
+            <label>Current Battery (%)</label>
+            <input type="number" id="battery" value="80">
+        </div>
+
+        <button onclick="calculateTrip()">🚀 Find Routes</button>
+
+        <div id="routeList" class="route-list"></div>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // 1. Initialize Map (Default: Manila)
+        const map = L.map('map').setView([14.5995, 120.9842], 12); 
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+        let userLat = null;
+        let userLng = null;
+        let markers = []; // Store pins so we can remove them later
+
+        // 2. "Use My Location" Logic
+        function useMyLocation() {
+            const btn = document.querySelector('.secondary');
+            btn.innerText = "⏳"; 
+
+            if (!navigator.geolocation) {
+                alert("Geolocation is not supported by your browser.");
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    userLat = position.coords.latitude;
+                    userLng = position.coords.longitude;
+                    
+                    // Fill input with coordinates
+                    document.getElementById('origin').value = `${userLat}, ${userLng}`;
+                    btn.innerText = "📍";
+                    
+                    // Move map and add Blue Pin
+                    map.setView([userLat, userLng], 15);
+                    L.marker([userLat, userLng]).addTo(map).bindPopup("<b>Start:</b> You are here").openPopup();
+                },
+                (error) => {
+                    alert("Unable to retrieve location. Please type it manually.");
+                    btn.innerText = "📍";
+                }
+            );
+        }
+
+        // 3. MAIN FUNCTION: Calculate Trip
+        async function calculateTrip() {
+            const btn = document.querySelector('button[onclick="calculateTrip()"]');
+            const list = document.getElementById('routeList');
+            const originVal = document.getElementById('origin').value;
+            const destVal = document.getElementById('destination').value;
+            const battVal = document.getElementById('battery').value;
+
+            if(!originVal || !destVal) {
+                alert("Please enter Start and End locations.");
+                return;
+            }
+
+            btn.innerText = "Calculating...";
+            list.innerHTML = ''; // Clear previous results
+
+            try {
+                // --- API CALL ---
+                // IMPORTANT: Change 'WEBPROG_PROJ' to your actual folder name if different!
+                const res = await fetch('http://localhost/WEBPROG_PROJ/BACKEND/api/TRIPS/calculate.php', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        user_id: 1, // Test User ID
+                        origin: originVal,
+                        destination: destVal,
+                        battery_percent: battVal
+                    })
+                });
+
+                const data = await res.json();
+                btn.innerText = "🚀 Find Routes";
+
+                if (!data.ok) {
+                    alert("Error: " + data.error);
+                    return;
+                }
+
+                // --- MAP UPDATES ---
+                
+                // 1. Remove old markers
+                markers.forEach(m => map.removeLayer(m));
+                markers = [];
+
+                // 2. Add Destination Pin (Red)
+                if (data.destination_coords) {
+                    const dLat = data.destination_coords.lat;
+                    const dLng = data.destination_coords.lng;
+                    const destLabel = data.destination_label; // Correct Label from Backend
+
+                    const destPin = L.marker([dLat, dLng]).addTo(map)
+                        .bindPopup(`<b>Destination Found:</b><br>${destLabel}`).openPopup();
+                    markers.push(destPin);
+
+                    // 3. Add Origin Pin (if we have it)
+                    if (userLat && userLng) {
+                        const startPin = L.marker([userLat, userLng]).addTo(map).bindPopup("<b>Start:</b> You");
+                        markers.push(startPin);
+                        
+                        // Zoom map to show both start and end
+                        const group = new L.featureGroup(markers);
+                        map.fitBounds(group.getBounds().pad(0.2));
+                    } else {
+                        // Just zoom to destination
+                        map.setView([dLat, dLng], 13);
+                    }
+                }
+
+                // --- UI UPDATES (Route Cards) ---
+                
+                if (data.routes && data.routes.length > 0) {
+                    data.routes.forEach((route, index) => {
+                        const isRec = route.recommended;
+                        
+                        // Create Card HTML
+                        const card = document.createElement('div');
+                        card.className = `route-card ${isRec ? 'selected' : ''}`;
+                        card.innerHTML = `
+                            ${isRec ? '<div class="badge rec">⭐ HIGHLY RECOMMENDED</div>' : '<div class="badge">ALTERNATIVE</div>'}
+                            <div class="big-stat">${route.distance_km} km <small>(${route.duration_min} min)</small></div>
+                            <div class="stat-row">
+                                <span>🔋 Cost: <b>${route.est_usage}%</b></span>
+                                <span>⚡ Left: <b>${route.end_battery}%</b></span>
+                            </div>
+                            <div style="font-size:11px; color:#999; margin-top:5px;">
+                                ${route.feasible ? '✅ Trip Possible' : '⚠️ Charge Needed'}
+                            </div>
+                        `;
+                        
+                        // Click Event (Selection logic)
+                        card.onclick = () => {
+                            document.querySelectorAll('.route-card').forEach(c => c.classList.remove('selected'));
+                            card.classList.add('selected');
+                            // In the future: Draw this specific route line on the map
+                        };
+
+                        list.appendChild(card);
+                    });
+                } else {
+                    list.innerHTML = '<p style="padding:10px;">No routes found.</p>';
+                }
+
+            } catch (err) {
+                console.error(err);
+                alert("Server Connection Error. Check console (F12).");
+                btn.innerText = "🚀 Find Routes";
+            }
+        }
+    </script>
+</body>
+</html>

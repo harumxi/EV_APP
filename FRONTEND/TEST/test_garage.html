@@ -1,0 +1,169 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Garage</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f6f8; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { width: 400px; background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .header { background: #00C853; color: white; padding: 15px; text-align: center; }
+        
+        .section { padding: 15px; border-bottom: 1px solid #eee; }
+        input { padding: 10px; width: 70%; border: 1px solid #ddd; border-radius: 5px; }
+        button { padding: 10px; background: #333; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        
+        .car-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #fff; border: 1px solid #eee; margin-bottom: 5px; border-radius: 8px; }
+        .active-car { border: 2px solid #00C853; background: #e8f5e9; }
+        .badge { background: #00C853; color: white; font-size: 10px; padding: 3px 6px; border-radius: 4px; }
+        
+        .add-btn { background: #007bff; font-size: 12px; padding: 5px 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2>My Garage 🚗</h2>
+    </div>
+
+    <div class="section">
+        <div style="display:flex; gap:5px;">
+            <input type="text" id="search" placeholder="Search (e.g. Tesla)">
+            <button onclick="searchCar()">Find</button>
+        </div>
+        <div id="results" style="margin-top:10px;"></div>
+    </div>
+
+    <div class="section" style="background: #fafafa;">
+        <h4 style="margin-top:0;">Your Cars</h4>
+        <div id="garageList">Loading...</div>
+    </div>
+
+    <div style="display: flex; text-align: center; border-top: 1px solid #ddd;">
+        <a href="garage.html" style="flex:1; padding:15px; text-decoration:none; color:#00C853; font-weight:bold;">Garage</a>
+        <a href="trip.html" style="flex:1; padding:15px; text-decoration:none; color:#666;">Trip Planner</a>
+    </div>
+</div>
+
+<script>
+    // 1. UPDATE THIS to match your folder name!
+    // Based on your previous errors, your folder is likely 'WEBPROG_PROJ'
+    const API_URL = 'http://localhost/WEBPROG_PROJ/BACKEND/api/GARAGE'; 
+    const USER_ID = 1; 
+
+    // 2. Load Garage on Start
+    async function loadGarage() {
+        try {
+            const res = await fetch(`${API_URL}/list.php`, {
+                method: 'POST',
+                body: JSON.stringify({ user_id: USER_ID })
+            });
+            const data = await res.json();
+            
+            const list = document.getElementById('garageList');
+            list.innerHTML = '';
+
+            if (!data.cars || data.cars.length === 0) {
+                list.innerHTML = '<small style="padding:10px; display:block;">No cars yet. Search above to add one!</small>';
+                return;
+            }
+
+            data.cars.forEach(car => {
+                const isActive = car.is_active == 1;
+                list.innerHTML += `
+                    <div class="car-item ${isActive ? 'active-car' : ''}">
+                        <div>
+                            <strong>${car.naming_make} ${car.naming_model}</strong>
+                            ${isActive ? '<span class="badge">ACTIVE</span>' : ''}
+                        </div>
+                        ${!isActive ? `<button class="add-btn" onclick="setActive(${car.garage_id})">Select</button>` : ''}
+                    </div>
+                `;
+            });
+        } catch (err) {
+            console.error("Load Error:", err);
+        }
+    }
+
+    // 3. Search API Ninjas (With Fix for Undefined Year)
+    async function searchCar() {
+        const query = document.getElementById('search').value;
+        const btn = document.querySelector('button');
+        const originalText = btn.innerText;
+        btn.innerText = '...';
+        
+        try {
+            const res = await fetch(`${API_URL}/garage_search.php`, {
+                method: 'POST',
+                body: JSON.stringify({ search: query })
+            });
+            const cars = await res.json();
+            
+            const results = document.getElementById('results');
+            results.innerHTML = '';
+
+            if (!cars || cars.length === 0) {
+                results.innerHTML = '<small style="padding:10px; display:block;">No results found.</small>';
+                btn.innerText = originalText;
+                return;
+            }
+
+            cars.slice(0, 5).forEach(car => {
+                // FIX: Use '2023' if year is missing
+                const displayYear = car.year || '2023'; 
+
+                results.innerHTML += `
+                    <div class="car-item">
+                        <span>${car.make} ${car.model} (${displayYear})</span>
+                        <button class="add-btn" onclick='addCar(${JSON.stringify(car)}, "${displayYear}")'>Add</button>
+                    </div>
+                `;
+            });
+        } catch (err) {
+            console.error("Search Error:", err);
+            alert("Search failed. Check console (F12).");
+        }
+        btn.innerText = originalText;
+    }
+
+    // 4. Add Car to DB (Now uses the fixed year)
+    async function addCar(car, fixedYear) {
+        try {
+            const res = await fetch(`${API_URL}/add.php`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    user_id: USER_ID,
+                    make: car.make,
+                    model: car.model,
+                    year: fixedYear || '2023', // Send the fixed year to Backend
+                    image: '' 
+                })
+            });
+            const data = await res.json();
+            
+            if(data.ok) {
+                document.getElementById('results').innerHTML = ''; // Clear search
+                document.getElementById('search').value = '';
+                loadGarage(); // Refresh list immediately
+            } else {
+                alert("Error adding car: " + data.error);
+            }
+        } catch (err) {
+            console.error("Add Error:", err);
+        }
+    }
+
+    // 5. Set Active Car
+    async function setActive(id) {
+        await fetch(`${API_URL}/set_active.php`, {
+            method: 'POST',
+            body: JSON.stringify({ user_id: USER_ID, garage_id: id })
+        });
+        loadGarage();
+    }
+
+    // Run on load
+    loadGarage();
+</script>
