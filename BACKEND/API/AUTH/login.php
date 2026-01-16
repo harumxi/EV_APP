@@ -1,45 +1,50 @@
 <?php
-require_once __DIR__ . '/../../CORE/Database.php';
-require_once __DIR__ . '/../../CORE/Response.php';
+// === CRITICAL CORS HEADERS (Same as register.php) ===
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Headers: Content-Type");
+header("Content-Type: application/json");
 
-session_start();
-
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    Response::error('Only POST allowed', 405);
+// Handle Preflight Request
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
 }
+
+require_once __DIR__ . '/../../CORE/Database.php';
 
 $input = json_decode(file_get_contents('php://input'), true);
 
-if (!isset($input['email']) || !isset($input['password'])) {
-    Response::error('Email and password required', 400);
+if (!isset($input['email'], $input['password'])) {
+    echo json_encode(['ok' => false, 'error' => 'Email and password required']);
+    exit;
 }
 
 try {
     $db = Database::conn();
-    
-    // 1. Check if user exists
-    $stmt = $db->prepare("SELECT user_id, username, password FROM users WHERE email = ? LIMIT 1");
+
+    // 1. Fetch user by email
+    // We select 'password_hash' because that's what your DB calls it
+    $stmt = $db->prepare("SELECT user_id, username, password_hash FROM users WHERE email = ?");
     $stmt->execute([$input['email']]);
     $user = $stmt->fetch();
 
-    // 2. If no user is found, send a specific error for your frontend to show
-    if (!$user) {
-        Response::error('This email is not registered. Please create an account.', 404);
-    }
-
-    // 3. Verify password
-    if (password_verify($input['password'], $user['password'])) {
-        $_SESSION['user_id'] = $user['user_id'];
-        $_SESSION['username'] = $user['username'];
-
-        Response::ok([
+    // 2. Verify Password
+    if ($user && password_verify($input['password'], $user['password_hash'])) {
+        // Success! Return user info (excluding password)
+        echo json_encode([
+            'ok' => true, 
             'message' => 'Login successful',
-            'user' => ['id' => $user['user_id'], 'username' => $user['username']]
+            'user' => [
+                'id' => $user['user_id'],
+                'name' => $user['username'],
+                'email' => $input['email']
+            ]
         ]);
     } else {
-        Response::error('Incorrect password. Please try again.', 401);
+        echo json_encode(['ok' => false, 'error' => 'Invalid email or password']);
     }
 
 } catch (Exception $e) {
-    Response::error('Server error: ' . $e->getMessage(), 500);
+    echo json_encode(['ok' => false, 'error' => 'Server Error: ' . $e->getMessage()]);
 }
+?>

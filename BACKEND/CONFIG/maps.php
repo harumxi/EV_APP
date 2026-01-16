@@ -1,8 +1,6 @@
 <?php
 return [
     'ors' => [
-        'base_url' => 'https://api.openrouteservice.org',
-        'api_key' => 'YOUR_ACTUAL_ORS_API_KEY_HERE',
-        'default_profile' => 'driving-car'
+        'api_key' => 'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjE5YjQxNDViMTMyMTQ5MmQ4ZTg1MjBmYWRjOTNhMDU0IiwiaCI6Im11cm11cjY0In0=' 
     ]
 ];
