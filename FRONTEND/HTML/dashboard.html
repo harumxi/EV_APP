@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard</title>
+
+  <link rel="stylesheet" href="../UI_CSS/style.css">
+  <link rel="stylesheet" href="../UI_CSS/dashboard.css">
+
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <div class="ev-icon">
+      <i data-lucide="car"></i>
+    </div>
+>
+    <div class="ev-info">
+      <div class="owner" id="evOwner">EV Owner</div>
+      <div class="vehicle" id="evModel">Brand · Model</div>
+    </div>
+  </div>
+
+  <div class="header-center">DASHBOARD</div>
+
+  <div class="header-right">
+    <button class="icon-btn" type="button" aria-label="Settings">
+      <i data-lucide="settings"></i>
+    </button>
+  </div>
+</header>
+
+<main class="container">
+
+  <section class="card">
+    <div class="ev-info-card">
+      <div class="ev-icon-large" id="evIcon">🚗</div>
+
+      <div class="ev-text">
+        <p class="owner" id="evOwnerCard">Owner: EV Owner</p>
+        <h2 class="ev-brand" id="evBrand">Brand</h2>
+        <p class="ev-model" id="evModelCard">Model</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <img
+      src="https://digitalassets.tesla.com/tesla-contents/image/upload/f_auto,q_auto/Model-3-Main-Hero-Desktop-LHD.png"
+      alt="Tesla Model 3"
+      class="car-image"
+    />
+  </section>
+
+  <section class="stats-grid">
+    <div class="stat-card">
+      <span class="label">Drivetrain</span>
+      <span class="value">RWD</span>
+    </div>
+    <div class="stat-card">
+      <span class="label">Consumption</span>
+      <span class="value">16.1 kWh/100km</span>
+    </div>
+    <div class="stat-card">
+      <span class="label">Tire Pressure</span>
+      <span class="value">36 PSI</span>
+    </div>
+  </section>
+
+  <section class="grid-2 section-row">
+    <div class="card">
+      <h3 class="card-title">Location</h3>
+
+      <div class="map-placeholder">
+        <div class="map-pin">
+          <i data-lucide="navigation"></i>
+        </div>
+      </div>
+
+      <p class="address-strong">52 Sardinia St,</p>
+      <p class="address-muted">London WC2A 3LZ</p>
+      <p class="distance">370m · 7mins</p>
+    </div>
+
+    <div class="card weather-light">
+      <div class="weather-top">
+        <h3 class="card-title">Weather</h3>
+        <span class="weather-live">Live (API)</span>
+      </div>
+
+      <div class="weather-temp-light">30°C</div>
+      <div class="weather-desc-light">Partly cloudy</div>
+
+      <div class="weather-chips-light">
+        <span>City: Manila</span>
+        <span>Feels: 33°C</span>
+        <span>Humidity: 72%</span>
+        <span>Wind: 14 kph</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="card vehicle-stats">
+    <button class="dropdown-header" id="toggleAnalytics" type="button">
+      <div>
+        <h3 class="card-title">Vehicle Statistics</h3>
+        <p class="subtitle">Last 7 days</p>
+      </div>
+      <i data-lucide="chevron-down" id="analyticsChevron"></i>
+    </button>
+
+    <div class="dropdown-body hidden" id="analyticsBody">
+      <div class="analytics-body">
+        <div class="graph-placeholder"></div>
+        <div class="key-metric">
+          <span class="label">Avg Consumption</span>
+          <span class="value">16.1 kWh/100km</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="bottom-spacer"></div>
+</main>
+
+<nav class="bottom-nav">
+  <button class="nav-item active" type="button">
+    <i data-lucide="layout-dashboard"></i>
+    <span>Dashboard</span>
+  </button>
+<button
+  class="nav-item"
+  type="button"
+  onclick="goToTripPlanner()"
+>
+  <i data-lucide="route"></i>
+  <span>Trip Planner</span>
+</button>
+  <button class="nav-item" type="button">
+    <i data-lucide="history"></i>
+    <span>Trip History</span>
+  </button>
+  <button class="nav-item" type="button">
+    <i data-lucide="zap"></i>
+    <span>Charging Hub</span>
+  </button>
+  <button class="nav-item" type="button">
+    <i data-lucide="user"></i>
+    <span>Profile</span>
+  </button>
+</nav>
+
+<script src="../UI_JS/dashboard.js"></script>
+</body>
+</html>
