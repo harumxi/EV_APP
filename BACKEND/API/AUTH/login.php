@@ -1,20 +1,34 @@
 <?php
-// === CRITICAL CORS HEADERS (Same as register.php) ===
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Headers: Content-Type");
-header("Content-Type: application/json");
+/* ===========================
+   BACKEND/api/AUTH/login.php
+   Full working file:
+   - Verifies bcrypt hash
+   - Returns user object
+   =========================== */
 
-// Handle Preflight Request
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type");
+header("Content-Type: application/json; charset=UTF-8");
+
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
+    http_response_code(204);
+    exit;
+}
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['ok' => false, 'error' => 'Method not allowed']);
     exit;
 }
 
 require_once __DIR__ . '/../../CORE/Database.php';
 
-$input = json_decode(file_get_contents('php://input'), true);
+$input = json_decode(file_get_contents('php://input'), true) ?? [];
+$email = trim($input['email'] ?? '');
+$password = $input['password'] ?? '';
 
-if (!isset($input['email'], $input['password'])) {
+if ($email === '' || $password === '') {
+    http_response_code(400);
     echo json_encode(['ok' => false, 'error' => 'Email and password required']);
     exit;
 }
@@ -22,29 +36,28 @@ if (!isset($input['email'], $input['password'])) {
 try {
     $db = Database::conn();
 
-    // 1. Fetch user by email
-    // We select 'password_hash' because that's what your DB calls it
-    $stmt = $db->prepare("SELECT user_id, username, password_hash FROM users WHERE email = ?");
-    $stmt->execute([$input['email']]);
-    $user = $stmt->fetch();
+    $stmt = $db->prepare("SELECT user_id, username, email, password_hash FROM users WHERE email = ? LIMIT 1");
+    $stmt->execute([$email]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // 2. Verify Password
-    if ($user && password_verify($input['password'], $user['password_hash'])) {
-        // Success! Return user info (excluding password)
-        echo json_encode([
-            'ok' => true, 
-            'message' => 'Login successful',
-            'user' => [
-                'id' => $user['user_id'],
-                'name' => $user['username'],
-                'email' => $input['email']
-            ]
-        ]);
-    } else {
+    if (!$user || !password_verify($password, $user['password_hash'])) {
+        http_response_code(401);
         echo json_encode(['ok' => false, 'error' => 'Invalid email or password']);
+        exit;
     }
 
-} catch (Exception $e) {
-    echo json_encode(['ok' => false, 'error' => 'Server Error: ' . $e->getMessage()]);
+    http_response_code(200);
+    echo json_encode([
+        'ok' => true,
+        'message' => 'Login successful',
+        'user' => [
+            'id' => (int)$user['user_id'],
+            'name' => $user['username'],
+            'email' => $user['email']
+        ]
+    ]);
+
+} catch (Throwable $e) {
+    http_response_code(500);
+    echo json_encode(['ok' => false, 'error' => 'Server Error']);
 }
-?>

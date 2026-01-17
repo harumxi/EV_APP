@@ -1,208 +1,268 @@
-// Check authentication on page load
-window.addEventListener('load', () => {
-    const currentUser = localStorage.getItem('currentUser');
-    
-    if (!currentUser) {
-        // No user logged in, redirect to login page
-        window.location.href = 'login.html';
-        return;
-    }
+// ===== AUTH GUARD =====
+const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+if (!currentUser || !currentUser.id) {
+  window.location.href = "login.html";
+}
+
+const USER_ID = currentUser.id;
+const API_URL = "http://localhost/WEBPROG_PROJ/BACKEND/api/GARAGE";
+
+// ===== ELEMENTS =====
+const addCarBtn = document.getElementById("addCarBtn");
+const addModal = document.getElementById("addModal");
+const deleteModal = document.getElementById("deleteModal");
+
+const closeAddModal = document.getElementById("closeAddModal");
+const cancelAdd = document.getElementById("cancelAdd");
+
+const searchCarBtn = document.getElementById("searchCarBtn");
+const searchCarInput = document.getElementById("searchCarInput");
+const ownerNameInput = document.getElementById("ownerName");
+const searchResults = document.getElementById("searchResults");
+
+const vehicleGrid = document.getElementById("vehicleGrid");
+const emptyState = document.getElementById("emptyState");
+
+const cancelDelete = document.getElementById("cancelDelete");
+const confirmDelete = document.getElementById("confirmDelete");
+
+let pendingDeleteGarageId = null;
+
+// ===== MODALS =====
+addCarBtn?.addEventListener("click", () => {
+  addModal.style.display = "flex";
 });
 
-// Data
-const evData = {
-    'Tesla': ['Model S', 'Model 3', 'Model X', 'Model Y', 'Cybertruck', 'Roadster'],
-    'Nissan': ['Leaf', 'Ariya', 'e-NV200'],
-    'Chevrolet': ['Bolt EV', 'Bolt EUV', 'Blazer EV', 'Equinox EV', 'Silverado EV'],
-    'BMW': ['i4', 'iX', 'i7', 'iX1', 'iX3'],
-    'Audi': ['e-tron', 'e-tron GT', 'Q4 e-tron', 'Q8 e-tron'],
-    'Mercedes-Benz': ['EQS', 'EQE', 'EQB', 'EQC', 'EQA'],
-    'Hyundai': ['Ioniq 5', 'Ioniq 6', 'Kona Electric', 'Ioniq Electric'],
-    'Kia': ['EV6', 'EV9', 'Niro EV', 'Soul EV'],
-    'Volkswagen': ['ID.4', 'ID.Buzz', 'ID.3', 'e-Golf'],
-    'Porsche': ['Taycan', 'Taycan Cross Turismo', 'Macan Electric'],
-    'Rivian': ['R1T', 'R1S'],
-    'Lucid': ['Air Pure', 'Air Touring', 'Air Grand Touring', 'Air Sapphire'],
-    'Polestar': ['Polestar 2', 'Polestar 3', 'Polestar 4'],
-    'Ford': ['Mustang Mach-E', 'F-150 Lightning', 'E-Transit'],
-    'Renault': ['Zoe E-Tech', 'Megane E-Tech', 'Kangoo E-Tech'],
-    'Bugatti': ['Chiron EV', 'Bolide Electric'],
-    'BYD': ['Atto 3', 'Dolphin', 'Seal', 'Han EV'],
-    'NIO': ['ET5', 'ET7', 'ES6', 'ES8', 'EC6']
-};
+closeAddModal?.addEventListener("click", closeAdd);
+cancelAdd?.addEventListener("click", closeAdd);
 
-const brandColors = {
-    'Tesla': 'gradient-tesla',
-    'Nissan': 'gradient-nissan',
-    'BMW': 'gradient-bmw',
-    'Renault': 'gradient-renault',
-    'Bugatti': 'gradient-bugatti'
-};
-
-let vehicles = [
-    { id: 1, ownerName: 'John Doe', brand: 'Bugatti', model: 'Chiron EV', image: '🏎️' },
-    { id: 2, ownerName: 'Jane Smith', brand: 'Renault', model: 'Zoe E-Tech', image: '🚗' }
-];
-
-let vehicleToDelete = null;
-
-// Initialize
-function init() {
-    populateBrands();
-    renderVehicles();
-    setupEventListeners();
+function closeAdd() {
+  addModal.style.display = "none";
+  searchResults.innerHTML = `<div class="text-center text-sm text-gray-500 py-4">Results will appear here...</div>`;
+  searchCarInput.value = "";
+  ownerNameInput.value = "";
 }
 
-function populateBrands() {
-    const brandSelect = document.getElementById('brandSelect');
-    Object.keys(evData).forEach(brand => {
-        const option = document.createElement('option');
-        option.value = brand;
-        option.textContent = brand;
-        brandSelect.appendChild(option);
+cancelDelete?.addEventListener("click", () => {
+  pendingDeleteGarageId = null;
+  deleteModal.style.display = "none";
+});
+
+confirmDelete?.addEventListener("click", async () => {
+  if (!pendingDeleteGarageId) return;
+  await removeCar(pendingDeleteGarageId);
+  pendingDeleteGarageId = null;
+  deleteModal.style.display = "none";
+});
+
+// ===== LOAD GARAGE =====
+async function loadGarage() {
+  vehicleGrid.innerHTML = "";
+  emptyState.classList.add("hidden");
+
+  try {
+    const res = await fetch(`${API_URL}/list.php`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: USER_ID }),
     });
-}
 
-function renderVehicles() {
-    const grid = document.getElementById('vehicleGrid');
-    const emptyState = document.getElementById('emptyState');
-    
-    if (vehicles.length === 0) {
-        grid.innerHTML = '';
-        emptyState.classList.remove('hidden');
-        return;
+    const data = await res.json();
+
+    if (!data.ok) {
+      vehicleGrid.innerHTML = `<div class="text-red-500">Failed to load garage</div>`;
+      return;
     }
 
-    emptyState.classList.add('hidden');
-    grid.innerHTML = vehicles.map(vehicle => {
-        const colorClass = brandColors[vehicle.brand] || 'gradient-default';
-        return `
-            <div class="${colorClass} backdrop-blur-xl rounded-3xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20 flex items-center justify-between">
-                <div class="flex-shrink-0">
-                    <div class="text-6xl transform hover:scale-110 transition-transform duration-300">${vehicle.image}</div>
-                </div>
-                
-                <div class="flex-1 px-8">
-                    <p class="text-sm text-gray-600 font-medium mb-1">Owner: ${vehicle.ownerName}</p>
-                    <h3 class="text-2xl font-semibold text-gray-900">${vehicle.brand}</h3>
-                    <p class="text-gray-700">${vehicle.model}</p>
-                </div>
-                
-                <div class="flex-shrink-0 flex gap-3">
-                    <button onclick="openDeleteModal(${vehicle.id})" class="px-6 py-2 bg-red-500/90 backdrop-blur-sm text-white rounded-xl hover:bg-red-600/90 transition-all font-medium text-sm shadow-md">
-                        Delete
-                    </button>
-                    <button onclick="proceedToNext(${vehicle.id})" class="px-6 py-2 bg-green-500/90 backdrop-blur-sm text-white rounded-xl hover:bg-green-600/90 transition-all font-medium text-sm shadow-md flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                            <polyline points="12 5 19 12 12 19"></polyline>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-function setupEventListeners() {
-    document.getElementById('addCarBtn').addEventListener('click', () => {
-        document.getElementById('addModal').classList.add('active');
-    });
-
-    document.getElementById('closeAddModal').addEventListener('click', closeAddModal);
-    document.getElementById('cancelAdd').addEventListener('click', closeAddModal);
-
-    document.getElementById('brandSelect').addEventListener('change', (e) => {
-        const brand = e.target.value;
-        const modelSelect = document.getElementById('modelSelect');
-        
-        if (brand) {
-            modelSelect.disabled = false;
-            modelSelect.innerHTML = '<option value="">Select model</option>';
-            evData[brand].forEach(model => {
-                const option = document.createElement('option');
-                option.value = model;
-                option.textContent = model;
-                modelSelect.appendChild(option);
-            });
-        } else {
-            modelSelect.disabled = true;
-            modelSelect.innerHTML = '<option value="">Select brand first</option>';
-        }
-    });
-
-    document.getElementById('confirmAdd').addEventListener('click', addVehicle);
-    document.getElementById('cancelDelete').addEventListener('click', closeDeleteModal);
-    document.getElementById('confirmDelete').addEventListener('click', deleteVehicle);
-}
-
-function closeAddModal() {
-    document.getElementById('addModal').classList.remove('active');
-    document.getElementById('ownerName').value = '';
-    document.getElementById('brandSelect').value = '';
-    document.getElementById('modelSelect').value = '';
-    document.getElementById('modelSelect').disabled = true;
-    document.getElementById('modelSelect').innerHTML = '<option value="">Select brand first</option>';
-}
-
-function addVehicle() {
-    const ownerName = document.getElementById('ownerName').value;
-    const brand = document.getElementById('brandSelect').value;
-    const model = document.getElementById('modelSelect').value;
-
-    if (ownerName && brand && model) {
-        const newVehicle = {
-            id: Date.now(),
-            ownerName,
-            brand,
-            model,
-            image: '🚙'
-        };
-        vehicles.push(newVehicle);
-        renderVehicles();
-        closeAddModal();
+    const cars = data.cars || [];
+    if (cars.length === 0) {
+      emptyState.classList.remove("hidden");
+      return;
     }
+
+    cars.forEach((car) => {
+      const isActive = parseInt(car.is_active) === 1;
+
+      const title =
+        car.nickname && car.nickname.trim() !== ""
+          ? car.nickname
+          : `${car.brand_name} ${car.model_name} ${car.variant_name}`;
+
+      const sub = `${car.brand_name} ${car.model_name} • ${car.variant_name}`;
+      const specs = `${car.battery_capacity_kwh} kWh • ${car.efficiency_wh_per_km} Wh/km`;
+
+      const card = document.createElement("div");
+      card.className =
+        "bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center justify-between";
+
+      card.innerHTML = `
+        <div>
+          <div class="flex items-center gap-2">
+            <h3 class="text-lg font-semibold text-gray-800">${escapeHtml(title)}</h3>
+            ${
+              isActive
+                ? `<span class="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 font-bold">ACTIVE</span>`
+                : ""
+            }
+          </div>
+          <div class="text-sm text-gray-500 mt-1">${escapeHtml(sub)}</div>
+          <div class="text-xs text-gray-400 mt-1">${escapeHtml(specs)}</div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          ${
+            !isActive
+              ? `<button data-action="active" data-id="${car.garage_id}" class="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700">Set Active</button>`
+              : ""
+          }
+          <button data-action="delete" data-id="${car.garage_id}" class="px-3 py-2 text-sm rounded-lg bg-red-50 text-red-600 hover:bg-red-100 border border-red-100">Delete</button>
+        </div>
+      `;
+
+      card.addEventListener("click", (e) => {
+        const btn = e.target.closest("button");
+        if (!btn) return;
+
+        const action = btn.dataset.action;
+        const id = parseInt(btn.dataset.id);
+
+        if (action === "active") setActive(id);
+        if (action === "delete") openDeleteModal(id);
+      });
+
+      vehicleGrid.appendChild(card);
+    });
+  } catch (err) {
+    console.error(err);
+    vehicleGrid.innerHTML = `<div class="text-red-500">Connection error</div>`;
+  }
 }
 
-function openDeleteModal(id) {
-    vehicleToDelete = id;
-    document.getElementById('deleteModal').classList.add('active');
+function openDeleteModal(garageId) {
+  pendingDeleteGarageId = garageId;
+  deleteModal.style.display = "flex";
 }
 
-function closeDeleteModal() {
-    document.getElementById('deleteModal').classList.remove('active');
-    vehicleToDelete = null;
+// ===== SEARCH =====
+searchCarBtn?.addEventListener("click", doSearch);
+searchCarInput?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") doSearch();
+});
+
+async function doSearch() {
+  const q = searchCarInput.value.trim();
+  if (!q) return;
+
+  searchResults.innerHTML = `<div class="text-center text-sm text-gray-500 py-4">Searching...</div>`;
+
+  try {
+    const res = await fetch(`${API_URL}/garage_search.php`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ search: q }),
+    });
+
+    const data = await res.json();
+
+    if (!data.ok) {
+      searchResults.innerHTML = `<div class="text-center text-sm text-red-500 py-4">Search failed</div>`;
+      return;
+    }
+
+    const results = data.results || [];
+    if (results.length === 0) {
+      searchResults.innerHTML = `<div class="text-center text-sm text-gray-500 py-4">No results found.</div>`;
+      return;
+    }
+
+    searchResults.innerHTML = "";
+    results.forEach((r) => {
+      const row = document.createElement("div");
+      row.className =
+        "flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:bg-gray-50";
+
+      row.innerHTML = `
+        <div>
+          <div class="font-semibold text-gray-800">${escapeHtml(r.brand_name)} ${escapeHtml(r.model_name)}</div>
+          <div class="text-xs text-gray-500">${escapeHtml(r.variant_name)} • ${r.battery_capacity_kwh} kWh • ${r.efficiency_wh_per_km} Wh/km</div>
+        </div>
+        <button class="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-black text-sm">Add</button>
+      `;
+
+      row.querySelector("button").addEventListener("click", async () => {
+        await addCar(r.variant_id);
+      });
+
+      searchResults.appendChild(row);
+    });
+  } catch (err) {
+    console.error(err);
+    searchResults.innerHTML = `<div class="text-center text-sm text-red-500 py-4">Connection error</div>`;
+  }
 }
 
-function deleteVehicle() {
-    vehicles = vehicles.filter(v => v.id !== vehicleToDelete);
-    renderVehicles();
-    closeDeleteModal();
+// ===== ADD =====
+async function addCar(variantId) {
+  const nickname = ownerNameInput.value.trim();
+
+  try {
+    const res = await fetch(`${API_URL}/add.php`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: USER_ID, variant_id: variantId, nickname }),
+    });
+
+    const data = await res.json();
+
+    if (!data.ok) {
+      alert(data.error || "Failed to add vehicle");
+      return;
+    }
+
+    closeAdd();
+    await loadGarage();
+  } catch (err) {
+    console.error(err);
+    alert("Connection error");
+  }
 }
 
-function proceedToNext(vehicleId) {
-    const vehicle = vehicles.find(v => v.id === vehicleId);
-
-    localStorage.setItem('selectedVehicle', JSON.stringify(vehicle));
-    
-    console.log('Proceeding to next screen with vehicle:', vehicle);
-    alert(`Proceeding with ${vehicle.brand} ${vehicle.model}`);
+// ===== SET ACTIVE =====
+async function setActive(garageId) {
+  try {
+    await fetch(`${API_URL}/set_active.php`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: USER_ID, garage_id: garageId }),
+    });
+    await loadGarage();
+  } catch (err) {
+    console.error(err);
+  }
 }
 
-init();
-
-function proceedToNext(vehicleId) {
-  const vehicle = vehicles.find(v => v.id === vehicleId);
-
-  localStorage.setItem("selectedVehicle", JSON.stringify(vehicle));
-
-  window.location.href = "../UI_HTML/dashboard.html";
+// ===== REMOVE =====
+async function removeCar(garageId) {
+  try {
+    await fetch(`${API_URL}/remove.php`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: USER_ID, garage_id: garageId }),
+    });
+    await loadGarage();
+  } catch (err) {
+    console.error(err);
+  }
 }
 
-function proceedToNext(vehicleId) {
-  const vehicle = vehicles.find(v => v.id === vehicleId);
-
-  localStorage.setItem("selectedVehicle", JSON.stringify(vehicle));
-
-  window.location.href = "dashboard.html";
+function escapeHtml(str) {
+  return String(str ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
+
+// INIT
+loadGarage();

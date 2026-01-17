@@ -1,106 +1,285 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EV Garage Manager</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="../UI_CSS/garage.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Garage</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #f4f6f8; margin: 0; padding: 20px; display: flex; justify-content: center; }
+    .container { width: 420px; background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+    .header { background: #00C853; color: white; padding: 15px; text-align: center; }
+    .section { padding: 15px; border-bottom: 1px solid #eee; }
+    input { padding: 10px; width: 70%; border: 1px solid #ddd; border-radius: 6px; }
+    button { padding: 10px; background: #333; color: white; border: none; border-radius: 6px; cursor: pointer; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .car-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #fff; border: 1px solid #eee; margin-bottom: 8px; border-radius: 10px; gap: 10px; }
+    .car-item small { color: #666; display:block; margin-top: 2px; }
+    .active-car { border: 2px solid #00C853; background: #e8f5e9; }
+    .badge { background: #00C853; color: white; font-size: 10px; padding: 3px 6px; border-radius: 6px; margin-left: 6px; }
+
+    .add-btn { background: #007bff; font-size: 12px; padding: 7px 10px; }
+    .danger-btn { background: #dc2626; font-size: 12px; padding: 7px 10px; }
+    .select-btn { background: #111827; font-size: 12px; padding: 7px 10px; }
+
+    .row { display:flex; gap: 6px; align-items:center; }
+    .muted { color:#6b7280; font-size: 12px; }
+    .error { color:#dc2626; font-size: 12px; margin-top: 8px; }
+    .ok { color:#059669; font-size: 12px; margin-top: 8px; }
+    .nav { display: flex; text-align: center; border-top: 1px solid #ddd; }
+    .nav a { flex:1; padding:15px; text-decoration:none; font-weight:bold; }
+    .nav a.active { color:#00C853; }
+    .nav a.inactive { color:#666; font-weight: 600; }
+  </style>
 </head>
-<body class="min-h-screen bg-white">
-    <div class="max-w-6xl mx-auto p-8">
-        <div class="flex justify-between items-center mb-12">
-            <h1 class="text-4xl font-light text-gray-800">
-                Your <span class="font-semibold">Garage</span>
-            </h1>
-            
-            <button id="addCarBtn" class="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                Add a Car
-            </button>
-        </div>
+<body>
 
-        <div id="vehicleGrid" class="space-y-4"></div>
+<div class="container">
+  <div class="header">
+    <h2>My Garage 🚗</h2>
+    <div id="who" class="muted" style="color: rgba(255,255,255,0.9); margin-top:6px;"></div>
+  </div>
 
-        <div id="emptyState" class="text-center py-20 hidden">
-            <svg class="mx-auto text-gray-300 mb-4" width="64" height="64" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-            </svg>
-            <h3 class="text-2xl text-gray-400 mb-2">No vehicles yet</h3>
-            <p class="text-gray-500">Add your first EV to get started</p>
+  <div class="section">
+    <div class="row" style="justify-content: space-between;">
+      <div style="flex:1;">
+        <div class="row">
+          <input type="text" id="search" placeholder="Search (e.g. Tesla Model 3)" />
+          <button id="findBtn" onclick="searchCar()">Find</button>
         </div>
+        <div id="searchMsg" class="muted"></div>
+      </div>
     </div>
 
-    <div id="addModal" class="modal">
-        <div class="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl mx-4">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-semibold text-gray-800">Add New Vehicle</h2>
-                <button id="closeAddModal" class="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </button>
-            </div>
+    <div id="results" style="margin-top:10px;"></div>
+  </div>
 
-            <div class="space-y-5">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Car Owner Name *</label>
-                    <input type="text" id="ownerName" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all" placeholder="Enter owner name">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Type of EV *</label>
-                    <select id="brandSelect" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all">
-                        <option value="">Select brand</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Model of the Car *</label>
-                    <select id="modelSelect" disabled class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:bg-gray-100 disabled:cursor-not-allowed">
-                        <option value="">Select brand first</option>
-                    </select>
-                </div>
-
-                <div class="flex gap-3 pt-4">
-                    <button id="cancelAdd" class="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
-                        Cancel
-                    </button>
-                    <button id="confirmAdd" class="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-lg">
-                        Add Vehicle
-                    </button>
-                </div>
-            </div>
-        </div>
+  <div class="section" style="background: #fafafa;">
+    <div class="row" style="justify-content: space-between; align-items: baseline;">
+      <h4 style="margin:0;">Your Cars</h4>
+      <button class="select-btn" style="padding:6px 10px;" onclick="loadGarage()">Refresh</button>
     </div>
+    <div id="garageList" style="margin-top:10px;">Loading...</div>
+    <div id="garageMsg" class="muted"></div>
+  </div>
 
-    <div id="deleteModal" class="modal">
-        <div class="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl mx-4">
-            <div class="text-center">
-                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-600">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </div>
-                <h3 class="text-xl font-semibold text-gray-800 mb-2">Delete Vehicle?</h3>
-                <p class="text-gray-600 mb-6">Are you sure you want to remove this vehicle from your garage? This action cannot be undone.</p>
-                <div class="flex gap-3">
-                    <button id="cancelDelete" class="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
-                        Cancel
-                    </button>
-                    <button id="confirmDelete" class="flex-1 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium shadow-lg">
-                        Delete
-                    </button>
-                </div>
+  <div class="nav">
+    <a href="garage.html" class="active">Garage</a>
+    <a href="trip.html" class="inactive">Trip Planner</a>
+  </div>
+</div>
+
+<script>
+  // ✅ CHANGE THIS if your folder name differs in htdocs
+  const API_URL = "http://localhost/WEBPROG_PROJ/BACKEND/api/GARAGE";
+
+  // --- AUTH (uses your login system) ---
+  const currentUser = JSON.parse(localStorage.getItem("currentUser") || "null");
+  if (!currentUser || !currentUser.id) {
+    // if you use a different login page name, change this:
+    window.location.href = "login.html";
+  }
+  const USER_ID = currentUser.id;
+
+  document.getElementById("who").innerText = `Logged in as: ${currentUser.email || "User"} (ID ${USER_ID})`;
+
+  // --- Helpers ---
+  async function postJSON(url, payload) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    // Read raw first so we can debug if backend returns HTML/empty
+    const raw = await res.text();
+    let data = null;
+    try { data = JSON.parse(raw); } catch {}
+
+    if (!data) {
+      console.error("Backend not JSON:", res.status, raw);
+      throw new Error("Backend error (not JSON). Check XAMPP + API URL.");
+    }
+
+    if (!res.ok || data.ok === false) {
+      throw new Error(data.error || `Request failed (${res.status})`);
+    }
+
+    return data;
+  }
+
+  function el(id){ return document.getElementById(id); }
+
+  function showMsg(id, text, kind="muted") {
+    const node = el(id);
+    node.className = kind;
+    node.innerText = text || "";
+  }
+
+  // --- Load Garage ---
+  async function loadGarage() {
+    const list = el("garageList");
+    list.innerHTML = "Loading...";
+    showMsg("garageMsg", "");
+
+    try {
+      const data = await postJSON(`${API_URL}/list.php`, { user_id: USER_ID });
+
+      const cars = data.cars || [];
+      if (cars.length === 0) {
+        list.innerHTML = `<small style="padding:10px; display:block;">No cars yet. Search above to add one!</small>`;
+        return;
+      }
+
+      list.innerHTML = "";
+      cars.forEach((car) => {
+        const isActive = String(car.is_active) === "1";
+        const title = `${car.brand_name || car.make || ""} ${car.model_name || car.model || ""}`.trim();
+        const variant = (car.variant_name || car.variant || "").trim();
+
+        const batt = car.battery_capacity_kwh ?? car.battery_kwh ?? "--";
+        const eff  = car.efficiency_wh_per_km ?? car.eff_wh_km ?? "--";
+
+        const nickname = car.nickname ? `“${car.nickname}”` : "";
+
+        const row = document.createElement("div");
+        row.className = `car-item ${isActive ? "active-car" : ""}`;
+
+        row.innerHTML = `
+          <div style="flex:1;">
+            <div>
+              <strong>${title}</strong>
+              ${isActive ? `<span class="badge">ACTIVE</span>` : ""}
             </div>
-        </div>
-    </div>
+            <small>${variant} ${nickname}</small>
+            <small>${batt} kWh • ${eff} Wh/km</small>
+          </div>
+          <div class="row" style="gap:6px;">
+            ${!isActive ? `<button class="select-btn" onclick="setActive(${car.garage_id})">Select</button>` : ""}
+            <button class="danger-btn" onclick="removeCar(${car.garage_id})">Delete</button>
+          </div>
+        `;
 
-    <script src="../UI_JS/garage.js"></script>
+        list.appendChild(row);
+      });
+
+    } catch (e) {
+      console.error(e);
+      list.innerHTML = `<div class="error">Failed to load garage: ${e.message}</div>`;
+    }
+  }
+
+  // --- Search Cars (API Ninjas through your backend) ---
+  async function searchCar() {
+    const q = el("search").value.trim();
+    const results = el("results");
+    const btn = el("findBtn");
+
+    showMsg("searchMsg", "");
+    results.innerHTML = "";
+
+    if (!q) {
+      showMsg("searchMsg", "Type a car brand/model (e.g. Tesla Model 3).", "muted");
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerText = "...";
+    showMsg("searchMsg", "Searching API Ninjas…", "muted");
+
+    try {
+      const data = await postJSON(`${API_URL}/garage_search.php`, { search: q });
+      const items = data.results || [];
+
+      if (items.length === 0) {
+        results.innerHTML = `<div class="error">No results from API Ninjas. Try “Tesla” or “Nissan Leaf”.</div>`;
+        return;
+      }
+
+      showMsg("searchMsg", `Found ${items.length} result(s). Click Add to save.`, "ok");
+
+      items.slice(0, 10).forEach((r) => {
+        const label = `${r.make || ""} ${r.model || ""}`.trim();
+        const variant = (r.variant || "Standard").trim();
+        const batt = (r.battery_kwh ?? "--");
+        const eff = (r.eff_wh_km ?? "--");
+
+        const row = document.createElement("div");
+        row.className = "car-item";
+
+        row.innerHTML = `
+          <div style="flex:1;">
+            <strong>${label}</strong>
+            <small>${variant}</small>
+            <small>${batt} kWh • ${eff} Wh/km</small>
+          </div>
+          <button class="add-btn">Add</button>
+        `;
+
+        row.querySelector("button").onclick = () => addCar(r);
+        results.appendChild(row);
+      });
+
+    } catch (e) {
+      console.error(e);
+      results.innerHTML = `<div class="error">Search failed: ${e.message}</div>`;
+    } finally {
+      btn.disabled = false;
+      btn.innerText = "Find";
+    }
+  }
+
+  // --- Add Car (saves to master tables + user_garage in backend) ---
+  async function addCar(r) {
+    const nickname = prompt("Nickname (optional):") || "";
+    showMsg("searchMsg", "Saving vehicle…", "muted");
+
+    try {
+      await postJSON(`${API_URL}/add.php`, {
+        user_id: USER_ID,
+        make: r.make,
+        model: r.model,
+        variant: r.variant,
+        battery_kwh: r.battery_kwh,
+        eff_wh_km: r.eff_wh_km,
+        drive_mode: r.drive_mode,
+        nickname
+      });
+
+      showMsg("searchMsg", "Added! (Saved to DB)", "ok");
+      el("results").innerHTML = "";
+      el("search").value = "";
+      await loadGarage();
+
+    } catch (e) {
+      alert(e.message);
+      showMsg("searchMsg", e.message, "error");
+    }
+  }
+
+  // --- Set Active ---
+  async function setActive(garage_id) {
+    try {
+      await postJSON(`${API_URL}/set_active.php`, { user_id: USER_ID, garage_id });
+      await loadGarage();
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  // --- Remove ---
+  async function removeCar(garage_id) {
+    if (!confirm("Remove this vehicle from your garage?")) return;
+    try {
+      await postJSON(`${API_URL}/remove.php`, { user_id: USER_ID, garage_id });
+      await loadGarage();
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  // initial load
+  loadGarage();
+</script>
 </body>
 </html>

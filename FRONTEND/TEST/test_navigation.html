@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Navigation: Dual Mode (Final)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; display: flex; flex-direction: column; height: 100vh; background: #eef2f6; }
+        #hud { 
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%); 
+            width: 90%; max-width: 400px; 
+            background: rgba(255,255,255,0.98); 
+            padding: 16px; border-radius: 20px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15); 
+            z-index: 1000; border: 1px solid rgba(0,0,0,0.05);
+        }
+        .car-marker { transition: transform 0.2s linear; pointer-events: none; }
+        #map { flex-grow: 1; z-index: 1; }
+        .hidden { display: none !important; }
+        
+        /* Speed Slider */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #3b82f6; margin-top: -6px; cursor: pointer; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #e5e7eb; border-radius: 2px; }
+    </style>
+</head>
+<body>
+
+    <div id="hud">
+        <div class="flex justify-between items-start mb-2">
+            <div>
+                <div class="flex items-center gap-2">
+                    <div id="gpsStatusIcon" class="w-3 h-3 rounded-full bg-gray-300"></div>
+                    <h2 class="text-lg font-bold text-gray-800 leading-tight" id="destLabel">Loading...</h2>
+                </div>
+                <div class="text-xs text-gray-500 mt-1 font-medium" id="statusMsg">Ready</div>
+            </div>
+            <div class="text-right">
+                <div class="text-2xl font-black text-green-600" id="liveBatt">--%</div>
+                <div class="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Battery</div>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-2 mb-4 bg-gray-50 p-2 rounded-lg border border-gray-100">
+            <div class="text-center">
+                <div class="text-[10px] text-gray-400 font-bold uppercase">Remaining</div>
+                <div class="text-sm font-bold text-gray-700" id="distRem">-- km</div>
+            </div>
+            <div class="text-center border-l border-gray-200">
+                <div class="text-[10px] text-gray-400 font-bold uppercase">ETA</div>
+                <div class="text-sm font-bold text-blue-600" id="eta">-- min</div>
+            </div>
+        </div>
+        
+        <div class="w-full bg-gray-200 rounded-full h-1.5 mb-4 overflow-hidden">
+            <div id="progressBar" class="bg-blue-600 h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+
+        <div id="simControls" class="hidden mb-4 p-2 bg-blue-50 rounded-lg border border-blue-100">
+            <div class="flex justify-between text-[10px] text-blue-600 font-bold uppercase mb-1">
+                <span>Slow</span><span>Sim Speed</span><span>Fast</span>
+            </div>
+            <input type="range" min="20" max="200" value="80" id="simSpeed">
+        </div>
+
+        <div class="flex gap-2" id="controls">
+            <button onclick="startSimulation()" class="flex-1 bg-gray-800 hover:bg-gray-900 text-white py-3 rounded-xl font-bold text-sm shadow-md transition-transform active:scale-95">▶ Simulate</button>
+            <button onclick="startRealGPS()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold text-sm shadow-md transition-transform active:scale-95">📡 Live GPS</button>
+        </div>
+
+        <button onclick="stopNavigation()" id="stopBtn" class="hidden w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold text-sm hover:bg-red-100 border border-red-100">Exit Navigation</button>
+    </div>
+
+    <div id="map"></div>
+
+    <div id="summaryModal" class="hidden fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full text-center">
+            <div class="text-6xl mb-4">🏁</div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">You Arrived!</h2>
+            <p class="text-gray-500 text-sm mb-6">Trip completed successfully.</p>
+            <button onclick="window.location.href='test_trip.html'" class="w-full bg-gray-900 text-white py-3 rounded-xl font-bold shadow-lg">Back to Planner</button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/@mapbox/polyline@1.2.0/src/polyline.js"></script>
+
+    <script>
+        const tripData = JSON.parse(localStorage.getItem('activeTrip'));
+        if (!tripData) window.location.href = 'test_trip.html';
+
+        // Globals
+        let navMode = null; 
+        let watchId = null;
+        let simTimer = null;
+        let currentBatt = 80;
+        let lastRouteIndex = 0; // Optimized search index
+
+        // Map Setup
+        const map = L.map('map', { zoomControl: false });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+        const routePoints = polyline.decode(tripData.route.geometry);
+        const totalDistKm = tripData.route.distance_km;
+        const totalDrain = parseFloat(tripData.route.est_usage);
+        const drainPerKm = totalDrain / totalDistKm;
+
+        const routeLine = L.polyline(routePoints, { color: '#3b82f6', weight: 10, opacity: 0.6, lineCap: 'round' }).addTo(map);
+        map.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
+
+        // Markers
+        const destLatLng = routePoints[routePoints.length - 1];
+        L.circleMarker(destLatLng, { radius: 8, color: 'red', fillOpacity: 1 }).addTo(map);
+        
+        const carIcon = L.divIcon({ 
+            html: `<div id="carSprite" style="width: 48px; height: 48px; transition: transform 0.2s linear;"><svg viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="25" cy="25" r="22" fill="white" stroke="#2563eb" stroke-width="4"/><path d="M25 10 L38 35 L25 28 L12 35 Z" fill="#2563eb"/></svg></div>`, 
+            className: 'car-marker', iconSize: [48, 48], iconAnchor: [24, 24] 
+        });
+        let carMarker = L.marker(routePoints[0], { icon: carIcon, zIndexOffset: 1000 }).addTo(map);
+
+        // UI Init
+        document.getElementById('destLabel').innerText = tripData.destLabel.split(',')[0];
+        document.getElementById('distRem').innerText = totalDistKm + " km";
+        document.getElementById('liveBatt').innerText = "80%";
+
+        // --- IMPROVED LIVE GPS START ---
+        function startRealGPS() {
+            if (navMode) return;
+            if (!navigator.geolocation) return alert("GPS Not Supported");
+            
+            // Check HTTPS Context
+            if (location.protocol !== "https:" && location.hostname !== "localhost") {
+                alert("Warning: Live GPS requires HTTPS (or localhost). Use 'localhost' in your URL, not IP address.");
+            }
+
+            navMode = "GPS";
+            lockControls();
+            updateStatus("Requesting Permission...", "yellow");
+            
+            // 1. Force Permission Prompt First
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    updateStatus("GPS Permission Granted", "green");
+                    beginWatch(pos);
+                },
+                (err) => handleGeoError(err),
+                { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+            );
+        }
+
+        function beginWatch(firstPos) {
+            let lastLat = null, lastLng = null;
+
+            // Set Initial Car Position Fast
+            const lat = firstPos.coords.latitude;
+            const lng = firstPos.coords.longitude;
+            const snapped = findClosestPointWindow(lat, lng, routePoints);
+            carMarker.setLatLng(snapped);
+            map.setView(snapped, 18);
+            lastLat = snapped[0]; lastLng = snapped[1];
+
+            // 2. Start Watch Loop
+            watchId = navigator.geolocation.watchPosition(
+                (pos) => {
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+                    const acc = pos.coords.accuracy;
+                    const speed = pos.coords.speed; // m/s
+
+                    // Filter Jitter (Relaxed for testing indoors)
+                    if (acc > 500) { 
+                        updateStatus(`Weak Signal (${Math.round(acc)}m)`, "red");
+                        return;
+                    }
+                    updateStatus("GPS Active", "green");
+
+                    const snapped = findClosestPointWindow(lat, lng, routePoints);
+                    carMarker.setLatLng(snapped);
+                    
+                    if (!lastLat || getDistKm(lastLat, lastLng, snapped[0], snapped[1]) > 0.01) {
+                        map.panTo(snapped, { animate: true, duration: 0.5 });
+                    }
+
+                    if (lastLat) {
+                        const distMoved = getDistKm(lastLat, lastLng, snapped[0], snapped[1]);
+                        if (distMoved > 0.002) { // Moved > 2 meters
+                            rotateCar([lastLat, lastLng], snapped);
+                            currentBatt -= (distMoved * drainPerKm);
+                            
+                            const distToDest = getDistKm(lat, lng, destLatLng[0], destLatLng[1]);
+                            const progress = 1 - (distToDest / totalDistKm);
+                            updateUI(currentBatt, progress, distToDest);
+                            
+                            // Safe ETA Math
+                            if (speed && speed > 1) {
+                                const etaMin = (distToDest / (speed * 3.6)) * 60;
+                                document.getElementById('eta').innerText = Math.round(etaMin) + " min";
+                            } else {
+                                document.getElementById('eta').innerText = "-- min";
+                            }
+
+                            lastLat = snapped[0]; lastLng = snapped[1];
+                        }
+                    }
+
+                    if (getDistKm(lat, lng, destLatLng[0], destLatLng[1]) < 0.05) finishTrip();
+                },
+                (err) => handleGeoError(err),
+                { enableHighAccuracy: true, timeout: 8000, maximumAge: 1000 }
+            );
+        }
+
+        function handleGeoError(err) {
+            let msg = "GPS Error";
+            if (err.code === 1) msg = "Permission Denied. Allow Location.";
+            if (err.code === 2) msg = "Position Unavailable.";
+            if (err.code === 3) msg = "GPS Timeout.";
+            
+            updateStatus(msg, "red");
+            stopNavigation(); // Reset controls so user can try again
+            alert(msg + "\nMake sure GPS is ON and permission is 'Allowed'.");
+        }
+
+        // --- SIMULATION MODE ---
+        function startSimulation() {
+            if (navMode) return;
+            navMode = "SIM";
+            lockControls();
+            document.getElementById('simControls').classList.remove('hidden');
+            updateStatus("Simulation Active", "blue");
+            
+            let step = 0;
+            map.setZoom(17);
+
+            function loop() {
+                if (navMode !== "SIM") return;
+                if (step >= routePoints.length - 1) { finishTrip(); return; }
+
+                const curr = routePoints[step];
+                const next = routePoints[step + 1];
+                const speedSetting = document.getElementById('simSpeed').value;
+
+                carMarker.setLatLng(curr);
+                map.panTo(curr, { animate: true, duration: 0.1 });
+                rotateCar(curr, next);
+
+                const stepDist = getDistKm(curr[0], curr[1], next[0], next[1]);
+                currentBatt -= (stepDist * drainPerKm);
+                
+                updateUI(currentBatt, step / routePoints.length, 0);
+                step++;
+                simTimer = setTimeout(loop, 200 - speedSetting);
+            }
+            loop();
+        }
+
+        // --- HELPERS ---
+        function updateUI(batt, progress, kmLeft) {
+            document.getElementById('liveBatt').innerText = Math.round(batt) + "%";
+            document.getElementById('progressBar').style.width = (progress * 100) + "%";
+            if(kmLeft) document.getElementById('distRem').innerText = kmLeft.toFixed(1) + " km";
+            if(batt < 20) document.getElementById('liveBatt').className = "text-2xl font-black text-red-600";
+        }
+
+        function rotateCar(curr, next) {
+            const bearing = getBearing(curr[0], curr[1], next[0], next[1]);
+            const sprite = document.getElementById('carSprite');
+            if(sprite) sprite.style.transform = `rotate(${bearing}deg)`;
+        }
+
+        function updateStatus(msg, color) {
+            document.getElementById('statusMsg').innerText = msg;
+            const icon = document.getElementById('gpsStatusIcon');
+            icon.className = "w-3 h-3 rounded-full transition-colors duration-300";
+            if(color === 'green') icon.classList.add('bg-green-500');
+            if(color === 'yellow') icon.classList.add('bg-yellow-500');
+            if(color === 'red') icon.classList.add('bg-red-500');
+            if(color === 'blue') icon.classList.add('bg-blue-500');
+            if(color === 'gray') icon.classList.add('bg-gray-300');
+        }
+
+        function stopNavigation() {
+            if (watchId) navigator.geolocation.clearWatch(watchId);
+            if (simTimer) clearTimeout(simTimer);
+            navMode = null;
+            lastRouteIndex = 0; // Reset index
+            document.getElementById('controls').classList.remove('hidden');
+            document.getElementById('stopBtn').classList.add('hidden');
+            document.getElementById('simControls').classList.add('hidden');
+            
+            // Clean UI Reset
+            document.getElementById('liveBatt').className = "text-2xl font-black text-green-600";
+            updateStatus("Ready", "gray");
+        }
+
+        function lockControls() {
+            document.getElementById('controls').classList.add('hidden');
+            document.getElementById('stopBtn').classList.remove('hidden');
+        }
+
+        function finishTrip() {
+            stopNavigation();
+            document.getElementById('summaryModal').classList.remove('hidden');
+        }
+
+        // Optimized Snapping (Window Search)
+        function findClosestPointWindow(lat, lng, route) {
+            const start = Math.max(0, lastRouteIndex - 50); // Look 50 points back
+            const end = Math.min(route.length - 1, lastRouteIndex + 50); // Look 50 points ahead
+
+            let minDist = Infinity, closest = [lat, lng], bestIdx = lastRouteIndex;
+            
+            for (let i = start; i <= end; i++) {
+                const p = route[i];
+                const d = getDistKm(lat, lng, p[0], p[1]);
+                if (d < minDist) { minDist = d; closest = p; bestIdx = i; }
+            }
+            lastRouteIndex = bestIdx; // Move window forward
+            return minDist < 0.5 ? closest : [lat, lng];
+        }
+
+        function getDistKm(lat1, lon1, lat2, lon2) {
+            const R = 6371; 
+            const dLat = (lat2-lat1)*Math.PI/180;
+            const dLon = (lon2-lon1)*Math.PI/180;
+            const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        function getBearing(lat1, lng1, lat2, lng2) {
+            const y = Math.sin((lng2-lng1)*Math.PI/180) * Math.cos(lat2*Math.PI/180);
+            const x = Math.cos(lat1*Math.PI/180)*Math.sin(lat2*Math.PI/180) - Math.sin(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.cos((lng2-lng1)*Math.PI/180);
+            return (Math.atan2(y, x)*180/Math.PI + 360) % 360;
+        }
+    </script>
+</body>
+</html>

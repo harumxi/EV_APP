@@ -1,115 +1,151 @@
 <?php
 class RouteService {
-    private $apiKey;
+    private string $orsKey;
 
-    public function __construct($keys) {
-        $this->apiKey = $keys['ors']['api_key'];
+    public function __construct(array $keys) {
+        $this->orsKey = $keys["ors"]["api_key"];
     }
 
-    // Helper: Strict GPS Parser
-    private function parseLatLng($location) {
-        $location = trim($location);
-        if (!preg_match('/^\s*(-?\d{1,2}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)\s*$/', $location, $m)) {
-            return null;
-        }
-        return [
-            'lat' => (float)$m[1],
-            'lng' => (float)$m[2],
-            'label' => "GPS Coordinates",
-            'confidence' => 1.0
-        ];
+    private function parseLatLng(string $text): ?array {
+        $text = trim($text);
+        if (!preg_match('/^\s*(-?\d{1,2}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)\s*$/', $text, $m)) return null;
+        $lat = (float)$m[1];
+        $lng = (float)$m[2];
+        if ($lat < -90 || $lat > 90 || $lng < -180 || $lng > 180) return null;
+        return ["lat" => $lat, "lng" => $lng, "label" => "GPS Coordinates", "confidence" => 1.0];
     }
 
-    // INTERNAL HELPER: Call API
-    private function fetchFromApi($query, $biasLat = null, $biasLng = null) {
-        $url = "https://api.openrouteservice.org/geocode/search?api_key=" . $this->apiKey . 
-               "&text=" . urlencode($query) . 
-               "&boundary.country=PH&size=1"; // Just get the top result
+    private function httpGetJson(string $url, array $headers = []): ?array {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 15,
+            CURLOPT_HTTPHEADER => $headers
+        ]);
+        $resp = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $err  = curl_error($ch);
+        curl_close($ch);
+
+        if ($resp === false || $code < 200 || $code >= 300) return null;
+        $json = json_decode($resp, true);
+        return is_array($json) ? $json : null;
+    }
+
+    // ✅ Main: typed text -> best coords (with origin bias + PH boundary)
+    public function geocode(string $query, ?float $biasLat = null, ?float $biasLng = null): ?array {
+        // GPS fast path
+        $gps = $this->parseLatLng($query);
+        if ($gps) return $gps;
+
+        $base = "https://api.openrouteservice.org/geocode/search";
+        $url = $base
+            . "?api_key=" . urlencode($this->orsKey)
+            . "&text=" . urlencode($query)
+            . "&boundary.country=PH"
+            . "&layers=venue,address,street"
+            . "&size=10";
 
         if ($biasLat !== null && $biasLng !== null) {
             $url .= "&focus.point.lat=" . $biasLat . "&focus.point.lon=" . $biasLng;
         }
 
-        $response = @file_get_contents($url);
-        if (!$response) return null;
-        $json = json_decode($response, true);
-        
-        if (!empty($json['features'])) {
-            $f = $json['features'][0];
-            return [
-                'lat' => $f['geometry']['coordinates'][1],
-                'lng' => $f['geometry']['coordinates'][0],
-                'label' => $f['properties']['label'],
-                'confidence' => $f['properties']['confidence'] ?? 0
-            ];
+        $data = $this->httpGetJson($url);
+        if (!$data || empty($data["features"])) return null;
+
+        $cleanQ = strtolower(preg_replace('/[^a-zA-Z0-9 ]/', ' ', $query));
+        $cleanQ = preg_replace('/\s+/', ' ', trim($cleanQ));
+        $words = array_values(array_filter(explode(' ', $cleanQ)));
+
+        // Context rules for PH common ambiguous places (Fairview vs Dasma etc.)
+        $mustHave = [];
+        $reject = [];
+
+        if (strpos($cleanQ, "fairview") !== false) {
+            $mustHave = ["fairview", "quezon", "qc", "novaliches", "lagro", "metro manila"];
+            $reject = ["cavite", "dasmari", "imus", "bacoor", "general trias", "gen tri"];
         }
-        return null;
-    }
 
-    // THE SMART GEOCODER (With Auto-Correction)
-    public function getCoordinates($location, $biasLat = null, $biasLng = null) {
-        // 1. Try GPS
-        $gps = $this->parseLatLng($location);
-        if ($gps) return $gps;
+        $best = null;
+        $bestScore = -1e9;
 
-        // 2. Perform Initial Search
-        $result = $this->fetchFromApi($location, $biasLat, $biasLng);
+        foreach ($data["features"] as $f) {
+            $p = $f["properties"] ?? [];
+            $label = strtolower($p["label"] ?? "");
+            $name  = strtolower($p["name"] ?? "");
+            $layer = strtolower($p["layer"] ?? "");
+            $conf  = (float)($p["confidence"] ?? 0);
 
-        // --- 3. AUTO-CORRECTION LOGIC (The Fix) ---
-        // Problem: User types "NU Fairview", Map returns "NU Manila".
-        // Fix: Detect this mismatch and search for a nearby landmark instead.
-        
-        if ($result) {
-            $userQuery = strtolower($location);
-            $foundAddress = strtolower($result['label']);
+            $score = $conf * 10;
 
-            // CHECK: Did user want "Fairview" but got "Manila"?
-            if (strpos($userQuery, 'fairview') !== false && strpos($foundAddress, 'manila') !== false) {
-                // FORCE RETRY: Search for "SM City Fairview" instead
-                // This is a known landmark right across the street from NU Fairview
-                $correction = $this->fetchFromApi("SM City Fairview, Quezon City", $biasLat, $biasLng);
-                if ($correction) {
-                    $correction['label'] = "National University Fairview (via SM Proxy)"; // Update label for user
-                    return $correction;
+            foreach ($reject as $bad) {
+                if (strpos($label, $bad) !== false) $score -= 1000;
+            }
+
+            if (!empty($mustHave)) {
+                $ok = false;
+                foreach ($mustHave as $need) {
+                    if (strpos($label, $need) !== false) { $ok = true; break; }
                 }
+                if (!$ok) $score -= 300;
+            }
+
+            foreach ($words as $w) {
+                if (strlen($w) < 3) continue;
+                if (strpos($label, $w) !== false) $score += 8;
+                else $score -= 1;
+            }
+
+            if ($cleanQ && strpos($label, $cleanQ) !== false) $score += 25;
+            if ($cleanQ && strpos($name, $cleanQ) !== false)  $score += 25;
+            if ($layer === "venue") $score += 10;
+
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $best = [
+                    "lng" => (float)$f["geometry"]["coordinates"][0],
+                    "lat" => (float)$f["geometry"]["coordinates"][1],
+                    "label" => $p["label"] ?? "Unknown",
+                    "confidence" => $conf
+                ];
             }
         }
 
-        return $result;
+        return $best;
     }
 
-    // Get Route Options
-    public function getRouteOptions($originCoords, $destCoords) {
+    public function directions(array $origin, array $dest): ?array {
         $url = "https://api.openrouteservice.org/v2/directions/driving-car";
+
         $body = json_encode([
-            "coordinates" => [[$originCoords['lng'], $originCoords['lat']], [$destCoords['lng'], $destCoords['lat']]],
-            "alternative_routes" => ["target_count" => 3],
-            "units" => "km",
-            "geometry" => "true"
+            "coordinates" => [
+                [$origin["lng"], $origin["lat"]],
+                [$dest["lng"], $dest["lat"]]
+            ],
+            "alternative_routes" => ["target_count" => 2],
+            "units" => "km"
         ]);
 
         $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json', 'Authorization: ' . $this->apiKey]);
-
-        $result = curl_exec($ch);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $body,
+            CURLOPT_TIMEOUT => 20,
+            CURLOPT_HTTPHEADER => [
+                "Content-Type: application/json",
+                "Authorization: " . $this->orsKey
+            ]
+        ]);
+        $resp = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
-        $data = json_decode($result, true);
-        
-        if (!isset($data['routes'])) return null;
 
-        $options = [];
-        foreach ($data['routes'] as $index => $route) {
-            $options[] = [
-                'id' => $index,
-                'distance_km' => $route['summary']['distance'],
-                'duration_min' => round($route['summary']['duration'] / 60),
-                'geometry' => $route['geometry']
-            ];
-        }
-        return $options;
+        if ($resp === false || $code !== 200) return null;
+
+        $json = json_decode($resp, true);
+        if (!isset($json["routes"])) return null;
+
+        return $json;
     }
 }
-?>

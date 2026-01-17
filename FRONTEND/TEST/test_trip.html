@@ -8,214 +8,357 @@
     <style>
         body { font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; margin: 0; background: #f4f4f4; }
         
-        /* Sidebar Styling */
-        #sidebar { width: 380px; padding: 20px; background: #fff; box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 1000; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
-        #map { flex-grow: 1; }
+        /* Sidebar Layout */
+        #sidebar { 
+            width: 380px; padding: 20px; background: #fff; box-shadow: 2px 0 10px rgba(0,0,0,0.1); 
+            z-index: 1000; display: flex; flex-direction: column; gap: 15px; 
+            position: relative;
+        }
+        
+        #scrollable-content { flex-grow: 1; overflow-y: auto; padding-right: 5px; }
+        #map { flex-grow: 1; z-index: 1; }
 
-        h2 { margin: 0; color: #333; }
-        p.subtitle { margin: 0 0 15px 0; font-size: 12px; color: #666; }
+        /* Weather Widget */
+        .weather-widget { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2); margin-bottom: 10px; }
+        .weather-info h3 { margin: 0 0 5px 0; font-size: 12px; opacity: 0.9; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; color: #dbeafe; }
+        .weather-temp { font-size: 32px; font-weight: bold; line-height: 1; }
+        .weather-desc { font-size: 14px; opacity: 0.9; margin-top: 2px; }
+        .weather-icon { font-size: 42px; }
+        .weather-loc { font-size: 11px; margin-top: 8px; display: flex; align-items: center; gap: 4px; opacity: 0.8; }
 
+        /* Form Elements */
         label { font-size: 12px; font-weight: bold; color: #555; margin-bottom: 5px; display: block; }
         .input-group { display: flex; gap: 5px; }
-        
         input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
         
         /* Buttons */
-        button { background: #00C853; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; margin-top: 5px; }
-        button:hover { background: #009624; }
-        button.secondary { background: #e0e0e0; color: #333; width: auto; white-space: nowrap; margin-top: 0; }
-        button.secondary:hover { background: #d5d5d5; }
+        .btn-main { background: #00C853; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; margin-top: 5px; width: 100%; }
+        .btn-main:hover { background: #009624; }
+        button.secondary { background: #e0e0e0; color: #333; width: auto; white-space: nowrap; margin-top: 0; padding: 12px; border: none; border-radius: 8px; cursor: pointer; }
 
         /* Route Cards */
-        .route-list { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
-        .route-card { background: white; border: 1px solid #eee; padding: 15px; border-radius: 10px; cursor: pointer; transition: 0.2s; position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .route-card:hover { border-color: #00C853; background: #f9fff9; }
+        .route-card { background: white; border: 1px solid #eee; padding: 15px; border-radius: 10px; cursor: pointer; transition: 0.2s; position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 10px; }
+        .route-card:hover { border-color: #00C853; transform: translateY(-2px); }
         .route-card.selected { border: 2px solid #00C853; background: #e8f5e9; }
-        
         .badge { position: absolute; top: -10px; right: 10px; background: #FF9800; color: white; font-size: 10px; font-weight: bold; padding: 4px 8px; border-radius: 12px; }
-        .badge.rec { background: #00C853; } /* Green for Recommended */
-
+        .badge.rec { background: #00C853; } 
         .big-stat { font-size: 18px; font-weight: bold; color: #333; margin-top: 5px; }
         .stat-row { display: flex; justify-content: space-between; margin-top: 8px; font-size: 13px; color: #555; }
+
+        /* Floating Start Button */
+        #startNavContainer {
+            display: none;
+            position: absolute; bottom: 20px; left: 20px; right: 20px;
+            background: white; padding-top: 10px; border-top: 1px solid #eee;
+        }
+        .btn-start {
+            background: #2563eb; color: white; width: 100%; padding: 15px;
+            border: none; border-radius: 12px; font-size: 16px; font-weight: bold;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); cursor: pointer;
+            display: flex; justify-content: center; align-items: center; gap: 8px;
+        }
+        .btn-start:hover { background: #1d4ed8; }
+
+        /* Layer Switcher Style */
+        .leaflet-control-layers { 
+            border-radius: 8px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2) !important; 
+            border: none !important;
+            padding: 6px !important;
+        }
+        .leaflet-control-layers-toggle { width: 44px !important; height: 44px !important; }
     </style>
 </head>
 <body>
 
     <div id="sidebar">
-        <h2>⚡ Trip Planner</h2>
-        <p class="subtitle">Smart Routing & Battery Prediction</p>
+        <div id="scrollable-content">
+            <h2>⚡ Trip Planner</h2>
+            <p class="subtitle" style="margin: 0 0 15px 0; font-size: 12px; color: #666;">Smart Routing & Battery Prediction</p>
 
-        <div>
-            <label>Start Location (Origin)</label>
-            <div class="input-group">
-                <input type="text" id="origin" placeholder="e.g. Luneta Park">
-                <button class="secondary" onclick="useMyLocation()" title="Use Current Location">📍</button>
+            <div class="weather-widget">
+                <div class="weather-info">
+                    <h3>Current Weather</h3>
+                    <div style="display: flex; align-items: baseline; gap: 8px;">
+                        <div class="weather-temp" id="weatherTemp">--°C</div>
+                        <div class="weather-desc" id="weatherDesc">Loading...</div>
+                    </div>
+                    <div class="weather-loc"><span>📍</span> <span id="weatherLoc">Locating...</span></div>
+                </div>
+                <div class="weather-icon" id="weatherIcon">⛅</div>
             </div>
+
+            <div>
+                <label>Start Location</label>
+                <div class="input-group">
+                    <input type="text" id="origin" placeholder="e.g. Luneta Park">
+                    <button class="secondary" onclick="useMyLocation()">📍</button>
+                </div>
+                <div id="gpsStatus" style="font-size: 11px; color: #dc2626; display: none; margin-top:5px;"></div>
+            </div>
+            
+            <div style="margin-top: 10px;">
+                <label>Destination</label>
+                <input type="text" id="destination" placeholder="e.g. National University Fairview">
+            </div>
+            
+            <div style="margin-top: 10px;">
+                <label>Current Battery (%)</label>
+                <input type="number" id="battery" value="80" min="1" max="100">
+            </div>
+
+            <button class="btn-main" onclick="calculateTrip()">🚀 Find Routes</button>
+            
+            <div id="routeList" class="route-list" style="margin-top: 20px; padding-bottom: 80px;"></div>
         </div>
 
-        <div>
-            <label>Destination</label>
-            <input type="text" id="destination" placeholder="e.g. National University Fairview">
+        <div id="startNavContainer">
+            <button class="btn-start" onclick="goToNavigation()">
+                <span>▶ Start Navigation</span>
+            </button>
         </div>
-
-        <div>
-            <label>Current Battery (%)</label>
-            <input type="number" id="battery" value="80">
-        </div>
-
-        <button onclick="calculateTrip()">🚀 Find Routes</button>
-
-        <div id="routeList" class="route-list"></div>
     </div>
 
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/@mapbox/polyline@1.2.0/src/polyline.js"></script>
+    
     <script>
-        // 1. Initialize Map (Default: Manila)
-        const map = L.map('map').setView([14.5995, 120.9842], 12); 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        // CONFIG
+        const BASE_URL = 'http://localhost/WEBPROG_PROJ/BACKEND/api';
 
-        let userLat = null;
-        let userLng = null;
-        let markers = []; // Store pins so we can remove them later
+        // --- 1. LAYERS ---
+        const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' });
+        
+        // Esri with maxNativeZoom to prevent blurring
+        const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { 
+            attribution: '© Esri', maxZoom: 19, maxNativeZoom: 18 
+        });
 
-        // 2. "Use My Location" Logic
+        const topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17, attribution: '© OpenTopoMap' });
+        const dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '© CartoDB', maxZoom: 19 });
+        const outdoors = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri', maxZoom: 19 });
+
+        // --- 2. MAP INIT ---
+        const map = L.map('map', {
+            center: [14.5995, 120.9842],
+            zoom: 12,
+            layers: [osm], 
+            zoomControl: false,
+            attributionControl: true // Important for free tiles
+        });
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+        L.control.layers({ 
+            "OpenStreetMap": osm, "Satellite": satellite, "Topography": topo, "Dark Mode": dark, "Outdoors": outdoors 
+        }).addTo(map);
+
+        // --- 3. GLOBALS ---
+        let userMarker = null; // Clean marker management
+        let destMarker = null;
+        let routeLayers = []; 
+        let selectedRouteData = null;
+
+        // --- 4. WEATHER (Dynamic) ---
+        async function loadWeather(lat = 14.5995, lng = 120.9842, label = "Manila, PH") {
+            try {
+                document.getElementById('weatherLoc').innerText = label;
+                const res = await fetch(`${BASE_URL}/WEATHER/current.php`, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, // Fix backend parsing
+                    body: JSON.stringify({ lat, lng }) 
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    document.getElementById('weatherTemp').innerText = data.weather.temp + "°C";
+                    document.getElementById('weatherDesc').innerText = data.weather.condition;
+                    document.getElementById('weatherIcon').innerText = data.weather.icon;
+                }
+            } catch (e) { document.getElementById('weatherDesc').innerText = "Offline"; }
+        }
+        loadWeather(); // Initial Load
+
+        // --- 5. LOCATION (Stable) ---
         function useMyLocation() {
             const btn = document.querySelector('.secondary');
-            btn.innerText = "⏳"; 
+            const statusBox = document.getElementById('gpsStatus');
+            btn.innerText = "⏳";
+            statusBox.style.display = 'none';
+
+            function setLoc(lat, lng, isDefault) {
+                // Update Inputs
+                document.getElementById('origin').value = `${lat}, ${lng}`;
+                btn.innerText = "📍";
+                
+                // Map View
+                map.setView([lat, lng], 15);
+
+                // Clean Marker Logic
+                if(userMarker) map.removeLayer(userMarker);
+                userMarker = L.marker([lat, lng]).addTo(map).bindPopup(isDefault ? "Default Location" : "You are here").openPopup();
+
+                // Update Weather to new location
+                loadWeather(lat, lng, isDefault ? "Manila, PH" : "Current Location");
+            }
 
             if (!navigator.geolocation) {
-                alert("Geolocation is not supported by your browser.");
+                setLoc(14.5995, 120.9842, true);
+                statusBox.innerText = "GPS Not Supported.";
+                statusBox.style.display = 'block';
                 return;
             }
 
             navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    userLat = position.coords.latitude;
-                    userLng = position.coords.longitude;
-                    
-                    // Fill input with coordinates
-                    document.getElementById('origin').value = `${userLat}, ${userLng}`;
+                (pos) => setLoc(pos.coords.latitude, pos.coords.longitude, false),
+                (err) => {
+                    console.warn(err);
+                    setLoc(14.5995, 120.9842, true);
+                    statusBox.innerText = "Location Denied. Using Default.";
+                    statusBox.style.display = 'block';
                     btn.innerText = "📍";
-                    
-                    // Move map and add Blue Pin
-                    map.setView([userLat, userLng], 15);
-                    L.marker([userLat, userLng]).addTo(map).bindPopup("<b>Start:</b> You are here").openPopup();
                 },
-                (error) => {
-                    alert("Unable to retrieve location. Please type it manually.");
-                    btn.innerText = "📍";
-                }
+                { enableHighAccuracy: true, timeout: 5000 }
             );
         }
 
-        // 3. MAIN FUNCTION: Calculate Trip
-        async function calculateTrip() {
-            const btn = document.querySelector('button[onclick="calculateTrip()"]');
-            const list = document.getElementById('routeList');
-            const originVal = document.getElementById('origin').value;
-            const destVal = document.getElementById('destination').value;
-            const battVal = document.getElementById('battery').value;
+        // --- 6. ROUTE DRAWING (Visible on Dark Maps) ---
+        function drawRouteOnMap(encodedString, color, index, isTop) {
+            try {
+                const points = polyline.decode(encodedString);
+                
+                // If inactive (not top), use White with low opacity for better visibility on Satellite/Dark
+                const finalColor = isTop ? color : '#ffffff'; 
+                const finalOpacity = isTop ? 1.0 : 0.6;
+                const finalWeight = isTop ? 8 : 5;
 
-            if(!originVal || !destVal) {
-                alert("Please enter Start and End locations.");
-                return;
-            }
+                const line = L.polyline(points, {
+                    color: finalColor, 
+                    weight: finalWeight, 
+                    opacity: finalOpacity, 
+                    lineCap: 'round', 
+                    lineJoin: 'round'
+                }).addTo(map);
+                
+                line.routeId = index;
+                if(isTop) line.bringToFront();
+                routeLayers.push(line);
+                if(index === 0) map.fitBounds(line.getBounds().pad(0.1));
+            } catch(e) { console.error("Line error", e); }
+        }
+
+        function highlightRouteOnMap(index) {
+            routeLayers.forEach(layer => {
+                if (layer.routeId === index) {
+                    layer.setStyle({ color: '#2563eb', weight: 8, opacity: 1.0 }); // Active Blue
+                    layer.bringToFront();
+                    map.fitBounds(layer.getBounds().pad(0.1));
+                } else {
+                    layer.setStyle({ color: '#ffffff', weight: 5, opacity: 0.6 }); // Inactive White (Visible on Dark)
+                }
+            });
+        }
+
+        async function calculateTrip() {
+            const btn = document.querySelector('.btn-main');
+            const list = document.getElementById('routeList');
+            const origin = document.getElementById('origin').value.trim();
+            const dest = document.getElementById('destination').value.trim();
+            const batt = parseInt(document.getElementById('battery').value);
+            const startBtnContainer = document.getElementById('startNavContainer');
+
+            // Validation
+            if(!origin || !dest) return alert("Please enter both locations.");
+            if(isNaN(batt) || batt < 1 || batt > 100) return alert("Battery must be between 1 and 100.");
 
             btn.innerText = "Calculating...";
-            list.innerHTML = ''; // Clear previous results
+            list.innerHTML = '';
+            startBtnContainer.style.display = 'none';
+            selectedRouteData = null;
+            
+            // Clear Old Data
+            if(destMarker) map.removeLayer(destMarker);
+            // We do NOT clear userMarker here, keep it for context
+            routeLayers.forEach(l => map.removeLayer(l)); routeLayers = [];
 
             try {
-                // --- API CALL ---
-                // IMPORTANT: Change 'WEBPROG_PROJ' to your actual folder name if different!
-                const res = await fetch('http://localhost/WEBPROG_PROJ/BACKEND/api/TRIPS/calculate.php', {
+                const res = await fetch(`${BASE_URL}/TRIPS/calculate.php`, {
                     method: 'POST',
-                    body: JSON.stringify({
-                        user_id: 1, // Test User ID
-                        origin: originVal,
-                        destination: destVal,
-                        battery_percent: battVal
-                    })
+                    headers: { 'Content-Type': 'application/json' }, // Header Fix
+                    body: JSON.stringify({ user_id: 1, origin, destination: dest, battery_percent: batt })
                 });
+                
+                // Check if the request itself failed (404/500/CORS)
+                if (!res.ok) throw new Error(`Server Error: ${res.status}`);
 
                 const data = await res.json();
                 btn.innerText = "🚀 Find Routes";
 
-                if (!data.ok) {
-                    alert("Error: " + data.error);
-                    return;
-                }
+                if (!data.ok) return alert(data.error);
 
-                // --- MAP UPDATES ---
-                
-                // 1. Remove old markers
-                markers.forEach(m => map.removeLayer(m));
-                markers = [];
-
-                // 2. Add Destination Pin (Red)
+                // Add Destination Marker
                 if (data.destination_coords) {
                     const dLat = data.destination_coords.lat;
                     const dLng = data.destination_coords.lng;
-                    const destLabel = data.destination_label; // Correct Label from Backend
-
-                    const destPin = L.marker([dLat, dLng]).addTo(map)
-                        .bindPopup(`<b>Destination Found:</b><br>${destLabel}`).openPopup();
-                    markers.push(destPin);
-
-                    // 3. Add Origin Pin (if we have it)
-                    if (userLat && userLng) {
-                        const startPin = L.marker([userLat, userLng]).addTo(map).bindPopup("<b>Start:</b> You");
-                        markers.push(startPin);
-                        
-                        // Zoom map to show both start and end
-                        const group = new L.featureGroup(markers);
-                        map.fitBounds(group.getBounds().pad(0.2));
-                    } else {
-                        // Just zoom to destination
-                        map.setView([dLat, dLng], 13);
-                    }
+                    const redIcon = new L.Icon({
+                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                        iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+                    });
+                    
+                    if(destMarker) map.removeLayer(destMarker);
+                    destMarker = L.marker([dLat, dLng], {icon: redIcon}).addTo(map).bindPopup("Destination").openPopup();
                 }
 
-                // --- UI UPDATES (Route Cards) ---
-                
+                // Render Routes
                 if (data.routes && data.routes.length > 0) {
                     data.routes.forEach((route, index) => {
-                        const isRec = route.recommended;
-                        
-                        // Create Card HTML
+                        // 1. Draw Map Lines (First one is Active Blue, others White)
+                        drawRouteOnMap(route.geometry, '#2563eb', index, index === 0);
+
+                        // 2. Default Selection
+                        if (index === 0) {
+                            selectedRouteData = { route, car: data.car, destLabel: data.destination_label || dest };
+                            startBtnContainer.style.display = 'block';
+                        }
+
+                        // 3. Create Card
                         const card = document.createElement('div');
+                        const isRec = index === 0;
                         card.className = `route-card ${isRec ? 'selected' : ''}`;
                         card.innerHTML = `
-                            ${isRec ? '<div class="badge rec">⭐ HIGHLY RECOMMENDED</div>' : '<div class="badge">ALTERNATIVE</div>'}
+                            ${isRec ? '<div class="badge rec">RECOMMENDED</div>' : '<div class="badge" style="background:#999">ALTERNATIVE</div>'}
                             <div class="big-stat">${route.distance_km} km <small>(${route.duration_min} min)</small></div>
                             <div class="stat-row">
                                 <span>🔋 Cost: <b>${route.est_usage}%</b></span>
-                                <span>⚡ Left: <b>${route.end_battery}%</b></span>
-                            </div>
-                            <div style="font-size:11px; color:#999; margin-top:5px;">
-                                ${route.feasible ? '✅ Trip Possible' : '⚠️ Charge Needed'}
+                                <span>⚡ End: <b>${route.end_battery}%</b></span>
                             </div>
                         `;
-                        
-                        // Click Event (Selection logic)
+
                         card.onclick = () => {
                             document.querySelectorAll('.route-card').forEach(c => c.classList.remove('selected'));
                             card.classList.add('selected');
-                            // In the future: Draw this specific route line on the map
-                        };
+                            highlightRouteOnMap(index);
 
+                            selectedRouteData = { route, car: data.car, destLabel: data.destination_label || dest };
+                            startBtnContainer.style.display = 'block';
+                        };
                         list.appendChild(card);
                     });
-                } else {
-                    list.innerHTML = '<p style="padding:10px;">No routes found.</p>';
-                }
 
-            } catch (err) {
-                console.error(err);
-                alert("Server Connection Error. Check console (F12).");
-                btn.innerText = "🚀 Find Routes";
+                    // Scroll to results so user sees them
+                    list.scrollIntoView({ behavior: 'smooth' });
+                }
+            } catch (err) { 
+                console.error(err); 
+                alert("Connection Error. Please check Console (F12) for CORS or PHP errors."); 
+                btn.innerText = "🚀 Find Routes"; 
             }
+        }
+
+        function goToNavigation() {
+            if (!selectedRouteData) return alert("Please select a route first.");
+            localStorage.setItem('activeTrip', JSON.stringify(selectedRouteData));
+            window.location.href = 'test_navigation.html';
         }
     </script>
 </body>

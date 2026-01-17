@@ -1,47 +1,76 @@
 <?php
-// === CRITICAL CORS HEADERS ===
-// Allow ANY origin (like your Live Server at 127.0.0.1:5500) to connect
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Headers: Content-Type");
-header("Content-Type: application/json");
+/* ===========================
+   BACKEND/api/AUTH/register.php
+   Full working file:
+   - Strong password rules
+   - Uses users(username,email,password_hash)
+   =========================== */
 
-// Handle Preflight (Browser checks permission before sending data)
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type");
+header("Content-Type: application/json; charset=UTF-8");
+
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
+    http_response_code(204);
+    exit;
+}
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['ok' => false, 'error' => 'Method not allowed']);
     exit;
 }
 
 require_once __DIR__ . '/../../CORE/Database.php';
 
-// 1. Read Input
-$input = json_decode(file_get_contents('php://input'), true);
+$input = json_decode(file_get_contents('php://input'), true) ?? [];
+$name = trim($input['name'] ?? '');
+$email = trim($input['email'] ?? '');
+$password = $input['password'] ?? '';
 
-if (!isset($input['name'], $input['email'], $input['password'])) {
+if ($name === '' || $email === '' || $password === '') {
+    http_response_code(400);
     echo json_encode(['ok' => false, 'error' => 'All fields (name, email, password) are required']);
+    exit;
+}
+
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    http_response_code(400);
+    echo json_encode(['ok' => false, 'error' => 'Invalid email format']);
+    exit;
+}
+
+// Strong password: 8+ chars, 1 uppercase, 1 number, 1 special
+if (!preg_match('/^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/', $password)) {
+    http_response_code(400);
+    echo json_encode(['ok' => false, 'error' => 'Password must be 8+ chars and include 1 uppercase, 1 number, and 1 special character.']);
     exit;
 }
 
 try {
     $db = Database::conn();
 
-    // 2. Check for Duplicate Email
-    $check = $db->prepare("SELECT user_id FROM users WHERE email = ?");
-    $check->execute([$input['email']]);
+    $check = $db->prepare("SELECT user_id FROM users WHERE email = ? LIMIT 1");
+    $check->execute([$email]);
     if ($check->fetch()) {
+        http_response_code(409);
         echo json_encode(['ok' => false, 'error' => 'Email already registered.']);
         exit;
     }
 
-    // 3. Hash Password
-    $hashed = password_hash($input['password'], PASSWORD_DEFAULT);
+    $hashed = password_hash($password, PASSWORD_DEFAULT);
 
-    // 4. Insert User (This works now because you added the 'username' column!)
     $stmt = $db->prepare("INSERT INTO users (username, email, password_hash, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())");
-    $stmt->execute([$input['name'], $input['email'], $hashed]);
+    $stmt->execute([$name, $email, $hashed]);
 
-    echo json_encode(['ok' => true, 'message' => 'Your account has been successfully created.']);
+    http_response_code(201);
+    echo json_encode([
+        'ok' => true,
+        'message' => 'Your account has been successfully created.',
+        'user_id' => (int)$db->lastInsertId()
+    ]);
 
-} catch (Exception $e) {
-    echo json_encode(['ok' => false, 'error' => 'Database Error: ' . $e->getMessage()]);
+} catch (Throwable $e) {
+    http_response_code(500);
+    echo json_encode(['ok' => false, 'error' => 'Database Error']);
 }
-?>

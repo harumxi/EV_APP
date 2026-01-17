@@ -1,48 +1,74 @@
 <?php
 header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json");
+header("Access-Control-Allow-Headers: Content-Type, X-Api-Key");
+header("Access-Control-Allow-Methods: POST, OPTIONS");
+header("Content-Type: application/json; charset=UTF-8");
 
-$keyPath = __DIR__ . '/../../CONFIG/api_keys.php';
-if (!file_exists($keyPath)) exit(json_encode([]));
-$keys = require $keyPath;
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(204); exit; }
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); echo json_encode(['ok'=>false,'error'=>'Method not allowed']); exit; }
 
-$input = json_decode(file_get_contents('php://input'), true);
-$query = $input['search'] ?? '';
+require_once __DIR__ . '/../../CORE/Database.php';
+$keys = require __DIR__ . '/../../CONFIG/api_keys.php';
 
-if (!$query) exit(json_encode([]));
+$input = json_decode(file_get_contents("php://input"), true) ?? [];
+$q = trim($input['search'] ?? '');
 
-$apiKey = $keys['api_ninjas']['api_key'];
-$baseUrl = $keys['api_ninjas']['base_url'];
+if ($q === '') { echo json_encode(['ok'=>true,'results'=>[]]); exit; }
 
-// STRATEGY 1: Search as "Make" (e.g., "BYD", "Tesla")
-$urlMake = $baseUrl . "?make=" . urlencode($query);
-$ch1 = curl_init($urlMake);
-curl_setopt($ch1, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch1, CURLOPT_HTTPHEADER, ["X-Api-Key: " . $apiKey]);
-$resMake = json_decode(curl_exec($ch1), true);
-curl_close($ch1);
+try {
+    // --- Call API Ninjas EV endpoint ---
+    $base = $keys['api_ninjas']['base_url'];
+    $apiKey = $keys['api_ninjas']['api_key'];
 
-// STRATEGY 2: Search as "Model" (e.g., "Han", "Civic")
-$urlModel = $baseUrl . "?model=" . urlencode($query);
-$ch2 = curl_init($urlModel);
-curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch2, CURLOPT_HTTPHEADER, ["X-Api-Key: " . $apiKey]);
-$resModel = json_decode(curl_exec($ch2), true);
-curl_close($ch2);
+    // API supports: make, model, year (not full-text)
+    // We'll treat the input as a loose query:
+    // - if input has 2 words: 1st=make, rest=model
+    $parts = preg_split('/\s+/', $q);
+    $make = $parts[0] ?? '';
+    $model = (count($parts) > 1) ? implode(' ', array_slice($parts, 1)) : '';
 
-// Merge results (remove duplicates)
-$allCars = array_merge($resMake ?? [], $resModel ?? []);
-$uniqueCars = [];
-$seen = [];
+    $url = $base . "?make=" . urlencode($make);
+    if ($model) $url .= "&model=" . urlencode($model);
 
-foreach ($allCars as $car) {
-    // Create a unique ID to prevent duplicates (e.g. "BYD|Tang|2023")
-    $id = $car['make'] . '|' . $car['model'] . '|' . ($car['year'] ?? '0');
-    if (!in_array($id, $seen)) {
-        $seen[] = $id;
-        $uniqueCars[] = $car;
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => [
+            "X-Api-Key: $apiKey"
+        ],
+        CURLOPT_TIMEOUT => 10
+    ]);
+
+    $resp = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if (!$resp || $code >= 400) {
+        http_response_code(500);
+        echo json_encode(['ok'=>false,'error'=>'API Ninjas error. Check API key or endpoint.']);
+        exit;
     }
-}
 
-echo json_encode($uniqueCars);
-?>
+    $cars = json_decode($resp, true);
+    if (!is_array($cars)) $cars = [];
+
+    // Normalize results for frontend
+    $results = [];
+    foreach ($cars as $c) {
+        $results[] = [
+            'make' => $c['make'] ?? '',
+            'model' => $c['model'] ?? '',
+            'variant' => $c['trim'] ?? ($c['variant'] ?? 'Standard'),
+            'battery_kwh' => (float)($c['battery_capacity'] ?? ($c['battery_capacity_kwh'] ?? 0)),
+            'eff_wh_km' => (float)($c['efficiency_wh_per_km'] ?? 0),
+            'drive_mode' => $c['drivetrain'] ?? null,
+            'raw' => $c
+        ];
+    }
+
+    echo json_encode(['ok'=>true,'results'=>$results]);
+
+} catch (Throwable $e) {
+    http_response_code(500);
+    echo json_encode(['ok'=>false,'error'=>'Server error']);
+}
