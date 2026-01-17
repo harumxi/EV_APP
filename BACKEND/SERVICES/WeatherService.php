@@ -1,31 +1,41 @@
 <?php
 class WeatherService {
     
-    // Open-Meteo is free and needs no key!
+    // Open-Meteo API (Free, No Key)
     private $baseUrl = "https://api.open-meteo.com/v1/forecast";
 
     public function getWeather($lat, $lng) {
-        // We request current weather: temperature and weathercode
         $url = $this->baseUrl . "?latitude=" . $lat . "&longitude=" . $lng . "&current_weather=true";
 
-        // Fetch data
-        $response = @file_get_contents($url);
+        // 1. USE cURL INSTEAD OF file_get_contents
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
         
-        if (!$response) {
-            // Fallback if API fails
-            return [
-                'temp' => '--',
-                'condition' => 'Unknown',
-                'icon' => '❓'
-            ];
+        // 2. TIMEOUT SETTINGS (Prevents infinite loading)
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3); // Wait only 3 seconds for connection
+        curl_setopt($ch, CURLOPT_TIMEOUT, 5);        // Wait only 5 seconds for data
+        curl_setopt($ch, CURLOPT_USERAGENT, "EV_Student_Project/1.0");
+        
+        // 3. DISABLE SSL CHECKS (Crucial for XAMPP localhost)
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        // 4. Handle Errors
+        if (!$response || $httpCode >= 400) {
+            return $this->fallback();
         }
 
         $data = json_decode($response, true);
         $current = $data['current_weather'] ?? null;
 
-        if (!$current) return null;
+        if (!$current) return $this->fallback();
 
-        // Interpret WMO Weather Codes
+        // 5. Success! Format the data
         $code = $current['weathercode'];
         $condition = $this->getConditionText($code);
         
@@ -36,29 +46,24 @@ class WeatherService {
         ];
     }
 
-    // Helper: Convert WMO codes to human text/icons
-    private function getConditionText($code) {
-        // 0: Clear sky
-        if ($code === 0) return ['text' => 'Clear Sky', 'icon' => '☀️'];
-        
-        // 1, 2, 3: Mainly clear, partly cloudy, and overcast
-        if ($code <= 3) return ['text' => 'Partly Cloudy', 'icon' => '⛅'];
-        
-        // 45, 48: Fog
-        if ($code <= 48) return ['text' => 'Foggy', 'icon' => '🌫️'];
-        
-        // 51-67: Drizzle / Rain
-        if ($code <= 67) return ['text' => 'Rainy', 'icon' => '🌧️'];
-        
-        // 71-77: Snow
-        if ($code <= 77) return ['text' => 'Snow', 'icon' => '❄️'];
-        
-        // 80-82: Rain showers
-        if ($code <= 82) return ['text' => 'Showers', 'icon' => '🌦️'];
-        
-        // 95-99: Thunderstorm
-        if ($code <= 99) return ['text' => 'Thunderstorm', 'icon' => '⚡'];
+    // Default values if API fails
+    private function fallback() {
+        return [
+            'temp' => '--',
+            'condition' => 'Offline',
+            'icon' => '⚠️'
+        ];
+    }
 
+    // Convert WMO codes to text/icons
+    private function getConditionText($code) {
+        if ($code === 0) return ['text' => 'Clear Sky', 'icon' => '☀️'];
+        if ($code <= 3) return ['text' => 'Partly Cloudy', 'icon' => '⛅'];
+        if ($code <= 48) return ['text' => 'Foggy', 'icon' => '🌫️'];
+        if ($code <= 67) return ['text' => 'Rainy', 'icon' => '🌧️'];
+        if ($code <= 77) return ['text' => 'Snow', 'icon' => '❄️'];
+        if ($code <= 82) return ['text' => 'Showers', 'icon' => '🌦️'];
+        if ($code <= 99) return ['text' => 'Thunderstorm', 'icon' => '⚡'];
         return ['text' => 'Unknown', 'icon' => '🌡️'];
     }
 }

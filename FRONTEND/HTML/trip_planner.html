@@ -9,104 +9,66 @@
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
-    body { margin:0; height:100vh; overflow:hidden; background:#f3f4f6; }
-    #map { height:100vh; width:100%; }
+    body { margin:0; height:100vh; overflow:hidden; background:#f3f4f6; font-family: 'Segoe UI', sans-serif; }
+    #map { height:100vh; width:100%; z-index: 0; }
 
-    .sidebar {
-      width: 420px;
-      max-width: 92vw;
-      height: calc(100vh - 24px);
-      margin: 12px;
-      background: rgba(255,255,255,0.98);
-      border-radius: 22px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.18);
-      overflow: hidden;
-      z-index: 999;
-      position: absolute;
-      top: 0;
-      left: 0;
-      display: flex;
-      flex-direction: column;
+    /* Sidebar Styling */
+    .sidebar{
+      width:420px; max-width:92vw; height:calc(100vh - 24px);
+      margin:12px; background:rgba(255,255,255,0.98);
+      border-radius:22px; box-shadow:0 20px 60px rgba(0,0,0,0.18);
+      overflow:hidden; z-index:999; position:absolute; top:0; left:0;
+      display:flex; flex-direction:column;
     }
-    .scroll { overflow:auto; padding: 18px; }
+    .scroll{ overflow:auto; padding:18px; }
+    
+    /* Route Cards */
+    .route-card{ border:1px solid #e5e7eb; border-radius:16px; padding:14px; cursor:pointer; transition:.15s; background:#fff; margin-bottom: 10px; }
+    .route-card:hover{ transform: translateY(-1px); border-color:#60a5fa; }
+    .route-card.selected{ border:2px solid #2563eb; background:#eff6ff; }
+    
+    /* Badges */
+    .badge{ font-size:10px; font-weight:800; letter-spacing:.08em; padding:4px 8px; border-radius:999px; }
+    .badge.rec{ background:#16a34a; color:white; }
+    .badge.alt{ background:#6b7280; color:white; }
+    .chip{ padding:6px 10px; border-radius:999px; background:#f3f4f6; font-size:12px; font-weight:700; color:#374151; }
 
-    .route-card { border:1px solid #e5e7eb; border-radius: 16px; padding: 14px; cursor:pointer; transition:.15s; background:#fff; }
-    .route-card:hover { transform: translateY(-1px); border-color:#60a5fa; }
-    .route-card.selected { border:2px solid #2563eb; background:#eff6ff; }
-
-    .badge { font-size:10px; font-weight:800; letter-spacing:.08em; padding:4px 8px; border-radius:999px; }
-    .badge.rec { background:#16a34a; color:white; }
-    .badge.alt { background:#6b7280; color:white; }
-
-    .chip { padding:6px 10px; border-radius: 999px; background:#f3f4f6; font-size: 12px; font-weight: 700; color:#374151; }
-
-    .weatherBox {
+    /* Weather Widget */
+    .weatherBox{
       background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-      color: white;
-      border-radius: 18px;
-      padding: 16px;
-      display:flex;
-      justify-content: space-between;
-      align-items:center;
-      box-shadow: 0 12px 30px rgba(37,99,235,.25);
-      margin-bottom: 12px;
+      color:white; border-radius:18px; padding:16px;
+      display:flex; justify-content:space-between; align-items:center;
+      box-shadow:0 12px 30px rgba(37,99,235,.25); margin-bottom:12px;
     }
 
-    /* Leaflet layer switcher styling (better UX) */
-    .leaflet-control-layers{
-      border-radius: 14px !important;
-      box-shadow: 0 12px 30px rgba(0,0,0,0.22) !important;
-      border: 1px solid rgba(0,0,0,0.08) !important;
-      overflow: hidden;
+    /* Toast Notification */
+    #toast{
+      position:absolute; right:14px; bottom:14px; z-index:1200;
+      background:rgba(17,24,39,.95); color:white;
+      padding:10px 12px; border-radius:12px; font-weight:800; font-size:12px;
+      box-shadow:0 12px 30px rgba(0,0,0,.25);
+      opacity:0; transform: translateY(10px);
+      transition:.2s;
+      pointer-events:none;
     }
-    .leaflet-control-layers-expanded{
-      padding: 10px 12px !important;
-    }
+    #toast.show{ opacity:1; transform: translateY(0); }
 
-    /* small toast */
-    #toast {
-      position: fixed;
-      bottom: 18px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(17,24,39,0.92);
-      color: #fff;
-      padding: 10px 14px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 700;
-      z-index: 5000;
-      display: none;
-      box-shadow: 0 12px 30px rgba(0,0,0,0.25);
-    }
+    /* Suggestion Dropdown */
+    .suggestBox{ border:1px solid #e5e7eb; border-radius:14px; overflow:hidden; background:white; }
+    .suggestItem{ width:100%; text-align:left; padding:10px 12px; border-bottom:1px solid #f3f4f6; }
+    .suggestItem:last-child{ border-bottom:none; }
+    .suggestItem:hover{ background:#f9fafb; }
 
-    /* mobile: allow collapse sidebar */
-    #togglePanelBtn {
-      position: absolute;
-      top: 14px;
-      left: 14px;
-      z-index: 1200;
-      display: none;
-    }
-    @media (max-width: 768px){
-      .sidebar { width: calc(100vw - 24px); }
-      #togglePanelBtn { display: block; }
-      .sidebar.collapsed { transform: translateX(calc(-100% - 18px)); transition: .2s ease; }
-      .sidebar { transition: .2s ease; }
-    }
+    /* Remove default Leaflet DivIcon box */
+    .leaflet-div-icon { background: transparent; border: none; }
   </style>
 </head>
+
 <body>
-
 <div id="map"></div>
+<div id="toast"></div>
 
-<!-- Mobile toggle -->
-<button id="togglePanelBtn"
-  class="px-3 py-2 rounded-xl bg-white/90 backdrop-blur border border-gray-200 shadow-lg text-sm font-black">
-  ☰ Panel
-</button>
-
-<div class="sidebar" id="sidebar">
+<div class="sidebar">
   <div class="scroll">
     <div class="flex items-start justify-between gap-3">
       <div>
@@ -117,7 +79,6 @@
               onclick="logout()">Logout</button>
     </div>
 
-    <!-- Weather -->
     <div class="weatherBox mt-4">
       <div>
         <div class="text-xs font-extrabold uppercase tracking-wider text-blue-100">Current Weather</div>
@@ -130,14 +91,13 @@
       <div class="text-4xl" id="weatherIcon">⛅</div>
     </div>
 
-    <!-- Form -->
     <div class="space-y-3">
       <div>
         <label class="text-xs font-extrabold text-gray-600 uppercase tracking-wider">Start Location</label>
         <div class="flex gap-2 mt-1">
           <input id="origin"
                  class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                 placeholder="e.g. 14.5995, 120.9842 or SM Fairview"/>
+                 placeholder="e.g. Margaret Home Bulacan"/>
           <button class="px-3 py-3 rounded-xl bg-gray-100 hover:bg-gray-200 font-bold"
                   onclick="useMyLocation()" title="Use my GPS">📍</button>
         </div>
@@ -148,379 +108,352 @@
         <label class="text-xs font-extrabold text-gray-600 uppercase tracking-wider">Destination</label>
         <input id="destination"
                class="w-full mt-1 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-               placeholder="e.g. National University Fairview, Quezon City"/>
+               placeholder="e.g. National University Fairview"/>
         <div class="text-[11px] text-gray-500 mt-1">
-          Tip: add “Quezon City” / “Bulacan” if there are multiple branches.
+          Type slowly to see suggestions.
         </div>
+        <div id="destSuggest" class="mt-2 hidden suggestBox"></div>
       </div>
 
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="text-xs font-extrabold text-gray-600 uppercase tracking-wider">Current Battery (%)</label>
-          <input id="battery" type="number" min="1" max="100"
-                 class="w-full mt-1 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                 value="80"/>
-        </div>
-        <div>
-          <label class="text-xs font-extrabold text-gray-600 uppercase tracking-wider">User ID</label>
-          <input id="userId"
-                 class="w-full mt-1 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                 value=""
-                 placeholder="Auto"/>
-        </div>
+      <div>
+        <label class="text-xs font-extrabold text-gray-600 uppercase tracking-wider">Current Battery (%)</label>
+        <input id="battery" type="number" min="1" max="100"
+               class="w-full mt-1 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+               value="80"/>
       </div>
 
       <button id="calcBtn"
-              class="w-full mt-1 py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-black shadow-lg">
+              class="w-full mt-1 py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-black shadow-lg transition-all active:scale-95">
         🚀 Find Routes
       </button>
-
-      <div class="text-[11px] text-gray-500">
-        Map style switcher is on the <b>top-right</b> of the map.
-      </div>
     </div>
 
-    <!-- Route list -->
     <div class="mt-5">
       <div class="flex items-center justify-between">
         <div class="text-sm font-black text-gray-900">Routes</div>
         <div class="text-xs font-bold text-gray-500" id="debugLine"></div>
       </div>
-      <div id="routeList" class="mt-3 space-y-3">
+      <div id="routeList" class="mt-3">
         <div class="text-sm text-gray-500">No routes yet. Enter origin/destination.</div>
       </div>
     </div>
 
-    <!-- Start nav -->
     <div id="startWrap" class="mt-4 hidden">
       <button class="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black shadow-lg"
               onclick="startNavigation()">
         ▶ Start Navigation
       </button>
       <div class="text-[11px] text-gray-500 mt-2">
-        Saves selected route to <b>localStorage.activeTrip</b> and opens <b>test_navigation.html</b>.
+        Saves route to <b>localStorage</b> and launches <b>test_navigation.html</b>.
       </div>
     </div>
 
     <div class="mt-6 text-xs text-gray-400">
-      If you get “Connection Error”, check XAMPP Apache is running and your backend CORS headers include
-      <b>Access-Control-Allow-Headers: Content-Type</b>.
+      System Status: API Connected
     </div>
   </div>
 </div>
 
-<div id="toast"></div>
+<input type="hidden" id="origLat"><input type="hidden" id="origLng">
+<input type="hidden" id="destLat"><input type="hidden" id="destLng">
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/@mapbox/polyline@1.2.0/src/polyline.js"></script>
 
 <script>
-  // ✅ change if your folder name differs in htdocs
-  const BASE_API = "http://localhost/WEBPROG_PROJ/BACKEND/api";
+  // 1. CONFIG
+  const BASE_API = "http://localhost/WEBPROG_PROJ/BACKEND/API";
 
-  // ---- Auth ----
+  // 2. Auth Check
   const currentUser = JSON.parse(localStorage.getItem("currentUser") || "null");
-  if (!currentUser || !currentUser.id) window.location.href = "login.html";
-
-  document.getElementById("who").innerText = `Logged in as: ${currentUser.email || "User"} (ID ${currentUser.id})`;
-  document.getElementById("userId").value = currentUser.id;
+  document.getElementById("who").innerText = `Logged in as: ${currentUser?.email || "Guest"} (ID ${currentUser?.id || 1})`;
 
   function logout(){
     localStorage.removeItem("currentUser");
     window.location.href = "login.html";
   }
 
-  // ---- UX helpers ----
+  // 3. Helpers
   function toast(msg){
     const t = document.getElementById("toast");
     t.textContent = msg;
-    t.style.display = "block";
-    clearTimeout(window.__toastTimer);
-    window.__toastTimer = setTimeout(() => t.style.display = "none", 2200);
+    t.classList.add("show");
+    setTimeout(()=>t.classList.remove("show"), 2200);
   }
 
-  // mobile panel toggle
-  const sidebar = document.getElementById("sidebar");
-  document.getElementById("togglePanelBtn").addEventListener("click", () => {
-    sidebar.classList.toggle("collapsed");
-  });
-
-  // allow Enter key to calculate
-  ["origin","destination","battery"].forEach(id => {
-    document.getElementById(id).addEventListener("keydown", (e) => {
-      if (e.key === "Enter") calculateTrip();
-    });
-  });
-
-  // ---- Fetch helper ----
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}));
+  }
+  
   async function postJSON(url, payload){
     const res = await fetch(url, {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify(payload)
+      method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(payload)
     });
-
     const raw = await res.text();
     let data = null;
-    try { data = JSON.parse(raw); } catch {}
-
-    if (!data) {
-      console.error("NOT JSON:", raw);
-      throw new Error("Backend not JSON. Check PHP errors + endpoint path.");
-    }
+    try { data = JSON.parse(raw); } catch { console.error("Bad JSON:", raw); }
+    if (!data) throw new Error("Server Error: Response was not valid JSON.");
     if (!res.ok || data.ok === false) throw new Error(data.error || `Request failed (${res.status})`);
     return data;
   }
 
-  // ---- Map + Layer Switcher (like your screenshot) ----
-  const map = L.map("map", { zoomControl: false }).setView([14.5995,120.9842], 11);
-
-  const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 });
-  const satellite = L.tileLayer(
-    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    { maxZoom: 19, attribution: "© Esri" }
-  );
-  const topo = L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", { maxZoom: 17, attribution: "© OpenTopoMap" });
-  const dark = L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", { maxZoom: 19, attribution: "© CARTO" });
-  const outdoors = L.tileLayer(
-    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
-    { maxZoom: 19, attribution: "© Esri" }
-  );
-  const cyclosm = L.tileLayer("https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png", {
-    maxZoom: 20,
-    attribution: "© CyclOSM"
-  });
-
-  osm.addTo(map);
-
-  L.control.zoom({ position: "bottomright" }).addTo(map);
-
-  const baseMaps = {
-    "OpenStreetMap": osm,
-    "Satellite imagery": satellite,
-    "Topography": topo,
-    "Transport Dark": dark,
-    "Outdoors": outdoors,
-    "Cyclosm": cyclosm
-  };
-
-  // ✅ This makes the visible radio-list box
-  L.control.layers(baseMaps, null, { position: "topright", collapsed: false }).addTo(map);
-
-  // ---- Map state ----
-  let routeLayers = [];
-  let markers = [];
-  let selectedRoute = null;  // { route, car, destLabel }
-  let lastRoutes = [];
-
-  function clearMap(){
-    routeLayers.forEach(l => map.removeLayer(l));
-    markers.forEach(m => map.removeLayer(m));
-    routeLayers = [];
-    markers = [];
+  function parseLatLng(text){
+    const m = text.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+    return m ? { lat:Number(m[1]), lng:Number(m[2]) } : null;
   }
 
-  function drawRoute(encoded, isTop, idx){
+  // 4. Map & Layers
+  const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" });
+  const satellite = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "© Esri" });
+  const dark = L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", { maxZoom: 19, attribution: "© CartoDB" });
+  const outdoors = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "© Esri" });
+
+  const map = L.map("map", { zoomControl:false, layers:[osm] }).setView([14.5995,120.9842], 11);
+  L.control.zoom({ position:"bottomright" }).addTo(map);
+
+  L.control.layers({
+    "OpenStreetMap": osm,
+    "Satellite": satellite,
+    "Dark Mode": dark,
+    "Outdoors": outdoors
+  }, null, { position:"topright", collapsed:false }).addTo(map);
+
+  // 5. Route Management Globals
+  let routeLayers = [];
+  let originMarker = null;
+  let destMarker = null;
+  let selectedRoute = null;
+
+  function clearRoutesOnly(){
+    routeLayers.forEach(l => map.removeLayer(l));
+    routeLayers = [];
+  }
+
+  // 6. Markers (Pins)
+  function addMarker(lat, lng, label, isStart){
+    const color = isStart ? '#16a34a' : '#dc2626'; 
+    const svgIcon = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:100%; height:100%; filter: drop-shadow(0 3px 3px rgba(0,0,0,0.5));">
+        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+        <circle cx="12" cy="9" r="2.5" fill="white"/>
+      </svg>`;
+
+    const icon = L.divIcon({
+        className: 'custom-pin-icon',
+        html: svgIcon,
+        iconSize: [40, 40],
+        iconAnchor: [20, 40],
+        popupAnchor: [0, -40]
+    });
+
+    const m = L.marker([lat, lng], {icon: icon}).addTo(map).bindPopup(label);
+    if(isStart) m.setZIndexOffset(1000); 
+    return m;
+  }
+
+  function drawRoute(encoded, isSelected, idx){
     const pts = polyline.decode(encoded);
-    const line = L.polyline(pts, {
-      color: isTop ? "#2563eb" : "#9ca3af",
-      weight: isTop ? 8 : 5,
-      opacity: isTop ? 1 : 0.45,
-      lineCap: "round",
-      lineJoin: "round"
-    }).addTo(map);
+    const color = isSelected ? "#2563eb" : "#9ca3af"; 
+    const weight = isSelected ? 6 : 4;
+    const opacity = isSelected ? 1.0 : 0.6;
+
+    const line = L.polyline(pts, { color, weight, opacity }).addTo(map);
     line.routeId = idx;
-    routeLayers.push(line);
-    if (isTop) {
-      map.fitBounds(line.getBounds().pad(0.12));
-      line.bringToFront();
+    if (isSelected) {
+        line.bringToFront();
+        map.fitBounds(line.getBounds().pad(0.1));
     }
-    return { pts, line };
+    routeLayers.push(line);
+    return line;
   }
 
   function highlightRoute(idx){
     routeLayers.forEach(l => {
-      if (l.routeId === idx){
-        l.setStyle({ color:"#2563eb", weight:8, opacity: 1 });
+      if (l.routeId === idx) {
+        l.setStyle({ color: "#2563eb", weight: 6, opacity: 1.0 });
         l.bringToFront();
-        map.fitBounds(l.getBounds().pad(0.12));
       } else {
-        l.setStyle({ color:"#9ca3af", weight:5, opacity: 0.35 });
+        l.setStyle({ color: "#9ca3af", weight: 4, opacity: 0.6 });
       }
     });
   }
 
-  // ---- Weather ----
+  // --- 7. WEATHER (DIRECT BROWSER FETCH - FIXED) ---
   async function loadWeather(lat, lng, label){
     try {
-      const data = await postJSON(`${BASE_API}/WEATHER/current.php`, { lat, lng });
-      document.getElementById("weatherTemp").innerText = (data.weather?.temp ?? "--") + "°C";
-      document.getElementById("weatherDesc").innerText = (data.weather?.condition ?? "Unknown");
-      document.getElementById("weatherIcon").innerText = (data.weather?.icon ?? "❓");
+      // Connect directly to Open-Meteo from the browser (Bypasses XAMPP issues)
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`;
+      const res = await fetch(url);
+      const data = await res.json();
+      
+      const current = data.current_weather;
+      if(!current) throw new Error("No weather data");
+
+      const code = current.weathercode;
+      let icon = "☀️";
+      let cond = "Clear";
+      
+      // Simple WMO Code mapping
+      if(code > 0 && code <= 3) { icon = "⛅"; cond = "Partly Cloudy"; }
+      else if(code >= 45 && code <= 48) { icon = "🌫️"; cond = "Foggy"; }
+      else if(code >= 51 && code <= 67) { icon = "🌧️"; cond = "Rainy"; }
+      else if(code >= 71 && code <= 77) { icon = "❄️"; cond = "Snow"; }
+      else if(code >= 80 && code <= 86) { icon = "🌦️"; cond = "Showers"; }
+      else if(code >= 95) { icon = "⚡"; cond = "Thunderstorm"; }
+
+      document.getElementById("weatherTemp").innerText = `${Math.round(current.temperature)}°C`;
+      document.getElementById("weatherDesc").innerText = cond;
+      document.getElementById("weatherIcon").innerText = icon;
       document.getElementById("weatherLoc").innerText = "📍 " + (label || "Current location");
-    } catch {
+      
+    } catch(e) {
+      console.warn("Weather error:", e);
       document.getElementById("weatherDesc").innerText = "Offline";
       document.getElementById("weatherLoc").innerText = "📍 Weather unavailable";
     }
   }
+  // Load initial weather for Manila
   loadWeather(14.5995, 120.9842, "Manila, PH");
 
-  // ---- GPS origin ----
-  async function useMyLocation(){
-    const msg = document.getElementById("gpsMsg");
-    msg.classList.add("hidden");
-    msg.innerText = "";
-
-    if (!navigator.geolocation){
-      msg.innerText = "GPS not supported in this browser.";
-      msg.classList.remove("hidden");
-      toast("GPS not supported");
-      return;
-    }
-
-    toast("Getting your location…");
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-
-        document.getElementById("origin").value = `${lat}, ${lng}`;
-        map.setView([lat,lng], 15);
-
-        markers.push(L.marker([lat,lng]).addTo(map).bindPopup("You are here").openPopup());
-        loadWeather(lat,lng,"Your location");
-
-        toast("Location set!");
-      },
-      (err) => {
-        msg.innerText = "Location denied/unavailable. Allow location access in browser settings.";
-        msg.classList.remove("hidden");
-        console.warn(err);
-        toast("Location denied");
-      },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
-    );
-  }
-
-  // ---- Calculate routes ----
-  document.getElementById("calcBtn").addEventListener("click", calculateTrip);
-
-  async function calculateTrip(){
+  // 8. Main Calculation Logic
+  document.getElementById("calcBtn").addEventListener("click", async () => {
     const btn = document.getElementById("calcBtn");
     const list = document.getElementById("routeList");
     const startWrap = document.getElementById("startWrap");
     const debug = document.getElementById("debugLine");
 
-    const origin = document.getElementById("origin").value.trim();
-    const destination = document.getElementById("destination").value.trim();
-    const battery = Number(document.getElementById("battery").value || 0);
-    const userId = Number(document.getElementById("userId").value || currentUser.id);
+    const originText = document.getElementById("origin").value.trim();
+    const destText = document.getElementById("destination").value.trim();
+    const battery = Number(document.getElementById("battery").value || 80);
 
-    if (!origin || !destination) return alert("Please enter origin and destination.");
-    if (battery <= 0 || battery > 100) return alert("Battery must be 1 to 100.");
+    if(!originText || !destText) return alert("Please enter Start and End locations.");
 
     btn.disabled = true;
-    btn.innerText = "Calculating…";
-    list.innerHTML = `<div class="text-sm text-gray-500">Calculating routes…</div>`;
+    btn.innerText = "Finding Smart Routes...";
+    list.innerHTML = `<div class="text-sm text-gray-500">Connecting to OSRM...</div>`;
     startWrap.classList.add("hidden");
     debug.innerText = "";
-    selectedRoute = null;
-    lastRoutes = [];
-    clearMap();
-
+    
     try {
+      clearRoutesOnly();
+      if(originMarker) map.removeLayer(originMarker);
+      if(destMarker) map.removeLayer(destMarker);
+
+      const [origin, dest] = await Promise.all([
+        resolvePlace(originText),
+        resolvePlace(destText)
+      ]);
+
+      originMarker = addMarker(origin.lat, origin.lng, `<b>Start</b><br>${originText}`, true);
+      destMarker = addMarker(dest.lat, dest.lng, `<b>Destination</b><br>${destText}`, false);
+
       const data = await postJSON(`${BASE_API}/TRIPS/calculate.php`, {
-        user_id: userId,
-        origin,
-        destination,
-        battery_percent: battery
+        user_id: currentUser?.id || 1,
+        battery_percent: battery,
+        origin, destination: dest
       });
 
-      const destCoords = data.debug_dest_coords || data.destination_coords || null;
-      const destLabel  = data.debug_dest || data.destination_label || destination;
-
-      if (destCoords?.lat && destCoords?.lng) {
-        markers.push(L.marker([destCoords.lat, destCoords.lng]).addTo(map).bindPopup("Destination"));
-      }
-
       const routes = data.routes || [];
-      if (routes.length === 0) {
-        list.innerHTML = `<div class="text-sm text-red-600 font-semibold">No drivable routes found.</div>`;
-        toast("No routes found");
-        return;
-      }
+      if(routes.length === 0) throw new Error("No routes found.");
 
-      lastRoutes = routes;
-      debug.innerText = `Car: ${data.car || ""}`;
-
+      debug.innerText = `Active EV: ${data.car || "Default EV"}`;
       list.innerHTML = "";
-      routes.forEach((r, idx) => {
-        drawRoute(r.geometry, idx === 0, idx);
 
-        const feasible = !!r.feasible;
-        const rec = !!r.recommended || idx === 0;
+      routes.forEach((r, idx) => {
+        const isBest = idx === 0;
+        drawRoute(r.geometry, isBest, idx);
 
         const card = document.createElement("div");
-        card.className = "route-card " + (idx === 0 ? "selected" : "");
+        card.className = `route-card ${isBest ? 'selected' : ''}`;
         card.innerHTML = `
-          <div class="flex items-start justify-between gap-3">
+          <div class="flex justify-between items-center">
             <div>
-              <div class="flex items-center gap-2">
-                <span class="badge ${rec ? "rec" : "alt"}">${rec ? "RECOMMENDED" : "ALTERNATIVE"}</span>
-                ${feasible ? `<span class="chip">✅ Trip possible</span>` : `<span class="chip">❌ Not enough battery</span>`}
-              </div>
-              <div class="mt-2 text-xl font-black text-gray-900">${r.distance_km} km</div>
-              <div class="text-sm text-gray-600 font-semibold">${r.duration_min} min</div>
+              <span class="badge ${isBest ? 'rec' : 'alt'}">${isBest ? 'RECOMMENDED' : `OPTION ${idx+1}`}</span>
+              <div class="text-lg font-bold mt-1">${r.distance_km} km</div>
+              <div class="text-xs text-gray-500">${r.duration_min} min</div>
             </div>
             <div class="text-right">
-              <div class="text-sm font-extrabold text-gray-700">Battery</div>
-              <div class="text-sm text-gray-600">Cost: <b>${r.est_usage}%</b></div>
-              <div class="text-sm text-gray-600">End: <b>${r.end_battery}%</b></div>
+              <div class="text-xs font-bold text-gray-600">Battery</div>
+              <div class="text-lg ${r.end_battery < 20 ? 'text-red-600' : 'text-green-600'} font-black">${r.end_battery}%</div>
             </div>
           </div>
         `;
-
         card.onclick = () => {
           document.querySelectorAll(".route-card").forEach(c => c.classList.remove("selected"));
           card.classList.add("selected");
           highlightRoute(idx);
-
-          selectedRoute = {
-            route: r,
-            car: data.car || "EV",
-            destLabel: destLabel
-          };
+          selectedRoute = r;
           startWrap.classList.remove("hidden");
-          toast("Route selected");
         };
-
         list.appendChild(card);
       });
 
-      selectedRoute = { route: routes[0], car: data.car || "EV", destLabel };
+      selectedRoute = routes[0];
       startWrap.classList.remove("hidden");
-      toast("Routes loaded");
+      toast(`Found ${routes.length} routes!`);
 
-      // UX: collapse panel on mobile after results
-      if (window.innerWidth <= 768) sidebar.classList.add("collapsed");
-
-    } catch (e) {
+    } catch(e){
       console.error(e);
-      list.innerHTML = `<div class="text-sm text-red-600 font-semibold">Error: ${e.message}</div>`;
-      alert("Connection Error. Is XAMPP running? Check console (F12).");
+      list.innerHTML = `<div class="text-red-600 text-sm font-bold">Error: ${e.message}</div>`;
+      alert(e.message);
     } finally {
       btn.disabled = false;
       btn.innerText = "🚀 Find Routes";
     }
+  });
+
+  async function resolvePlace(text){
+    const parsed = parseLatLng(text);
+    if(parsed) return { lat:parsed.lat, lng:parsed.lng };
+
+    const data = await postJSON(`${BASE_API}/MAPS/geocode.php`, { text });
+    const results = data.results || [];
+    if(!results.length) throw new Error(`Location not found: ${text}`);
+    return { lat: Number(results[0].lat), lng: Number(results[0].lng) };
   }
 
-  // ---- Start navigation ----
+  function useMyLocation(){
+    if(!navigator.geolocation) return alert("GPS not supported");
+    navigator.geolocation.getCurrentPosition(pos => {
+        const {latitude, longitude} = pos.coords;
+        document.getElementById("origin").value = `${latitude}, ${longitude}`;
+        map.setView([latitude, longitude], 15);
+        toast("Location found!");
+        loadWeather(latitude, longitude, "Your Location"); // Update weather to GPS
+    });
+  }
+
   function startNavigation(){
-    if (!selectedRoute) return alert("Select a route first.");
+    if (!selectedRoute) return alert("Select a route.");
     localStorage.setItem("activeTrip", JSON.stringify(selectedRoute));
     window.location.href = "test_navigation.html";
   }
+
+  // Suggestions
+  let destDebounce;
+  document.getElementById("destination").addEventListener("input", (e) => {
+    clearTimeout(destDebounce);
+    destDebounce = setTimeout(async () => {
+        const q = e.target.value;
+        const box = document.getElementById("destSuggest");
+        if(q.length < 3) return box.classList.add("hidden");
+        try {
+            const data = await postJSON(`${BASE_API}/MAPS/geocode.php`, { text: q });
+            box.innerHTML = "";
+            data.results.forEach(r => {
+                const div = document.createElement("div");
+                div.className = "suggestItem";
+                div.innerText = r.label;
+                div.onclick = () => {
+                    document.getElementById("destination").value = r.label;
+                    box.classList.add("hidden");
+                };
+                box.appendChild(div);
+            });
+            box.classList.remove("hidden");
+        } catch(e){}
+    }, 400);
+  });
 </script>
 </body>
 </html>
