@@ -1,285 +1,230 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>My Garage</title>
-  <style>
-    body { font-family: 'Segoe UI', sans-serif; background: #f4f6f8; margin: 0; padding: 20px; display: flex; justify-content: center; }
-    .container { width: 420px; background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-    .header { background: #00C853; color: white; padding: 15px; text-align: center; }
-    .section { padding: 15px; border-bottom: 1px solid #eee; }
-    input { padding: 10px; width: 70%; border: 1px solid #ddd; border-radius: 6px; }
-    button { padding: 10px; background: #333; color: white; border: none; border-radius: 6px; cursor: pointer; }
-    button:disabled { opacity: 0.6; cursor: not-allowed; }
-
-    .car-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #fff; border: 1px solid #eee; margin-bottom: 8px; border-radius: 10px; gap: 10px; }
-    .car-item small { color: #666; display:block; margin-top: 2px; }
-    .active-car { border: 2px solid #00C853; background: #e8f5e9; }
-    .badge { background: #00C853; color: white; font-size: 10px; padding: 3px 6px; border-radius: 6px; margin-left: 6px; }
-
-    .add-btn { background: #007bff; font-size: 12px; padding: 7px 10px; }
-    .danger-btn { background: #dc2626; font-size: 12px; padding: 7px 10px; }
-    .select-btn { background: #111827; font-size: 12px; padding: 7px 10px; }
-
-    .row { display:flex; gap: 6px; align-items:center; }
-    .muted { color:#6b7280; font-size: 12px; }
-    .error { color:#dc2626; font-size: 12px; margin-top: 8px; }
-    .ok { color:#059669; font-size: 12px; margin-top: 8px; }
-    .nav { display: flex; text-align: center; border-top: 1px solid #ddd; }
-    .nav a { flex:1; padding:15px; text-decoration:none; font-weight:bold; }
-    .nav a.active { color:#00C853; }
-    .nav a.inactive { color:#666; font-weight: 600; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Garage</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #f3f4f6; font-family: 'Segoe UI', sans-serif; }
+        .car-card { transition: all 0.2s; }
+        .car-card:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .active-ring { ring: 4px solid #16a34a; background: #f0fdf4; }
+        
+        /* Modal Animation */
+        .modal { opacity: 0; pointer-events: none; transition: 0.2s; }
+        .modal.open { opacity: 1; pointer-events: auto; }
+    </style>
 </head>
 <body>
 
-<div class="container">
-  <div class="header">
-    <h2>My Garage 🚗</h2>
-    <div id="who" class="muted" style="color: rgba(255,255,255,0.9); margin-top:6px;"></div>
-  </div>
-
-  <div class="section">
-    <div class="row" style="justify-content: space-between;">
-      <div style="flex:1;">
-        <div class="row">
-          <input type="text" id="search" placeholder="Search (e.g. Tesla Model 3)" />
-          <button id="findBtn" onclick="searchCar()">Find</button>
+<div class="max-w-md mx-auto min-h-screen bg-white shadow-2xl overflow-hidden relative pb-24">
+    
+    <div class="bg-gray-900 text-white p-6 rounded-b-3xl shadow-lg relative">
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-2xl font-black tracking-tighter">My Garage 🚗</h1>
+            <div class="flex gap-2">
+                <button onclick="openSearch()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-bold transition flex items-center gap-1">
+                    <span class="text-lg">+</span> Add Car
+                </button>
+                <button onclick="logout()" class="text-xs font-bold bg-red-600 px-3 py-1 rounded-full hover:bg-red-700">Logout</button>
+            </div>
         </div>
-        <div id="searchMsg" class="muted"></div>
-      </div>
+        <p class="text-gray-400 text-sm">Select the vehicle you want to use for your trip.</p>
     </div>
 
-    <div id="results" style="margin-top:10px;"></div>
-  </div>
-
-  <div class="section" style="background: #fafafa;">
-    <div class="row" style="justify-content: space-between; align-items: baseline;">
-      <h4 style="margin:0;">Your Cars</h4>
-      <button class="select-btn" style="padding:6px 10px;" onclick="loadGarage()">Refresh</button>
+    <div id="carList" class="p-6 space-y-4">
+        <div class="text-center text-gray-500 mt-10">Loading garage...</div>
     </div>
-    <div id="garageList" style="margin-top:10px;">Loading...</div>
-    <div id="garageMsg" class="muted"></div>
-  </div>
 
-  <div class="nav">
-    <a href="garage.html" class="active">Garage</a>
-    <a href="trip.html" class="inactive">Trip Planner</a>
-  </div>
+    <div id="plannerBtnWrap" class="fixed bottom-6 left-0 right-0 px-6 hidden z-40">
+        <button onclick="window.location.href='trip_planner.html'" 
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-xl shadow-xl text-lg flex items-center justify-center gap-2 animate-bounce">
+            Plan Trip with Active Car ➜
+        </button>
+    </div>
+
+    <div id="searchModal" class="modal fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden transform transition-all">
+            <div class="p-4 bg-gray-50 border-b flex justify-between items-center">
+                <h3 class="font-bold text-gray-800">Add New Vehicle</h3>
+                <button onclick="closeSearch()" class="text-gray-400 hover:text-gray-600 font-bold text-xl">&times;</button>
+            </div>
+            
+            <div class="p-4 space-y-4">
+                <div>
+                    <input id="searchInput" type="text" placeholder="e.g. Tesla Model 3" 
+                           class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <button onclick="searchCar()" id="findBtn"
+                        class="w-full bg-black text-white font-bold py-3 rounded-xl hover:bg-gray-800 transition">
+                    Find Car
+                </button>
+                
+                <div id="searchResults" class="max-h-60 overflow-y-auto space-y-2 pt-2">
+                    </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <script>
-  // ✅ CHANGE THIS if your folder name differs in htdocs
-  const API_URL = "http://localhost/WEBPROG_PROJ/BACKEND/api/GARAGE";
+    // CONFIG
+    const BASE_API = "http://localhost/WEBPROG_PROJ/BACKEND/API";
+    const currentUser = JSON.parse(localStorage.getItem("currentUser") || "null");
 
-  // --- AUTH (uses your login system) ---
-  const currentUser = JSON.parse(localStorage.getItem("currentUser") || "null");
-  if (!currentUser || !currentUser.id) {
-    // if you use a different login page name, change this:
-    window.location.href = "login.html";
-  }
-  const USER_ID = currentUser.id;
+    if (!currentUser) window.location.href = "login.html";
 
-  document.getElementById("who").innerText = `Logged in as: ${currentUser.email || "User"} (ID ${USER_ID})`;
+    // --- 1. Load Garage ---
+    async function loadGarage() {
+        try {
+            const res = await fetch(`${BASE_API}/GARAGE/get_user_garage.php?user_id=${currentUser.id}`);
+            const data = await res.json();
+            
+            const list = document.getElementById("carList");
+            list.innerHTML = "";
 
-  // --- Helpers ---
-  async function postJSON(url, payload) {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
+            if (!data.ok || !data.garage || data.garage.length === 0) {
+                list.innerHTML = `<div class="text-center text-gray-400 font-bold mt-10">Garage is empty.<br>Tap "+ Add Car" to start!</div>`;
+                return;
+            }
 
-    // Read raw first so we can debug if backend returns HTML/empty
-    const raw = await res.text();
-    let data = null;
-    try { data = JSON.parse(raw); } catch {}
+            let hasActive = false;
 
-    if (!data) {
-      console.error("Backend not JSON:", res.status, raw);
-      throw new Error("Backend error (not JSON). Check XAMPP + API URL.");
+            data.garage.forEach(car => {
+                const isActive = (car.is_active == 1);
+                if(isActive) hasActive = true;
+
+                const card = document.createElement("div");
+                card.className = `car-card border rounded-2xl p-4 flex justify-between items-center cursor-pointer ${isActive ? 'active-ring border-green-500' : 'border-gray-200 bg-white'}`;
+                
+                if(!isActive) card.onclick = () => setActive(car.garage_id);
+
+                card.innerHTML = `
+                    <div class="flex items-center gap-4">
+                        <div class="text-3xl">${isActive ? '🚘' : '🚗'}</div>
+                        <div>
+                            <div class="font-black text-gray-900 text-lg">${car.nickname || car.model}</div>
+                            <div class="text-xs text-gray-500 font-bold">${car.brand} ${car.model}</div>
+                            <div class="text-[10px] text-gray-400 mt-1">Eff: ${car.efficiency_wh_per_km} Wh/km</div>
+                        </div>
+                    </div>
+                    <div>
+                        ${isActive 
+                            ? `<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-black tracking-wide">ACTIVE</span>` 
+                            : `<button onclick="event.stopPropagation(); setActive(${car.garage_id})" class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-2 rounded-xl text-xs font-bold transition">Select</button>`
+                        }
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+
+            const btn = document.getElementById("plannerBtnWrap");
+            if(hasActive) btn.classList.remove("hidden");
+            else btn.classList.add("hidden");
+
+        } catch (err) {
+            document.getElementById("carList").innerHTML = `<div class="text-red-500 text-center">Error loading garage.</div>`;
+        }
     }
 
-    if (!res.ok || data.ok === false) {
-      throw new Error(data.error || `Request failed (${res.status})`);
+    // --- 2. Set Active ---
+    async function setActive(garageId) {
+        await fetch(`${BASE_API}/GARAGE/set_active.php`, {
+            method: "POST", headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ user_id: currentUser.id, garage_id: garageId })
+        });
+        loadGarage();
     }
 
-    return data;
-  }
+    // --- 3. Search & Add Car ---
+    function openSearch() { document.getElementById("searchModal").classList.add("open"); }
+    function closeSearch() { document.getElementById("searchModal").classList.remove("open"); }
 
-  function el(id){ return document.getElementById(id); }
+    async function searchCar() {
+        const q = document.getElementById("searchInput").value.trim();
+        const resultsBox = document.getElementById("searchResults");
+        const btn = document.getElementById("findBtn");
 
-  function showMsg(id, text, kind="muted") {
-    const node = el(id);
-    node.className = kind;
-    node.innerText = text || "";
-  }
+        if(!q) return alert("Enter a car name");
+        
+        btn.disabled = true; btn.innerText = "Searching...";
+        resultsBox.innerHTML = '<div class="text-center text-gray-400 text-sm">Searching API...</div>';
 
-  // --- Load Garage ---
-  async function loadGarage() {
-    const list = el("garageList");
-    list.innerHTML = "Loading...";
-    showMsg("garageMsg", "");
+        try {
+            // Re-using your existing garage_search.php
+            const res = await fetch(`${BASE_API}/GARAGE/garage_search.php`, {
+                method: "POST", headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ search: q })
+            });
+            const data = await res.json();
+            
+            resultsBox.innerHTML = "";
+            const items = data.results || [];
 
-    try {
-      const data = await postJSON(`${API_URL}/list.php`, { user_id: USER_ID });
+            if(items.length === 0) {
+                resultsBox.innerHTML = '<div class="text-center text-red-400 text-sm">No results found. Try "Tesla"</div>';
+                return;
+            }
 
-      const cars = data.cars || [];
-      if (cars.length === 0) {
-        list.innerHTML = `<small style="padding:10px; display:block;">No cars yet. Search above to add one!</small>`;
-        return;
-      }
+            items.slice(0, 5).forEach(car => {
+                const row = document.createElement("div");
+                row.className = "flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100";
+                row.innerHTML = `
+                    <div>
+                        <div class="font-bold text-gray-800 text-sm">${car.make} ${car.model}</div>
+                        <div class="text-xs text-gray-500">${car.variant || 'Standard'} • ${car.battery_kwh} kWh</div>
+                    </div>
+                    <button class="bg-blue-600 text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-blue-700">Add</button>
+                `;
+                // Click Add
+                row.querySelector("button").onclick = () => addCar(car);
+                resultsBox.appendChild(row);
+            });
 
-      list.innerHTML = "";
-      cars.forEach((car) => {
-        const isActive = String(car.is_active) === "1";
-        const title = `${car.brand_name || car.make || ""} ${car.model_name || car.model || ""}`.trim();
-        const variant = (car.variant_name || car.variant || "").trim();
-
-        const batt = car.battery_capacity_kwh ?? car.battery_kwh ?? "--";
-        const eff  = car.efficiency_wh_per_km ?? car.eff_wh_km ?? "--";
-
-        const nickname = car.nickname ? `“${car.nickname}”` : "";
-
-        const row = document.createElement("div");
-        row.className = `car-item ${isActive ? "active-car" : ""}`;
-
-        row.innerHTML = `
-          <div style="flex:1;">
-            <div>
-              <strong>${title}</strong>
-              ${isActive ? `<span class="badge">ACTIVE</span>` : ""}
-            </div>
-            <small>${variant} ${nickname}</small>
-            <small>${batt} kWh • ${eff} Wh/km</small>
-          </div>
-          <div class="row" style="gap:6px;">
-            ${!isActive ? `<button class="select-btn" onclick="setActive(${car.garage_id})">Select</button>` : ""}
-            <button class="danger-btn" onclick="removeCar(${car.garage_id})">Delete</button>
-          </div>
-        `;
-
-        list.appendChild(row);
-      });
-
-    } catch (e) {
-      console.error(e);
-      list.innerHTML = `<div class="error">Failed to load garage: ${e.message}</div>`;
-    }
-  }
-
-  // --- Search Cars (API Ninjas through your backend) ---
-  async function searchCar() {
-    const q = el("search").value.trim();
-    const results = el("results");
-    const btn = el("findBtn");
-
-    showMsg("searchMsg", "");
-    results.innerHTML = "";
-
-    if (!q) {
-      showMsg("searchMsg", "Type a car brand/model (e.g. Tesla Model 3).", "muted");
-      return;
+        } catch(e) {
+            resultsBox.innerHTML = '<div class="text-center text-red-500 text-sm">Search failed.</div>';
+        } finally {
+            btn.disabled = false; btn.innerText = "Find Car";
+        }
     }
 
-    btn.disabled = true;
-    btn.innerText = "...";
-    showMsg("searchMsg", "Searching API Ninjas…", "muted");
-
-    try {
-      const data = await postJSON(`${API_URL}/garage_search.php`, { search: q });
-      const items = data.results || [];
-
-      if (items.length === 0) {
-        results.innerHTML = `<div class="error">No results from API Ninjas. Try “Tesla” or “Nissan Leaf”.</div>`;
-        return;
-      }
-
-      showMsg("searchMsg", `Found ${items.length} result(s). Click Add to save.`, "ok");
-
-      items.slice(0, 10).forEach((r) => {
-        const label = `${r.make || ""} ${r.model || ""}`.trim();
-        const variant = (r.variant || "Standard").trim();
-        const batt = (r.battery_kwh ?? "--");
-        const eff = (r.eff_wh_km ?? "--");
-
-        const row = document.createElement("div");
-        row.className = "car-item";
-
-        row.innerHTML = `
-          <div style="flex:1;">
-            <strong>${label}</strong>
-            <small>${variant}</small>
-            <small>${batt} kWh • ${eff} Wh/km</small>
-          </div>
-          <button class="add-btn">Add</button>
-        `;
-
-        row.querySelector("button").onclick = () => addCar(r);
-        results.appendChild(row);
-      });
-
-    } catch (e) {
-      console.error(e);
-      results.innerHTML = `<div class="error">Search failed: ${e.message}</div>`;
-    } finally {
-      btn.disabled = false;
-      btn.innerText = "Find";
+    async function addCar(car) {
+        const nickname = prompt(`Nickname for your ${car.model}?`, car.model) || car.model;
+        
+        try {
+            // Re-using your existing add.php
+            const res = await fetch(`${BASE_API}/GARAGE/add.php`, {
+                method: "POST", headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    user_id: currentUser.id,
+                    make: car.make, model: car.model, variant: car.variant,
+                    battery_kwh: car.battery_kwh, eff_wh_km: car.eff_wh_km,
+                    drive_mode: car.drive_mode, nickname: nickname
+                })
+            });
+            const data = await res.json();
+            
+            if(data.ok) {
+                closeSearch();
+                document.getElementById("searchInput").value = "";
+                document.getElementById("searchResults").innerHTML = "";
+                loadGarage(); // Refresh list to show new car
+            } else {
+                alert("Error adding car: " + (data.error || "Unknown error"));
+            }
+        } catch(e) {
+            alert("Failed to add car.");
+        }
     }
-  }
 
-  // --- Add Car (saves to master tables + user_garage in backend) ---
-  async function addCar(r) {
-    const nickname = prompt("Nickname (optional):") || "";
-    showMsg("searchMsg", "Saving vehicle…", "muted");
-
-    try {
-      await postJSON(`${API_URL}/add.php`, {
-        user_id: USER_ID,
-        make: r.make,
-        model: r.model,
-        variant: r.variant,
-        battery_kwh: r.battery_kwh,
-        eff_wh_km: r.eff_wh_km,
-        drive_mode: r.drive_mode,
-        nickname
-      });
-
-      showMsg("searchMsg", "Added! (Saved to DB)", "ok");
-      el("results").innerHTML = "";
-      el("search").value = "";
-      await loadGarage();
-
-    } catch (e) {
-      alert(e.message);
-      showMsg("searchMsg", e.message, "error");
+    function logout() {
+        localStorage.removeItem("currentUser");
+        window.location.href = "login.html";
     }
-  }
 
-  // --- Set Active ---
-  async function setActive(garage_id) {
-    try {
-      await postJSON(`${API_URL}/set_active.php`, { user_id: USER_ID, garage_id });
-      await loadGarage();
-    } catch (e) {
-      alert(e.message);
-    }
-  }
-
-  // --- Remove ---
-  async function removeCar(garage_id) {
-    if (!confirm("Remove this vehicle from your garage?")) return;
-    try {
-      await postJSON(`${API_URL}/remove.php`, { user_id: USER_ID, garage_id });
-      await loadGarage();
-    } catch (e) {
-      alert(e.message);
-    }
-  }
-
-  // initial load
-  loadGarage();
+    loadGarage();
 </script>
 </body>
 </html>

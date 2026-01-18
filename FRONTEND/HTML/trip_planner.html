@@ -59,7 +59,7 @@
     .suggestItem:last-child{ border-bottom:none; }
     .suggestItem:hover{ background:#f9fafb; }
 
-    /* Remove default Leaflet DivIcon box */
+    /* Leaflet Icon Override */
     .leaflet-div-icon { background: transparent; border: none; }
   </style>
 </head>
@@ -101,7 +101,6 @@
           <button class="px-3 py-3 rounded-xl bg-gray-100 hover:bg-gray-200 font-bold"
                   onclick="useMyLocation()" title="Use my GPS">📍</button>
         </div>
-        <div id="gpsMsg" class="text-xs text-red-600 font-semibold mt-1 hidden"></div>
       </div>
 
       <div>
@@ -144,7 +143,7 @@
         ▶ Start Navigation
       </button>
       <div class="text-[11px] text-gray-500 mt-2">
-        Saves route to <b>localStorage</b> and launches <b>test_navigation.html</b>.
+        Opens the <b>Live Simulation</b> mode.
       </div>
     </div>
 
@@ -153,9 +152,6 @@
     </div>
   </div>
 </div>
-
-<input type="hidden" id="origLat"><input type="hidden" id="origLng">
-<input type="hidden" id="destLat"><input type="hidden" id="destLng">
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/@mapbox/polyline@1.2.0/src/polyline.js"></script>
@@ -166,7 +162,7 @@
 
   // 2. Auth Check
   const currentUser = JSON.parse(localStorage.getItem("currentUser") || "null");
-  document.getElementById("who").innerText = `Logged in as: ${currentUser?.email || "Guest"} (ID ${currentUser?.id || 1})`;
+  document.getElementById("who").innerText = `Logged in as: ${currentUser?.email || "Guest"}`;
 
   function logout(){
     localStorage.removeItem("currentUser");
@@ -181,19 +177,15 @@
     setTimeout(()=>t.classList.remove("show"), 2200);
   }
 
-  function escapeHtml(s){
-    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}));
-  }
-  
   async function postJSON(url, payload){
     const res = await fetch(url, {
       method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(payload)
     });
     const raw = await res.text();
-    let data = null;
+    let data;
     try { data = JSON.parse(raw); } catch { console.error("Bad JSON:", raw); }
-    if (!data) throw new Error("Server Error: Response was not valid JSON.");
-    if (!res.ok || data.ok === false) throw new Error(data.error || `Request failed (${res.status})`);
+    if(!data) throw new Error("Invalid Response");
+    if(!res.ok || data.ok === false) throw new Error(data.error || "Request failed");
     return data;
   }
 
@@ -202,179 +194,117 @@
     return m ? { lat:Number(m[1]), lng:Number(m[2]) } : null;
   }
 
-  // 4. Map & Layers
-  const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" });
-  const satellite = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "© Esri" });
-  const dark = L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", { maxZoom: 19, attribution: "© CartoDB" });
-  const outdoors = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "© Esri" });
-
+  // 4. Map Setup
+  const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 });
+  const satellite = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19 });
   const map = L.map("map", { zoomControl:false, layers:[osm] }).setView([14.5995,120.9842], 11);
   L.control.zoom({ position:"bottomright" }).addTo(map);
+  L.control.layers({ "Map": osm, "Satellite": satellite }, null, { position:"topright" }).addTo(map);
 
-  L.control.layers({
-    "OpenStreetMap": osm,
-    "Satellite": satellite,
-    "Dark Mode": dark,
-    "Outdoors": outdoors
-  }, null, { position:"topright", collapsed:false }).addTo(map);
-
-  // 5. Route Management Globals
   let routeLayers = [];
-  let originMarker = null;
-  let destMarker = null;
-  let selectedRoute = null;
+  let originMarker = null, destMarker = null;
+  let selectedRouteObject = null; // Stores data for next page
 
+  // 5. Markers & Lines
   function clearRoutesOnly(){
     routeLayers.forEach(l => map.removeLayer(l));
     routeLayers = [];
   }
 
-  // 6. Markers (Pins)
   function addMarker(lat, lng, label, isStart){
     const color = isStart ? '#16a34a' : '#dc2626'; 
-    const svgIcon = `
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:100%; height:100%; filter: drop-shadow(0 3px 3px rgba(0,0,0,0.5));">
-        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-        <circle cx="12" cy="9" r="2.5" fill="white"/>
-      </svg>`;
-
-    const icon = L.divIcon({
-        className: 'custom-pin-icon',
-        html: svgIcon,
-        iconSize: [40, 40],
-        iconAnchor: [20, 40],
-        popupAnchor: [0, -40]
-    });
-
-    const m = L.marker([lat, lng], {icon: icon}).addTo(map).bindPopup(label);
-    if(isStart) m.setZIndexOffset(1000); 
-    return m;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" stroke="white" stroke-width="2" style="filter:drop-shadow(0 3px 3px rgba(0,0,0,0.5))"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5" fill="white"/></svg>`;
+    const icon = L.divIcon({ html: svg, className: '', iconSize: [40, 40], iconAnchor: [20, 40], popupAnchor: [0, -40] });
+    return L.marker([lat, lng], {icon}).addTo(map).bindPopup(label);
   }
 
   function drawRoute(encoded, isSelected, idx){
     const pts = polyline.decode(encoded);
-    const color = isSelected ? "#2563eb" : "#9ca3af"; 
-    const weight = isSelected ? 6 : 4;
-    const opacity = isSelected ? 1.0 : 0.6;
-
-    const line = L.polyline(pts, { color, weight, opacity }).addTo(map);
+    const color = isSelected ? "#2563eb" : "#9ca3af";
+    const line = L.polyline(pts, { color, weight: isSelected?6:4, opacity: isSelected?1:0.6 }).addTo(map);
     line.routeId = idx;
-    if (isSelected) {
-        line.bringToFront();
-        map.fitBounds(line.getBounds().pad(0.1));
-    }
+    if(isSelected) { line.bringToFront(); map.fitBounds(line.getBounds().pad(0.1)); }
     routeLayers.push(line);
-    return line;
   }
 
   function highlightRoute(idx){
     routeLayers.forEach(l => {
-      if (l.routeId === idx) {
-        l.setStyle({ color: "#2563eb", weight: 6, opacity: 1.0 });
-        l.bringToFront();
-      } else {
-        l.setStyle({ color: "#9ca3af", weight: 4, opacity: 0.6 });
-      }
+      const isSel = (l.routeId === idx);
+      l.setStyle({ color: isSel ? "#2563eb" : "#9ca3af", weight: isSel?6:4, opacity: isSel?1:0.6 });
+      if(isSel) l.bringToFront();
     });
   }
 
-  // --- 7. WEATHER (DIRECT BROWSER FETCH - FIXED) ---
+  // 6. WEATHER (Direct Browser Fetch)
   async function loadWeather(lat, lng, label){
     try {
-      // Connect directly to Open-Meteo from the browser (Bypasses XAMPP issues)
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`;
-      const res = await fetch(url);
+      const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`);
       const data = await res.json();
+      const c = data.current_weather;
       
-      const current = data.current_weather;
-      if(!current) throw new Error("No weather data");
+      let icon = "☀️", cond = "Clear";
+      if(c.weathercode > 3) icon = "☁️", cond = "Cloudy";
+      if(c.weathercode > 50) icon = "🌧️", cond = "Rainy";
 
-      const code = current.weathercode;
-      let icon = "☀️";
-      let cond = "Clear";
-      
-      // Simple WMO Code mapping
-      if(code > 0 && code <= 3) { icon = "⛅"; cond = "Partly Cloudy"; }
-      else if(code >= 45 && code <= 48) { icon = "🌫️"; cond = "Foggy"; }
-      else if(code >= 51 && code <= 67) { icon = "🌧️"; cond = "Rainy"; }
-      else if(code >= 71 && code <= 77) { icon = "❄️"; cond = "Snow"; }
-      else if(code >= 80 && code <= 86) { icon = "🌦️"; cond = "Showers"; }
-      else if(code >= 95) { icon = "⚡"; cond = "Thunderstorm"; }
-
-      document.getElementById("weatherTemp").innerText = `${Math.round(current.temperature)}°C`;
+      document.getElementById("weatherTemp").innerText = Math.round(c.temperature) + "°C";
       document.getElementById("weatherDesc").innerText = cond;
       document.getElementById("weatherIcon").innerText = icon;
-      document.getElementById("weatherLoc").innerText = "📍 " + (label || "Current location");
-      
+      document.getElementById("weatherLoc").innerText = "📍 " + (label || "Current Loc");
     } catch(e) {
-      console.warn("Weather error:", e);
       document.getElementById("weatherDesc").innerText = "Offline";
-      document.getElementById("weatherLoc").innerText = "📍 Weather unavailable";
     }
   }
-  // Load initial weather for Manila
-  loadWeather(14.5995, 120.9842, "Manila, PH");
+  loadWeather(14.5995, 120.9842, "Manila");
 
-  // 8. Main Calculation Logic
+  // 7. MAIN LOGIC
   document.getElementById("calcBtn").addEventListener("click", async () => {
     const btn = document.getElementById("calcBtn");
     const list = document.getElementById("routeList");
     const startWrap = document.getElementById("startWrap");
-    const debug = document.getElementById("debugLine");
-
-    const originText = document.getElementById("origin").value.trim();
-    const destText = document.getElementById("destination").value.trim();
-    const battery = Number(document.getElementById("battery").value || 80);
-
-    if(!originText || !destText) return alert("Please enter Start and End locations.");
-
-    btn.disabled = true;
-    btn.innerText = "Finding Smart Routes...";
-    list.innerHTML = `<div class="text-sm text-gray-500">Connecting to OSRM...</div>`;
-    startWrap.classList.add("hidden");
-    debug.innerText = "";
     
+    const origTxt = document.getElementById("origin").value.trim();
+    const destTxt = document.getElementById("destination").value.trim();
+    const batt = document.getElementById("battery").value;
+
+    if(!origTxt || !destTxt) return alert("Enter Start/End");
+
+    btn.disabled = true; btn.innerText = "Processing...";
+    list.innerHTML = "Loading..."; startWrap.classList.add("hidden");
+
     try {
       clearRoutesOnly();
       if(originMarker) map.removeLayer(originMarker);
       if(destMarker) map.removeLayer(destMarker);
 
-      const [origin, dest] = await Promise.all([
-        resolvePlace(originText),
-        resolvePlace(destText)
-      ]);
-
-      originMarker = addMarker(origin.lat, origin.lng, `<b>Start</b><br>${originText}`, true);
-      destMarker = addMarker(dest.lat, dest.lng, `<b>Destination</b><br>${destText}`, false);
+      const [orig, dest] = await Promise.all([ resolvePlace(origTxt), resolvePlace(destTxt) ]);
+      
+      originMarker = addMarker(orig.lat, orig.lng, "Start", true);
+      destMarker = addMarker(dest.lat, dest.lng, "End", false);
 
       const data = await postJSON(`${BASE_API}/TRIPS/calculate.php`, {
-        user_id: currentUser?.id || 1,
-        battery_percent: battery,
-        origin, destination: dest
+        user_id: currentUser?.id||1, battery_percent: batt, origin: orig, destination: dest
       });
 
       const routes = data.routes || [];
-      if(routes.length === 0) throw new Error("No routes found.");
+      if(!routes.length) throw new Error("No routes found");
 
-      debug.innerText = `Active EV: ${data.car || "Default EV"}`;
       list.innerHTML = "";
-
       routes.forEach((r, idx) => {
-        const isBest = idx === 0;
+        const isBest = (idx === 0);
         drawRoute(r.geometry, isBest, idx);
 
         const card = document.createElement("div");
-        card.className = `route-card ${isBest ? 'selected' : ''}`;
+        card.className = `route-card ${isBest?'selected':''}`;
         card.innerHTML = `
           <div class="flex justify-between items-center">
             <div>
-              <span class="badge ${isBest ? 'rec' : 'alt'}">${isBest ? 'RECOMMENDED' : `OPTION ${idx+1}`}</span>
-              <div class="text-lg font-bold mt-1">${r.distance_km} km</div>
+              <span class="badge ${isBest?'rec':'alt'}">${isBest?'BEST':'OPTION'}</span>
+              <div class="font-bold text-lg">${r.distance_km} km</div>
               <div class="text-xs text-gray-500">${r.duration_min} min</div>
             </div>
             <div class="text-right">
-              <div class="text-xs font-bold text-gray-600">Battery</div>
-              <div class="text-lg ${r.end_battery < 20 ? 'text-red-600' : 'text-green-600'} font-black">${r.end_battery}%</div>
+              <div class="text-xs font-bold">Battery</div>
+              <div class="text-lg font-black ${r.end_battery<20?'text-red-600':'text-green-600'}">${r.end_battery}%</div>
             </div>
           </div>
         `;
@@ -382,76 +312,72 @@
           document.querySelectorAll(".route-card").forEach(c => c.classList.remove("selected"));
           card.classList.add("selected");
           highlightRoute(idx);
-          selectedRoute = r;
+          
+          // --- CONNECT LOGIC: Store data for next page ---
+          selectedRouteObject = { route: r }; 
           startWrap.classList.remove("hidden");
         };
         list.appendChild(card);
       });
 
-      selectedRoute = routes[0];
+      // Default selection
+      selectedRouteObject = { route: routes[0] };
       startWrap.classList.remove("hidden");
       toast(`Found ${routes.length} routes!`);
 
     } catch(e){
       console.error(e);
-      list.innerHTML = `<div class="text-red-600 text-sm font-bold">Error: ${e.message}</div>`;
-      alert(e.message);
+      list.innerHTML = `<div class="text-red-500 font-bold">Error: ${e.message}</div>`;
     } finally {
-      btn.disabled = false;
-      btn.innerText = "🚀 Find Routes";
+      btn.disabled = false; btn.innerText = "🚀 Find Routes";
     }
   });
 
-  async function resolvePlace(text){
-    const parsed = parseLatLng(text);
-    if(parsed) return { lat:parsed.lat, lng:parsed.lng };
-
-    const data = await postJSON(`${BASE_API}/MAPS/geocode.php`, { text });
-    const results = data.results || [];
-    if(!results.length) throw new Error(`Location not found: ${text}`);
-    return { lat: Number(results[0].lat), lng: Number(results[0].lng) };
+  async function resolvePlace(txt){
+    const p = parseLatLng(txt);
+    if(p) return p;
+    const d = await postJSON(`${BASE_API}/MAPS/geocode.php`, { text: txt });
+    if(!d.results.length) throw new Error("Loc not found");
+    return { lat: Number(d.results[0].lat), lng: Number(d.results[0].lng) };
   }
 
+  // 8. START NAVIGATION (The Connection)
+  // In FRONTEND/HTML/trip_planner.html
+
+function startNavigation(){
+  if (!selectedRouteObject) return alert("Select a route first.");
+  localStorage.setItem("activeTrip", JSON.stringify(selectedRouteObject));
+  
+  // FIX: Go up one level, then into TEST folder
+  window.location.href = "../TEST/test_navigation.html"; 
+}
+
+  // 9. Extra: GPS & Suggestions
   function useMyLocation(){
-    if(!navigator.geolocation) return alert("GPS not supported");
-    navigator.geolocation.getCurrentPosition(pos => {
-        const {latitude, longitude} = pos.coords;
-        document.getElementById("origin").value = `${latitude}, ${longitude}`;
-        map.setView([latitude, longitude], 15);
-        toast("Location found!");
-        loadWeather(latitude, longitude, "Your Location"); // Update weather to GPS
+    navigator.geolocation.getCurrentPosition(p => {
+      document.getElementById("origin").value = `${p.coords.latitude}, ${p.coords.longitude}`;
+      loadWeather(p.coords.latitude, p.coords.longitude, "Your GPS");
     });
   }
-
-  function startNavigation(){
-    if (!selectedRoute) return alert("Select a route.");
-    localStorage.setItem("activeTrip", JSON.stringify(selectedRoute));
-    window.location.href = "test_navigation.html";
-  }
-
-  // Suggestions
-  let destDebounce;
+  
+  let dbnc;
   document.getElementById("destination").addEventListener("input", (e) => {
-    clearTimeout(destDebounce);
-    destDebounce = setTimeout(async () => {
-        const q = e.target.value;
-        const box = document.getElementById("destSuggest");
-        if(q.length < 3) return box.classList.add("hidden");
-        try {
-            const data = await postJSON(`${BASE_API}/MAPS/geocode.php`, { text: q });
-            box.innerHTML = "";
-            data.results.forEach(r => {
-                const div = document.createElement("div");
-                div.className = "suggestItem";
-                div.innerText = r.label;
-                div.onclick = () => {
-                    document.getElementById("destination").value = r.label;
-                    box.classList.add("hidden");
-                };
-                box.appendChild(div);
-            });
-            box.classList.remove("hidden");
-        } catch(e){}
+    clearTimeout(dbnc);
+    dbnc = setTimeout(async()=>{
+      const q = e.target.value;
+      const b = document.getElementById("destSuggest");
+      if(q.length<3) return b.classList.add("hidden");
+      try {
+        const d = await postJSON(`${BASE_API}/MAPS/geocode.php`, { text: q });
+        b.innerHTML="";
+        d.results.forEach(r=>{
+           const i=document.createElement("div");
+           i.className="suggestItem"; i.innerText=r.label;
+           i.onclick=()=>{ document.getElementById("destination").value=r.label; b.classList.add("hidden"); };
+           b.appendChild(i);
+        });
+        b.classList.remove("hidden");
+      } catch(e){}
     }, 400);
   });
 </script>

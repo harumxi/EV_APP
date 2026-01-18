@@ -1,45 +1,64 @@
-
 <?php
+// 1. Force Headers
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Headers: Content-Type");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Content-Type: application/json; charset=UTF-8");
+header("Access-Control-Allow-Headers: Content-Type");
+header("Content-Type: application/json");
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(204); exit; }
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); echo json_encode(['ok'=>false,'error'=>'Method not allowed']); exit; }
-
-require_once __DIR__ . '/../../CORE/Database.php';
-
-$input = json_decode(file_get_contents("php://input"), true) ?? [];
-$user_id = (int)($input['user_id'] ?? 0);
-$garage_id = (int)($input['garage_id'] ?? 0);
-
-if ($user_id <= 0 || $garage_id <= 0) {
-    http_response_code(400);
-    echo json_encode(['ok'=>false,'error'=>'Missing user_id or garage_id']);
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
     exit;
 }
 
-try {
-    $db = Database::conn();
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
 
-    // Ensure car belongs to user
-    $own = $db->prepare("SELECT garage_id FROM user_garage WHERE garage_id = ? AND user_id = ? LIMIT 1");
-    $own->execute([$garage_id, $user_id]);
-    if (!$own->fetch()) {
-        http_response_code(403);
-        echo json_encode(['ok'=>false,'error'=>'Not allowed']);
-        exit;
+try {
+    // 2. Database Connection (Smart Path)
+    $possiblePaths = [
+        __DIR__ . '/../../../CORE/Database.php',
+        __DIR__ . '/../../../core/Database.php',
+        __DIR__ . '/../../CORE/Database.php'
+    ];
+
+    $dbPath = null;
+    foreach ($possiblePaths as $path) {
+        if (file_exists($path)) {
+            $dbPath = $path;
+            break;
+        }
     }
 
+    if (!$dbPath) throw new Exception("Database.php not found");
+    require_once $dbPath;
+    $db = Database::conn();
+
+    // 3. Get Input
+    $input = json_decode(file_get_contents('php://input'), true);
+    $garageId = $input['garage_id'] ?? null;
+    $userId = $input['user_id'] ?? null;
+
+    if (!$garageId || !$userId) {
+        throw new Exception("Missing garage_id or user_id");
+    }
+
+    // 4. TRANSACTION: Reset all, then Set One
     $db->beginTransaction();
-    $db->prepare("UPDATE user_garage SET is_active = 0 WHERE user_id = ?")->execute([$user_id]);
-    $db->prepare("UPDATE user_garage SET is_active = 1 WHERE garage_id = ? AND user_id = ?")->execute([$garage_id, $user_id]);
+
+    // Step A: Set ALL cars for this user to inactive (0)
+    $stmt1 = $db->prepare("UPDATE user_garage SET is_active = 0 WHERE user_id = ?");
+    $stmt1->execute([$userId]);
+
+    // Step B: Set the SELECTED car to active (1)
+    $stmt2 = $db->prepare("UPDATE user_garage SET is_active = 1 WHERE garage_id = ? AND user_id = ?");
+    $stmt2->execute([$garageId, $userId]);
+
     $db->commit();
 
-    echo json_encode(['ok'=>true]);
-} catch (Throwable $e) {
-    if ($db && $db->inTransaction()) $db->rollBack();
-    http_response_code(500);
-    echo json_encode(['ok'=>false,'error'=>'Server error']);
+    echo json_encode(['ok' => true, 'message' => 'Car activated successfully']);
+
+} catch (Exception $e) {
+    if (isset($db)) $db->rollBack();
+    echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
 }
+?>
