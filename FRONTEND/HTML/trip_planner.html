@@ -181,7 +181,6 @@
           .replace(/\bncr\b/g, "metro manila");
 
       const injectedResults = [];
-      
       if(qMain.includes("national") && qMain.includes("fairview") || qMain.includes("nu fairview")) {
           injectedResults.push({
               properties: {
@@ -191,9 +190,7 @@
                   district: "SM City Fairview Complex",
                   country: "Philippines"
               },
-              geometry: {
-                  coordinates: [121.0570, 14.7338] 
-              },
+              geometry: { coordinates: [121.0570, 14.7338] },
               _score: 9999,
               _distance: getDistanceKm(myLat, myLng, 14.7338, 121.0570)
           });
@@ -213,7 +210,6 @@
 
       const uniqueResults = [...injectedResults]; 
       const seenKeys = new Set();
-      
       injectedResults.forEach(i => seenKeys.add((i.properties.name || "") + i.geometry.coordinates.join(",")));
 
       allFeatures.forEach(f => {
@@ -225,10 +221,8 @@
               
               let score = 0;
               const propsStr = JSON.stringify(f.properties).toLowerCase();
-
               if (f.properties.name && f.properties.name.toLowerCase().includes(qMain)) score += 100;
               words.forEach(w => { if(w.length > 3 && propsStr.includes(w)) score += 20; });
-
               f._score = score;
               uniqueResults.push(f);
           }
@@ -247,14 +241,11 @@
   document.getElementById("destination").addEventListener("input", (e) => {
     clearTimeout(destDebounce);
     const box = document.getElementById("destSuggest");
-    
     destDebounce = setTimeout(async()=>{
       const q = e.target.value;
       if(q.length < 2) return box.classList.add("hidden");
-      
       const results = await smartSearch(q);
       box.innerHTML = "";
-      
       if(results.length === 0) { box.classList.add("hidden"); return; }
 
       results.forEach(r => {
@@ -281,9 +272,8 @@
 
   // 7. FIND ROUTES
   document.getElementById("calcBtn").addEventListener("click", async () => {
-    // === NEW BATTERY CHECK ON FIND ROUTES ===
-    if (checkBatteryGate()) return;
-
+    if (checkBatteryGate()) return; // Battery check when user clicks button
+    
     const btn = document.getElementById("calcBtn"); const list = document.getElementById("routeList"); const startWrap = document.getElementById("startWrap");
     const origTxt = document.getElementById("origin").value.trim(); const destTxt = document.getElementById("destination").value.trim(); const batt = document.getElementById("battery").value;
 
@@ -321,40 +311,45 @@
   function useMyLocation(){ navigator.geolocation.getCurrentPosition(p => { myLat = p.coords.latitude; myLng = p.coords.longitude; document.getElementById("origin").value = `${myLat.toFixed(5)}, ${myLng.toFixed(5)} (My Location)`; selectedOrigin = { lat: myLat, lng: myLng, label: "My Location" }; loadWeather(myLat, myLng, "My Location"); map.flyTo([myLat, myLng], 15); }, err => alert("GPS Error")); }
   
   // =======================================================
-  // ⚡ GATEKEEPER LOGIC (THE FIX)
+  // ⚡ BATTERY INPUT LOGIC (Range 1-100 & Gatekeeper)
   // =======================================================
-  
-  // 1. Check Function
-  function checkBatteryGate() {
-      // NOTE: Your ID is 'battery', NOT 'battery_level'
-      const battInput = document.getElementById("battery");
-      const batt = parseInt(battInput.value) || 0;
+  const battInput = document.getElementById("battery");
 
-      if (batt <= 20) {
+  // 1. Strict Range Limiter (1-100)
+  battInput.addEventListener("input", function() {
+      let val = parseInt(this.value);
+      if (val > 100) this.value = 100;
+      if (val < 0) this.value = 0;
+  });
+
+  // 2. Blur Event Check (Optional safety)
+  battInput.addEventListener("blur", function() {
+      // If user types 15 then clicks away, check gate
+      checkBatteryGate();
+  });
+
+  // 3. Check Function (Only called on Blur or Button Click)
+  function checkBatteryGate() {
+      const val = parseInt(battInput.value) || 0;
+      if (val <= 20) {
           alert("⛔ BATTERY LOW (≤20%)\n\nYou cannot start a trip.\nRedirecting to Charging Station...");
-          
-          // Save lock state
           localStorage.setItem("forceCharging", "1");
           localStorage.setItem("ev_lock_status", "critical");
-          
-          // Force Redirect (Using relative path as requested)
           window.location.href = "charging.html";
-          return true; // Blocked
+          return true; 
       }
-      return false; // Safe
+      return false;
   }
 
-  // 2. Updated Navigation Function
+  // 4. Start Nav
   function startNavigation(){ 
-      // Run the check FIRST
       if (checkBatteryGate()) return;
-
       if (!selectedRouteObject) return alert("Select a route first.");
       localStorage.setItem("activeTrip", JSON.stringify(selectedRouteObject));
       window.location.href = "test_navigation.html"; 
   }
 
-  // 3. Run check on load immediately
+  // 5. Initial Check on Load
   document.addEventListener("DOMContentLoaded", () => {
      checkBatteryGate();
   });
@@ -362,59 +357,36 @@
 
 <script>
     console.log("🛡️ Battery Guard Active");
-
-    // 1. HIJACK THE "START NAVIGATION" FUNCTION
-    // We overwrite the existing function so it CANNOT run without checking battery first.
     window.startNavigation = function() {
-        if (checkBatteryAndRedirect()) return; // Stop if low
-
-        // Only run this if battery is safe
+        if (checkBatteryAndRedirect()) return;
         if (!selectedRouteObject) return alert("Select a route first.");
         localStorage.setItem("activeTrip", JSON.stringify(selectedRouteObject));
         window.location.href = "test_navigation.html"; 
     };
 
-    // 2. INTERCEPT CLICKS ON THE "GHOST" MODAL
-    // This catches the "Reroute" button on the white modal you are seeing.
     document.addEventListener('click', function(e) {
-        // Check if the clicked element (or its parent) is a button/link
         const target = e.target.closest('button') || e.target.closest('a') || e.target;
-        
         if (!target) return;
-
-        // If the button says "Reroute" or "Start"
         const text = target.innerText || "";
         if (text.includes('Reroute') || text.includes('Start') || text.includes('Navigation')) {
              if (checkBatteryAndRedirect()) {
-                 // ⛔ STOP THE CLICK
-                 e.preventDefault();
-                 e.stopPropagation();
-                 e.stopImmediatePropagation();
-                 console.log("⛔ Blocked navigation due to low battery.");
+                 e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
                  return false;
              }
         }
-    }, true); // 'true' means we catch the click BEFORE the old code does
+    }, true);
 
-    // 3. THE CHECKER LOGIC
     function checkBatteryAndRedirect() {
-        // Use the ID 'battery' because that matches your HTML
         const input = document.getElementById('battery'); 
         const level = parseInt(input?.value || 0);
-
-        // TRIGGER AT 20% or LOWER
         if (level <= 20) {
             alert("⚠️ BATTERY LOW (" + level + "%)\n\nRerouting to Charging Station...");
-            
-            // SAVE STATE
             localStorage.setItem("ev_lock_status", "critical");
             localStorage.setItem("forceCharging", "1");
-
-            // FORCE REDIRECT
             window.location.href = "charging.html"; 
-            return true; // Return true means "Yes, we redirected"
+            return true;
         }
-        return false; // Return false means "Safe to drive"
+        return false;
     }
 </script>
 </body>

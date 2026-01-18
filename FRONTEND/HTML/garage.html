@@ -4,237 +4,316 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Garage</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
         body { background: #f3f4f6; font-family: 'Segoe UI', sans-serif; }
-        .car-card { transition: all 0.2s; }
-        .car-card:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-        .active-ring { ring: 4px solid #16a34a; background: #f0fdf4; }
-        .modal { opacity: 0; pointer-events: none; transition: 0.2s; }
-        .modal.open { opacity: 1; pointer-events: auto; }
+        
+        .car-card {
+            background: white; border-radius: 20px; overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            transition: all 0.2s ease; border: 2px solid transparent;
+            position: relative;
+        }
+        .car-card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.1); }
+        .car-card.active-car { border-color: #22c55e; background: #f0fdf4; }
+
+        .search-wrap { position: relative; max-width: 600px; margin: 0 auto; }
+        .search-input {
+            width: 100%; padding: 16px 24px; padding-left: 50px;
+            border-radius: 99px; border: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            font-size: 16px; outline: none; transition: 0.2s;
+        }
+        .search-input:focus { box-shadow: 0 8px 25px rgba(37,99,235,0.2); }
+
+        .modal-bg { background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); }
+        
+        .btn-delete {
+            position: absolute; top: 10px; left: 10px;
+            background: rgba(255, 255, 255, 0.9); color: #ef4444;
+            width: 32px; height: 32px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2); cursor: pointer;
+            transition: 0.2s; z-index: 10;
+        }
+        .btn-delete:hover { background: #ef4444; color: white; }
     </style>
 </head>
-<body>
+<body class="pb-20">
 
-<div class="max-w-md mx-auto min-h-screen bg-white shadow-2xl overflow-hidden relative pb-24">
-    
-    <div class="bg-gray-900 text-white p-6 rounded-b-3xl shadow-lg relative">
-        <div class="flex justify-between items-center mb-4">
-            <h1 class="text-2xl font-black tracking-tighter">My Garage 🚗</h1>
-            <div class="flex gap-2">
-                <button onclick="openSearch()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-bold transition flex items-center gap-1">
-                    <span class="text-lg">+</span> Add Car
-                </button>
-                <button onclick="logout()" class="text-xs font-bold bg-red-600 px-3 py-1 rounded-full hover:bg-red-700">Logout</button>
-            </div>
-        </div>
-        <p class="text-gray-400 text-sm" id="who">Loading user...</p>
-    </div>
-
-    <div id="carList" class="p-6 space-y-4">
-        <div class="text-center text-gray-500 mt-10">Loading garage...</div>
-    </div>
-
-    <div id="plannerBtnWrap" class="fixed bottom-6 left-0 right-0 px-6 hidden z-40">
-        <button onclick="window.location.href='trip_planner.html'" 
-                class="w-full bg-green-600 hover:bg-green-700 text-white font-black py-4 rounded-xl shadow-xl text-lg flex items-center justify-center gap-2 animate-bounce">
-            Plan Trip with Active Car ➜
-        </button>
-    </div>
-
-    <div id="searchModal" class="modal fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-        <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden transform transition-all">
-            <div class="p-4 bg-gray-50 border-b flex justify-between items-center">
-                <h3 class="font-bold text-gray-800">Add New Vehicle</h3>
-                <button onclick="closeSearch()" class="text-gray-400 hover:text-gray-600 font-bold text-xl">&times;</button>
-            </div>
-            
-            <div class="p-4 space-y-4">
-                <div>
-                    <input id="searchInput" type="text" placeholder="e.g. Tesla Model 3" 
-                           class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <button onclick="searchCar()" id="findBtn"
-                        class="w-full bg-black text-white font-bold py-3 rounded-xl hover:bg-gray-800 transition">
-                    Find Car
-                </button>
-                
-                <div id="searchResults" class="max-h-60 overflow-y-auto space-y-2 pt-2"></div>
-            </div>
+    <div class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-black text-gray-900 flex items-center gap-2">
+                <i class="fa-solid fa-warehouse text-blue-600"></i> My Garage
+            </h1>
+            <a href="trip_planner.html" class="text-gray-500 hover:text-blue-600 font-bold text-sm">
+                <i class="fa-solid fa-map"></i> Go to Planner
+            </a>
         </div>
     </div>
 
-</div>
-
-<script>
-    // ✅ 1. CONFIG (Same logic as your working test_garage)
-    const API_URL = "http://localhost/WEBPROG_PROJ/BACKEND/api/GARAGE";
-    const user = JSON.parse(localStorage.getItem("currentUser") || "null");
-
-    if (!user || !user.id) window.location.href = "login.html";
-    document.getElementById("who").innerText = "Logged in as: " + user.email;
-    const USER_ID = user.id;
-
-    // ✅ 2. HELPER (Same as your working code)
-    async function postJSON(url, payload) {
-        const res = await fetch(url, {
-            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
-        });
-        const text = await res.text();
-        let data;
-        try { data = JSON.parse(text); } catch { console.error("Bad JSON", text); throw new Error("Server Error"); }
-        if (!res.ok) throw new Error(data.error || "HTTP Error");
-        return data;
-    }
-
-    // ✅ 3. LOAD GARAGE (Uses your working list.php)
-    async function loadGarage() {
-        const list = document.getElementById("carList");
-        list.innerHTML = `<div class="text-center text-gray-400">Loading...</div>`;
+    <div class="max-w-4xl mx-auto px-4 mt-8">
         
-        try {
-            // Using list.php since you confirmed it works
-            const data = await postJSON(`${API_URL}/list.php`, { user_id: USER_ID });
-            list.innerHTML = "";
+        <div class="text-center mb-10">
+            <h2 class="text-3xl font-bold text-gray-800 mb-2">Find Your EV</h2>
+            <p class="text-gray-500 mb-6">Search our database to add cars to your garage.</p>
+            
+            <div class="search-wrap">
+                <i class="fa-solid fa-search absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 text-lg"></i>
+                <input type="text" id="car-search" class="search-input" placeholder="e.g. Tesla, BYD, Nissan..." oninput="handleSearch(this.value)">
+                <div id="search-results" class="absolute w-full bg-white mt-2 rounded-2xl shadow-2xl overflow-hidden hidden z-50 text-left"></div>
+            </div>
+        </div>
 
-            if (!data.cars || data.cars.length === 0) {
-                list.innerHTML = `<div class="text-center text-gray-400 font-bold mt-10">Garage is empty.<br>Tap "+ Add Car" to start!</div>`;
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-gray-800">Your Vehicles</h3>
+            <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold" id="car-count">0 Cars</span>
+        </div>
+
+        <div id="garage-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+    </div>
+
+    <div id="spec-modal" class="fixed inset-0 modal-bg hidden z-[100] flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl relative animate-bounce-in">
+            <button onclick="closeModal()" class="absolute top-4 right-4 bg-black/50 hover:bg-black text-white w-8 h-8 rounded-full flex items-center justify-center transition">
+                <i class="fa-solid fa-times"></i>
+            </button>
+            
+            <div class="w-full h-64 bg-gray-100 relative">
+                 <img id="modal-img" src="" class="w-full h-full object-cover">
+            </div>
+
+            <div class="p-8">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <div class="text-sm font-bold text-blue-600 uppercase tracking-wider" id="modal-brand">--</div>
+                        <h2 class="text-3xl font-black text-gray-900 leading-none" id="modal-model">--</h2>
+                    </div>
+                    <div class="bg-gray-100 px-3 py-1 rounded-lg font-bold text-gray-600" id="modal-year">--</div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 mt-6">
+                    <div class="bg-blue-50 p-4 rounded-xl">
+                        <div class="text-xs text-blue-500 font-bold uppercase">Official Range</div>
+                        <div class="text-2xl font-black text-gray-900"><span id="modal-range">--</span> <span class="text-sm">km</span></div>
+                    </div>
+                    <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-100">
+                        <div class="text-xs text-yellow-600 font-bold uppercase flex items-center gap-1">
+                            <i class="fa-solid fa-leaf"></i> Real World
+                        </div>
+                        <div class="text-2xl font-black text-gray-900"><span id="modal-real-range">--</span> <span class="text-sm">km</span></div>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-xl">
+                        <div class="text-xs text-green-500 font-bold uppercase">Battery</div>
+                        <div class="text-2xl font-black text-gray-900"><span id="modal-batt">--</span> <span class="text-sm">kWh</span></div>
+                    </div>
+                    <div class="bg-purple-50 p-4 rounded-xl">
+                        <div class="text-xs text-purple-500 font-bold uppercase">Plug Type</div>
+                        <div class="text-lg font-bold text-gray-900 truncate" id="modal-plug">--</div>
+                    </div>
+                </div>
+
+                <button id="btn-activate" class="w-full mt-6 py-4 bg-gray-900 hover:bg-black text-white rounded-xl font-bold text-lg shadow-lg transition flex justify-center gap-2 items-center">
+                    Set as Active Car
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "http://localhost/WEBPROG_PROJ/BACKEND/API/GARAGE/vehicles.php";
+        const FALLBACK_IMG = "https://placehold.co/600x400/EEE/31343C?text=EV+Image";
+        let searchTimeout;
+
+        document.addEventListener("DOMContentLoaded", () => renderGarage());
+
+        function handleSearch(query) {
+            clearTimeout(searchTimeout);
+            const dropdown = document.getElementById('search-results');
+            
+            if(query.length < 2) {
+                dropdown.classList.add('hidden');
                 return;
             }
 
-            let hasActive = false;
+            dropdown.innerHTML = '<div class="p-4 text-center text-gray-500"><i class="fa-solid fa-circle-notch fa-spin"></i> Searching...</div>';
+            dropdown.classList.remove('hidden');
 
-            data.cars.forEach(car => {
-                const isActive = Number(car.is_active) === 1;
-                if (isActive) hasActive = true;
+            searchTimeout = setTimeout(async () => {
+                try {
+                    const res = await fetch(`${API_URL}?q=${encodeURIComponent(query)}`);
+                    const json = await res.json();
+                    
+                    dropdown.innerHTML = ''; 
+                    const cars = Array.isArray(json) ? json : (json.data || []);
+
+                    if(cars.length > 0) {
+                        cars.forEach(car => {
+                            const div = document.createElement('div');
+                            div.className = "p-4 border-b hover:bg-gray-50 cursor-pointer flex items-center gap-4 transition";
+                            div.innerHTML = `
+                                <img src="${car.image}" onerror="this.src='${FALLBACK_IMG}'" class="w-12 h-12 rounded-lg object-cover bg-gray-200">
+                                <div>
+                                    <div class="font-bold text-gray-900">${car.brand} ${car.model}</div>
+                                    <div class="text-xs text-gray-500">${car.year} • ${car.range_km} km</div>
+                                </div>
+                                <div class="ml-auto text-blue-600 font-bold text-sm">Add +</div>
+                            `;
+                            div.onclick = () => addToGarage(car);
+                            dropdown.appendChild(div);
+                        });
+                    } else {
+                        dropdown.innerHTML = `<div class="p-4 text-gray-400 text-center">No vehicles found.</div>`;
+                    }
+                } catch(e) {
+                    console.error("Search Error", e);
+                    dropdown.innerHTML = '<div class="p-4 text-red-500 text-center">Connection Error.</div>';
+                }
+            }, 300);
+        }
+
+        function addToGarage(car) {
+            let garage = JSON.parse(localStorage.getItem('my_garage') || "[]");
+            if(garage.some(c => c.id === car.id)) {
+                alert("Car already in garage!");
+                return;
+            }
+            garage.push(car);
+            localStorage.setItem('my_garage', JSON.stringify(garage));
+            
+            if(garage.length === 1) setActiveCar(car);
+
+            document.getElementById('search-results').classList.add('hidden');
+            document.getElementById('car-search').value = '';
+            renderGarage();
+        }
+
+        function removeFromGarage(carId) {
+            if(!confirm("Remove this car?")) return;
+            let garage = JSON.parse(localStorage.getItem('my_garage') || "[]");
+            let activeCar = JSON.parse(localStorage.getItem('active_car') || "null");
+
+            if (activeCar && activeCar.id === carId) {
+                alert("Cannot delete active car. Switch first.");
+                return;
+            }
+            garage = garage.filter(c => c.id !== carId);
+            localStorage.setItem('my_garage', JSON.stringify(garage));
+            renderGarage();
+        }
+
+        function renderGarage() {
+            const garage = JSON.parse(localStorage.getItem('my_garage') || "[]");
+            const activeCar = JSON.parse(localStorage.getItem('active_car') || "null");
+            const grid = document.getElementById('garage-grid');
+            
+            document.getElementById('car-count').innerText = `${garage.length} Cars`;
+
+            if(garage.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-10 text-gray-400">Your garage is empty.</div>`;
+                return;
+            }
+
+            grid.innerHTML = '';
+            garage.forEach(car => {
+                const isActive = activeCar && activeCar.id === car.id;
+                const div = document.createElement('div');
+                div.className = `car-card ${isActive ? 'active-car' : ''}`;
                 
-                const label = `${car.brand_name} ${car.model_name} ${car.variant_name || ""}`.trim();
-
-                const card = document.createElement("div");
-                card.className = `car-card border rounded-2xl p-4 flex justify-between items-center cursor-pointer ${isActive ? 'active-ring border-green-500' : 'border-gray-200 bg-white'}`;
-                
-                // If not active, clicking selects it
-                if (!isActive) card.onclick = () => setActive(car.garage_id);
-
-                card.innerHTML = `
-                    <div class="flex items-center gap-4">
-                        <div class="text-3xl">${isActive ? '🚘' : '🚗'}</div>
-                        <div>
-                            <div class="font-black text-gray-900 text-lg">${label}</div>
-                            <div class="text-xs text-gray-500 font-bold">${car.battery_capacity_kwh} kWh • ${car.efficiency_wh_per_km} Wh/km</div>
-                            ${car.nickname ? `<div class="text-[10px] text-gray-400 mt-1">"${car.nickname}"</div>` : ""}
+                div.innerHTML = `
+                    <div class="btn-delete" onclick="event.stopPropagation(); removeFromGarage('${car.id}')"><i class="fa-solid fa-trash"></i></div>
+                    <div class="relative h-48 bg-gray-100">
+                        <img src="${car.image}" onerror="this.src='${FALLBACK_IMG}'" class="w-full h-full object-cover">
+                        ${isActive ? '<div class="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg"><i class="fa-solid fa-check"></i> Active</div>' : ''}
+                    </div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <div class="text-xs font-bold text-gray-400 uppercase">${car.brand}</div>
+                                <h3 class="text-xl font-black text-gray-900">${car.model}</h3>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-2xl font-bold text-gray-900">${car.range_km}</div>
+                                <div class="text-xs text-gray-500 font-bold uppercase">km Range</div>
+                            </div>
+                        </div>
+                        <div class="flex gap-2 mt-4">
+                            <button onclick='openSpecModal(${JSON.stringify(car).replace(/'/g, "&#39;")})' class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold text-gray-700 text-sm transition">Specs</button>
+                            ${!isActive ? `<button onclick='setActiveCar(${JSON.stringify(car).replace(/'/g, "&#39;")})' class="flex-1 py-3 bg-gray-900 hover:bg-black text-white rounded-xl font-bold text-sm transition">Activate</button>` : ''}
                         </div>
                     </div>
-                    <div>
-                        ${isActive 
-                            ? `<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-black tracking-wide">ACTIVE</span>` 
-                            : `<button onclick="event.stopPropagation(); setActive(${car.garage_id})" class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-2 rounded-xl text-xs font-bold transition">Select</button>`
-                        }
-                    </div>
                 `;
-                
-                // Add Delete Button (Small X)
-                const delBtn = document.createElement("button");
-                delBtn.className = "absolute top-2 right-2 text-gray-300 hover:text-red-500 font-bold px-2";
-                delBtn.innerHTML = "&times;";
-                delBtn.onclick = (e) => { e.stopPropagation(); removeCar(car.garage_id); };
-                // card.appendChild(delBtn); // Uncomment if you want delete button on card
-
-                list.appendChild(card);
+                grid.appendChild(div);
             });
-
-            // SHOW/HIDE PLAN TRIP BUTTON
-            const btn = document.getElementById("plannerBtnWrap");
-            if (hasActive) btn.classList.remove("hidden");
-            else btn.classList.add("hidden");
-
-        } catch (e) {
-            console.error(e);
-            list.innerHTML = `<div class="text-red-500 text-center">Error loading garage.</div>`;
         }
-    }
 
-    // ✅ 4. SEARCH (Uses your working garage_search.php)
-    async function searchCar() {
-        const q = document.getElementById("searchInput").value.trim();
-        const results = document.getElementById("searchResults");
-        const btn = document.getElementById("findBtn");
+        // --- THE CRITICAL "CALCULATED PROPERLY" PART ---
+        function setActiveCar(car) {
+            // 1. Save Full Object
+            localStorage.setItem('active_car', JSON.stringify(car));
+            
+            // 2. Save Specific Calculation Metrics
+            localStorage.setItem('ev_capacity', car.battery_kwh);
+            localStorage.setItem('ev_efficiency', car.efficiency_whkm);
+            
+            // 3. Save RANGES (Official vs Real World)
+            // Use real_world_range from backend if available, otherwise 85% of official
+            const safeRange = car.real_world_range_km || Math.round(car.range_km * 0.85);
+            
+            localStorage.setItem('ev_max_range', car.range_km);
+            localStorage.setItem('ev_safe_range', safeRange); 
 
-        if (!q) return;
-
-        btn.disabled = true; btn.innerText = "Searching...";
-        results.innerHTML = "";
-
-        try {
-            const data = await postJSON(`${API_URL}/garage_search.php`, { search: q });
-
-            if (!data.results || data.results.length === 0) {
-                results.innerHTML = `<div class="text-center text-gray-500 text-sm">No results.</div>`;
-                return;
+            // 4. Update UI
+            renderGarage();
+            
+            // Close Modal if open
+            if(!document.getElementById('spec-modal').classList.contains('hidden')) {
+                closeModal();
+                setTimeout(() => openSpecModal(car), 100); // Re-open to update button
             }
-
-            data.results.slice(0, 5).forEach(r => {
-                const label = `${r.brand_name} ${r.model_name} ${r.variant_name || ""}`.trim();
-                const div = document.createElement("div");
-                div.className = "flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100";
-                div.innerHTML = `
-                    <div>
-                        <div class="font-bold text-gray-800 text-sm">${label}</div>
-                        <div class="text-xs text-gray-500">${r.battery_capacity_kwh} kWh</div>
-                    </div>
-                    <button class="bg-blue-600 text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-blue-700">Add</button>
-                `;
-                div.querySelector("button").onclick = () => addCar(r.variant_id);
-                results.appendChild(div);
-            });
-        } catch (e) {
-            results.innerHTML = `<div class="text-red-500 text-sm">Search failed.</div>`;
-        } finally {
-            btn.disabled = false; btn.innerText = "Find Car";
         }
-    }
 
-    // ✅ 5. ADD CAR (Uses your working logic: variant_id)
-    async function addCar(variantId) {
-        const nickname = prompt("Nickname (optional):") || "";
-        try {
-            await postJSON(`${API_URL}/add.php`, { user_id: USER_ID, variant_id: Number(variantId), nickname });
-            closeSearch();
-            document.getElementById("searchInput").value = "";
-            document.getElementById("searchResults").innerHTML = "";
-            loadGarage();
-        } catch (e) {
-            alert(e.message);
+        function openSpecModal(car) {
+            const modal = document.getElementById('spec-modal');
+            const activeCar = JSON.parse(localStorage.getItem('active_car') || "null");
+            const isActive = activeCar && activeCar.id === car.id;
+
+            const imgEl = document.getElementById('modal-img');
+            imgEl.src = car.image;
+            imgEl.onerror = function() { this.src = FALLBACK_IMG; };
+
+            document.getElementById('modal-brand').innerText = car.brand;
+            document.getElementById('modal-model').innerText = car.model;
+            document.getElementById('modal-year').innerText = car.year;
+            document.getElementById('modal-range').innerText = car.range_km;
+            
+            // SHOW CALCULATED REAL WORLD RANGE
+            const realRange = car.real_world_range_km || Math.round(car.range_km * 0.85);
+            document.getElementById('modal-real-range').innerText = realRange;
+            
+            document.getElementById('modal-batt').innerText = car.battery_kwh;
+            document.getElementById('modal-plug').innerText = car.plug_type;
+
+            const btn = document.getElementById('btn-activate');
+            if(isActive) {
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Currently Active';
+                btn.className = "w-full mt-6 py-4 bg-green-600 text-white rounded-xl font-bold text-lg shadow-lg cursor-default";
+                btn.onclick = null;
+            } else {
+                btn.innerHTML = 'Set as Active Car';
+                btn.className = "w-full mt-6 py-4 bg-gray-900 hover:bg-black text-white rounded-xl font-bold text-lg shadow-lg transition";
+                btn.onclick = () => { setActiveCar(car); closeModal(); };
+            }
+            modal.classList.remove('hidden');
         }
-    }
 
-    // ✅ 6. SET ACTIVE & REDIRECT BUTTON Logic
-    async function setActive(garageId) {
-        try {
-            await postJSON(`${API_URL}/set_active.php`, { user_id: USER_ID, garage_id: Number(garageId) });
-            loadGarage();
-        } catch (e) {
-            alert(e.message);
-        }
-    }
-
-    async function removeCar(garageId) {
-        if (!confirm("Delete this vehicle?")) return;
-        try {
-            await postJSON(`${API_URL}/remove.php`, { user_id: USER_ID, garage_id: Number(garageId) });
-            loadGarage();
-        } catch (e) {
-            alert(e.message);
-        }
-    }
-
-    // Modal UI
-    function openSearch() { document.getElementById("searchModal").classList.add("open"); }
-    function closeSearch() { document.getElementById("searchModal").classList.remove("open"); }
-    function logout() { localStorage.removeItem("currentUser"); window.location.href = "login.html"; }
-
-    // Init
-    loadGarage();
-</script>
+        function closeModal() { document.getElementById('spec-modal').classList.add('hidden'); }
+        document.getElementById('spec-modal').addEventListener('click', (e) => {
+            if(e.target.id === 'spec-modal') closeModal();
+        });
+    </script>
 </body>
 </html>
