@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Charging</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; overflow: hidden; background: #111827; }
+        #map { height: 100vh; width: 100%; z-index: 0; }
+        
+        .sidebar {
+            position: absolute; top: 20px; left: 20px; bottom: 20px;
+            width: 420px; max-width: 90vw;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            z-index: 1000;
+            display: flex; flex-direction: column;
+            overflow: hidden;
+            border: 4px solid #ef4444; /* Red border for Emergency Mode */
+        }
+
+        .station-card {
+            border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; margin-bottom: 10px;
+            cursor: pointer; transition: all 0.2s; background: white;
+        }
+        .station-card:hover { border-color: #ef4444; background: #fef2f2; }
+        .station-card.disabled { opacity: 0.6; pointer-events: none; background: #f3f4f6; }
+        
+        .badge { font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 99px; text-transform: uppercase; }
+        .badge-green { background: #dcfce7; color: #166534; }
+        .badge-red { background: #fee2e2; color: #991b1b; }
+
+        /* Animations */
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        .emergency-pulse { animation: pulse-red 2s infinite; }
+
+        /* Navigation Overlay */
+        .nav-overlay {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.8); color: white; padding: 10px 20px;
+            border-radius: 99px; font-weight: bold; z-index: 999;
+            display: none; box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+    <div id="nav-status" class="nav-overlay"><i class="fa-solid fa-circle-notch fa-spin"></i> Navigating to Charger...</div>
+
+    <div class="sidebar" id="sidebar">
+        <div class="p-6 pb-4 bg-red-50 border-b border-red-100">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="w-3 h-3 rounded-full bg-red-600 emergency-pulse"></div>
+                <h1 class="text-xl font-black text-red-700 uppercase tracking-wider">Emergency Mode</h1>
+            </div>
+            <div class="flex justify-between items-end">
+                <div>
+                    <div class="text-xs text-gray-500 font-bold uppercase">Current Battery</div>
+                    <div class="text-4xl font-black text-gray-900" id="current-batt-display">--%</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-xs text-gray-500 font-bold uppercase">Est. Range</div>
+                    <div class="text-2xl font-bold text-blue-600" id="current-range-display">-- km</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="content-area" class="flex-1 overflow-y-auto p-4 bg-gray-50 relative">
+            <div class="flex flex-col h-full justify-center items-center text-gray-400">
+                <i class="fa-solid fa-satellite-dish fa-spin text-3xl mb-3"></i>
+                <p class="font-bold text-sm">Scanning nearby chargers...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/@mapbox/polyline@1.2.0/src/polyline.js"></script>
+
+    <script>
+        // --- 1. CONFIGURATION ---
+        const API_URL = "http://localhost/WEBPROG_PROJ/BACKEND/API/CHARGING/nearby.php";
+        
+        // EV PHYSICS
+        const EV_SPECS = {
+            capacity: 60, // 60 kWh battery
+            efficiency: 6, // 6 km per kWh
+            safety_buffer: 0.85 
+        };
+
+        let map, userLat, userLng, currentBattery;
+        let selectedStation = null;
+        let routePolyline = null;
+        let carMarker = null;
+        let animationFrameId = null;
+
+        // --- 2. ICONS ---
+        const userIcon = L.divIcon({ html: '<div style="width:16px; height:16px; background:#3b82f6; border:3px solid white; border-radius:50%; box-shadow:0 0 10px rgba(0,0,0,0.5);"></div>', className: '' });
+        
+        const chargerIcon = L.divIcon({ html: '<div style="font-size:32px; filter:drop-shadow(0 4px 6px rgba(0,0,0,0.4));">⚡</div>', className: '', iconSize: [30, 40], iconAnchor: [15, 40] });
+
+        const carIcon = L.divIcon({ 
+            html: '<div style="font-size:30px; transform: rotate(0deg); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">🚗</div>', 
+            className: 'car-marker', 
+            iconSize: [30, 30], 
+            iconAnchor: [15, 15] 
+        });
+
+        // --- 3. INITIALIZATION ---
+        document.addEventListener("DOMContentLoaded", () => {
+            let savedBatt = localStorage.getItem('last_known_battery');
+            currentBattery = savedBatt ? parseInt(savedBatt) : 15; 
+            
+            updateHeaderStats();
+            initMap();
+        });
+
+        function updateHeaderStats() {
+            const maxRange = (currentBattery / 100) * EV_SPECS.capacity * EV_SPECS.efficiency;
+            const safeRange = maxRange * EV_SPECS.safety_buffer;
+
+            document.getElementById('current-batt-display').innerText = currentBattery + "%";
+            document.getElementById('current-range-display').innerText = safeRange.toFixed(1) + " km";
+            return safeRange;
+        }
+
+        // --- NEW MAP INIT WITH LAYERS ---
+        function initMap() {
+            // Layer Definitions
+            const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: 'OSM' });
+            const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Esri' });
+            const dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19, attribution: 'CartoDB' });
+
+            map = L.map('map', { 
+                zoomControl: false, 
+                layers: [osm] // Default Layer
+            }).setView([14.5995, 120.9842], 13);
+
+            // Layer Control (Top Right)
+            L.control.layers({ "Street": osm, "Satellite": satellite, "Dark Mode": dark }).addTo(map);
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+            // Get Real Location
+            if(navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    userLat = pos.coords.latitude;
+                    userLng = pos.coords.longitude;
+                    
+                    L.marker([userLat, userLng], {icon: userIcon}).addTo(map).bindPopup("You");
+                    map.setView([userLat, userLng], 14);
+                    fetchAndFilterStations();
+                }, () => {
+                    alert("GPS Error. Using Default Location.");
+                    userLat = 14.5995; userLng = 120.9842;
+                    fetchAndFilterStations();
+                });
+            }
+        }
+
+        // --- 4. FETCH STATIONS ---
+        async function fetchAndFilterStations() {
+            const safeRange = updateHeaderStats();
+            const container = document.getElementById('content-area');
+
+            try {
+                const res = await fetch(`${API_URL}?lat=${userLat}&lon=${userLng}`);
+                const stations = await res.json();
+
+                if(stations.length === 0) {
+                    container.innerHTML = `<div class="text-center p-4 text-red-500 font-bold">No stations found.</div>`;
+                    return;
+                }
+
+                const reachableStations = stations.map(st => {
+                    const dist = getDistance(userLat, userLng, st.location.latitude, st.location.longitude);
+                    return { ...st, distance: dist };
+                }).sort((a, b) => a.distance - b.distance);
+
+                let html = `<div class="mb-4 text-xs font-bold text-gray-400 uppercase">Select a reachable station</div>`;
+                
+                reachableStations.forEach(st => {
+                    const isReachable = st.distance <= safeRange;
+                    const statusClass = isReachable ? 'border-l-4 border-l-green-500' : 'disabled opacity-50 border-l-4 border-l-gray-300';
+                    const statusText = isReachable ? `<span class="badge badge-green">Reachable</span>` : `<span class="badge badge-red">Too Far</span>`;
+
+                    html += `
+                        <div class="station-card ${statusClass}" onclick="selectStation(${JSON.stringify(st).replace(/"/g, '&quot;')}, ${isReachable})">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="font-bold text-gray-800">${st.name}</div>
+                                    <div class="text-xs text-gray-500">${st.address.town || 'Unknown'}</div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="font-black text-lg text-gray-700">${st.distance.toFixed(1)} km</div>
+                                    ${statusText}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    L.marker([st.location.latitude, st.location.longitude], {icon: chargerIcon, opacity: isReachable ? 1 : 0.5})
+                        .addTo(map)
+                        .bindPopup(`<b>${st.name}</b><br>${st.distance.toFixed(1)}km away`);
+                });
+
+                container.innerHTML = html;
+
+            } catch(e) {
+                console.error(e);
+                container.innerHTML = "Error loading stations.";
+            }
+        }
+
+        // --- 5. SELECTION ---
+        function selectStation(station, isReachable) {
+            if(!isReachable) { alert("⚠️ Station too far!"); return; }
+            selectedStation = station;
+            
+            const container = document.getElementById('content-area');
+            container.innerHTML = `
+                <div class="flex flex-col h-full">
+                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-200 mb-4">
+                        <div class="text-xs text-blue-600 font-bold uppercase mb-1">Destination Selected</div>
+                        <h2 class="text-xl font-black text-gray-900 leading-tight">${station.name}</h2>
+                        <div class="mt-2 flex gap-4 text-sm">
+                            <div><i class="fa-solid fa-location-arrow"></i> ${station.distance.toFixed(1)} km</div>
+                            <div><i class="fa-solid fa-clock"></i> ~${(station.distance * 2).toFixed(0)} mins</div>
+                        </div>
+                    </div>
+                    <div class="flex-1 bg-gray-900 rounded-xl mb-4 overflow-hidden relative">
+                        <img src="https://images.unsplash.com/photo-1646738541249-14a05f32269d?q=80&w=600&auto=format&fit=crop" class="w-full h-full object-cover opacity-60">
+                        <div class="absolute inset-0 flex items-center justify-center text-white font-bold">Preview</div>
+                    </div>
+                    <button onclick="startRealNavigation()" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xl shadow-lg transition transform active:scale-95">
+                        <i class="fa-solid fa-location-arrow"></i> Start Navigation
+                    </button>
+                    <button onclick="fetchAndFilterStations()" class="mt-3 text-sm text-gray-500 underline w-full text-center">Cancel</button>
+                </div>
+            `;
+
+            const bounds = L.latLngBounds([[userLat, userLng], [station.location.latitude, station.location.longitude]]);
+            map.fitBounds(bounds, { padding: [50, 50] });
+        }
+
+        // --- 6. REAL ANIMATED NAVIGATION ---
+        async function startRealNavigation() {
+            if(!selectedStation) return;
+
+            // Update Sidebar UI
+            const container = document.getElementById('content-area');
+            container.innerHTML = `
+                <div class="flex flex-col h-full justify-center items-center">
+                    <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-4 animate-bounce">
+                        <i class="fa-solid fa-car-side text-3xl text-blue-600"></i>
+                    </div>
+                    <h2 class="text-2xl font-black text-gray-800 mb-2">Navigating...</h2>
+                    <p class="text-gray-500 text-center mb-6">Driving to ${selectedStation.name}</p>
+                    <button onclick="arriveAtStation()" class="px-8 py-3 bg-green-600 text-white rounded-full font-bold shadow-lg hover:bg-green-700">
+                        Skip to Arrival
+                    </button>
+                </div>
+            `;
+            
+            document.getElementById('nav-status').style.display = 'block';
+
+            // 1. Fetch Real Route (OSRM)
+            const start = `${userLng},${userLat}`;
+            const end = `${selectedStation.location.longitude},${selectedStation.location.latitude}`;
+            const url = `https://router.project-osrm.org/route/v1/driving/${start};${end}?overview=full&geometries=polyline`;
+
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                if(data.routes && data.routes.length > 0) {
+                    const encoded = data.routes[0].geometry;
+                    const coords = polyline.decode(encoded); // [[lat,lng], [lat,lng]...]
+                    
+                    // Draw Line
+                    if(routePolyline) map.removeLayer(routePolyline);
+                    routePolyline = L.polyline(coords, {color: '#3b82f6', weight: 6, opacity: 0.8}).addTo(map);
+                    map.fitBounds(routePolyline.getBounds());
+
+                    // Start Animation
+                    animateCar(coords);
+                }
+            } catch(e) {
+                console.error("Routing failed", e);
+                // Fallback: straight line
+                const coords = [[userLat, userLng], [selectedStation.location.latitude, selectedStation.location.longitude]];
+                routePolyline = L.polyline(coords, {color: 'red', dashArray: '10,10'}).addTo(map);
+                animateCar(coords);
+            }
+        }
+
+        function animateCar(pathCoords) {
+            if(carMarker) map.removeLayer(carMarker);
+            
+            // Create Car
+            carMarker = L.marker(pathCoords[0], {icon: carIcon}).addTo(map);
+            
+            let i = 0;
+            const speed = 2; // Steps to skip (higher = faster)
+            
+            function move() {
+                if (i >= pathCoords.length) {
+                    arriveAtStation(); // Auto-arrive when done
+                    return;
+                }
+                
+                carMarker.setLatLng(pathCoords[i]);
+                map.panTo(pathCoords[i]); // Camera follows car
+                
+                // Calculate Rotation (Simple)
+                if(i < pathCoords.length - 1) {
+                    // Logic to rotate car icon could go here if using SVG transform
+                }
+
+                i += speed;
+                animationFrameId = requestAnimationFrame(move);
+            }
+            
+            move();
+        }
+
+        // --- 7. ARRIVAL ---
+        function arriveAtStation() {
+            cancelAnimationFrame(animationFrameId);
+            document.getElementById('nav-status').style.display = 'none';
+
+            const container = document.getElementById('content-area');
+            container.innerHTML = `
+                <div class="flex flex-col h-full">
+                    <h1 class="text-2xl font-black text-gray-800 mb-1">You Have Arrived!</h1>
+                    <p class="text-gray-500 mb-6 text-sm">Connect plug and update status.</p>
+                    <div class="flex-1 flex flex-col justify-center items-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 mb-6 relative">
+                        <i class="fa-solid fa-bolt text-yellow-400 text-6xl mb-4 drop-shadow-md"></i>
+                        <label class="font-bold text-gray-400 text-xs uppercase mb-2">New Battery Level</label>
+                        <div class="flex items-baseline">
+                            <input type="number" id="new-batt-input" class="text-6xl font-black text-center w-32 bg-transparent focus:outline-none" placeholder="0" min="0" max="100">
+                            <span class="text-3xl text-gray-400 font-bold">%</span>
+                        </div>
+                    </div>
+                    <div id="error-msg" class="text-center text-sm font-bold text-red-500 mb-4 hidden">Charge to at least 70% to continue.</div>
+                    <button onclick="finishCharging()" class="w-full bg-gray-900 text-white py-4 rounded-xl font-bold text-xl hover:bg-gray-800 transition">Finish Charging</button>
+                </div>
+            `;
+        }
+
+        function finishCharging() {
+            const val = parseInt(document.getElementById('new-batt-input').value);
+            const err = document.getElementById('error-msg');
+            if (!val || val < 70) {
+                err.innerText = "Please charge to at least 70%.";
+                err.classList.remove('hidden');
+                return;
+            }
+            alert("Battery Replenished! Redirecting to Trip Planner...");
+            localStorage.setItem("forceCharging", "0");
+            localStorage.setItem("ev_lock_status", "unlocked");
+            localStorage.removeItem("ev_target_charger");
+            window.location.href = "trip_planner.html"; 
+        }
+
+        // --- UTILS ---
+        function getDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; 
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+    </script>
+</body>
+</html>

@@ -11,55 +11,20 @@
   <style>
     body { margin:0; height:100vh; overflow:hidden; background:#f3f4f6; font-family: 'Segoe UI', sans-serif; }
     #map { height:100vh; width:100%; z-index: 0; }
-
-    /* Sidebar Styling */
-    .sidebar{
-      width:420px; max-width:92vw; height:calc(100vh - 24px);
-      margin:12px; background:rgba(255,255,255,0.98);
-      border-radius:22px; box-shadow:0 20px 60px rgba(0,0,0,0.18);
-      overflow:hidden; z-index:999; position:absolute; top:0; left:0;
-      display:flex; flex-direction:column;
-    }
+    .sidebar{ width:420px; max-width:92vw; height:calc(100vh - 24px); margin:12px; background:rgba(255,255,255,0.98); border-radius:22px; box-shadow:0 20px 60px rgba(0,0,0,0.18); overflow:hidden; z-index:999; position:absolute; top:0; left:0; display:flex; flex-direction:column; }
     .scroll{ overflow:auto; padding:18px; }
-    
-    /* Route Cards */
     .route-card{ border:1px solid #e5e7eb; border-radius:16px; padding:14px; cursor:pointer; transition:.15s; background:#fff; margin-bottom: 10px; }
     .route-card:hover{ transform: translateY(-1px); border-color:#60a5fa; }
     .route-card.selected{ border:2px solid #2563eb; background:#eff6ff; }
-    
-    /* Badges */
     .badge{ font-size:10px; font-weight:800; letter-spacing:.08em; padding:4px 8px; border-radius:999px; }
     .badge.rec{ background:#16a34a; color:white; }
     .badge.alt{ background:#6b7280; color:white; }
-    .chip{ padding:6px 10px; border-radius:999px; background:#f3f4f6; font-size:12px; font-weight:700; color:#374151; }
-
-    /* Weather Widget */
-    .weatherBox{
-      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-      color:white; border-radius:18px; padding:16px;
-      display:flex; justify-content:space-between; align-items:center;
-      box-shadow:0 12px 30px rgba(37,99,235,.25); margin-bottom:12px;
-    }
-
-    /* Toast Notification */
-    #toast{
-      position:absolute; right:14px; bottom:14px; z-index:1200;
-      background:rgba(17,24,39,.95); color:white;
-      padding:10px 12px; border-radius:12px; font-weight:800; font-size:12px;
-      box-shadow:0 12px 30px rgba(0,0,0,.25);
-      opacity:0; transform: translateY(10px);
-      transition:.2s;
-      pointer-events:none;
-    }
+    .weatherBox{ background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color:white; border-radius:18px; padding:16px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 12px 30px rgba(37,99,235,.25); margin-bottom:12px; }
+    #toast{ position:absolute; right:14px; bottom:14px; z-index:1200; background:rgba(17,24,39,.95); color:white; padding:10px 12px; border-radius:12px; font-weight:800; font-size:12px; box-shadow:0 12px 30px rgba(0,0,0,.25); opacity:0; transform: translateY(10px); transition:.2s; pointer-events:none; }
     #toast.show{ opacity:1; transform: translateY(0); }
-
-    /* Suggestion Dropdown */
     .suggestBox{ border:1px solid #e5e7eb; border-radius:14px; overflow:hidden; background:white; }
-    .suggestItem{ width:100%; text-align:left; padding:10px 12px; border-bottom:1px solid #f3f4f6; }
-    .suggestItem:last-child{ border-bottom:none; }
+    .suggestItem{ width:100%; text-align:left; padding:10px 12px; border-bottom:1px solid #f3f4f6; cursor: pointer; }
     .suggestItem:hover{ background:#f9fafb; }
-
-    /* Leaflet Icon Override */
     .leaflet-div-icon { background: transparent; border: none; }
   </style>
 </head>
@@ -75,8 +40,7 @@
         <div class="text-2xl font-black text-gray-900">⚡ Trip Planner</div>
         <div class="text-sm text-gray-500 font-semibold mt-1" id="who"></div>
       </div>
-      <button class="px-3 py-2 rounded-xl bg-gray-900 text-white text-sm font-bold hover:bg-black"
-              onclick="logout()">Logout</button>
+      <button class="px-3 py-2 rounded-xl bg-gray-900 text-white text-sm font-bold hover:bg-black" onclick="logout()">Logout</button>
     </div>
 
     <div class="weatherBox mt-4">
@@ -95,36 +59,24 @@
       <div>
         <label class="text-xs font-extrabold text-gray-600 uppercase tracking-wider">Start Location</label>
         <div class="flex gap-2 mt-1">
-          <input id="origin"
-                 class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                 placeholder="e.g. Margaret Home Bulacan"/>
-          <button class="px-3 py-3 rounded-xl bg-gray-100 hover:bg-gray-200 font-bold"
-                  onclick="useMyLocation()" title="Use my GPS">📍</button>
+          <input id="origin" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Locating you..."/>
+          <button class="px-3 py-3 rounded-xl bg-gray-100 hover:bg-gray-200 font-bold" onclick="useMyLocation()" title="Use my GPS">📍</button>
         </div>
       </div>
 
       <div>
         <label class="text-xs font-extrabold text-gray-600 uppercase tracking-wider">Destination</label>
-        <input id="destination"
-               class="w-full mt-1 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-               placeholder="e.g. National University Fairview"/>
-        <div class="text-[11px] text-gray-500 mt-1">
-          Type slowly to see suggestions.
-        </div>
+        <input id="destination" class="w-full mt-1 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g. National University Fairview"/>
+        <div class="text-[11px] text-gray-500 mt-1">Type "SM" or "NU" for quick results</div>
         <div id="destSuggest" class="mt-2 hidden suggestBox"></div>
       </div>
 
       <div>
         <label class="text-xs font-extrabold text-gray-600 uppercase tracking-wider">Current Battery (%)</label>
-        <input id="battery" type="number" min="1" max="100"
-               class="w-full mt-1 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-               value="80"/>
+        <input id="battery" type="number" min="1" max="100" class="w-full mt-1 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500" value="80"/>
       </div>
 
-      <button id="calcBtn"
-              class="w-full mt-1 py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-black shadow-lg transition-all active:scale-95">
-        🚀 Find Routes
-      </button>
+      <button id="calcBtn" class="w-full mt-1 py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-black shadow-lg transition-all active:scale-95">🚀 Find Routes</button>
     </div>
 
     <div class="mt-5">
@@ -132,23 +84,12 @@
         <div class="text-sm font-black text-gray-900">Routes</div>
         <div class="text-xs font-bold text-gray-500" id="debugLine"></div>
       </div>
-      <div id="routeList" class="mt-3">
-        <div class="text-sm text-gray-500">No routes yet. Enter origin/destination.</div>
-      </div>
+      <div id="routeList" class="mt-3"><div class="text-sm text-gray-500">No routes yet. Enter origin/destination.</div></div>
     </div>
 
     <div id="startWrap" class="mt-4 hidden">
-      <button class="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black shadow-lg"
-              onclick="startNavigation()">
-        ▶ Start Navigation
-      </button>
-      <div class="text-[11px] text-gray-500 mt-2">
-        Opens the <b>Live Simulation</b> mode.
-      </div>
-    </div>
-
-    <div class="mt-6 text-xs text-gray-400">
-      System Status: API Connected
+      <button type="button" class="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black shadow-lg" onclick="startNavigation()">▶ Start Navigation</button>
+      <div class="text-[11px] text-gray-500 mt-2">Opens the <b>Live Simulation</b> mode.</div>
     </div>
   </div>
 </div>
@@ -157,229 +98,324 @@
 <script src="https://unpkg.com/@mapbox/polyline@1.2.0/src/polyline.js"></script>
 
 <script>
-  // 1. CONFIG
+  // 1. GLOBALS
   const BASE_API = "http://localhost/WEBPROG_PROJ/BACKEND/API";
+  let myLat = 14.5995, myLng = 120.9842; 
+  let hasUserLocation = false;
 
   // 2. Auth Check
   const currentUser = JSON.parse(localStorage.getItem("currentUser") || "null");
   document.getElementById("who").innerText = `Logged in as: ${currentUser?.email || "Guest"}`;
+  function logout(){ localStorage.removeItem("currentUser"); window.location.href = "login.html"; }
+  function toast(msg){ const t = document.getElementById("toast"); t.textContent = msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"), 2200); }
 
-  function logout(){
-    localStorage.removeItem("currentUser");
-    window.location.href = "login.html";
-  }
-
-  // 3. Helpers
-  function toast(msg){
-    const t = document.getElementById("toast");
-    t.textContent = msg;
-    t.classList.add("show");
-    setTimeout(()=>t.classList.remove("show"), 2200);
-  }
+  // 3. GPS Init
+  navigator.geolocation.getCurrentPosition(
+      (pos) => {
+          myLat = pos.coords.latitude; myLng = pos.coords.longitude; hasUserLocation = true;
+          document.getElementById("origin").value = `${myLat.toFixed(5)}, ${myLng.toFixed(5)} (My Location)`;
+          selectedOrigin = { lat: myLat, lng: myLng, label: "My Location" };
+          map.setView([myLat, myLng], 14); loadWeather(myLat, myLng, "My Location");
+          L.circleMarker([myLat, myLng], { radius: 8, fillColor: "#3b82f6", color: "#fff", weight: 2, fillOpacity: 1 }).addTo(map).bindPopup("You are here");
+      },
+      (err) => { console.warn("GPS denied"); }
+  );
 
   async function postJSON(url, payload){
-    const res = await fetch(url, {
-      method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(payload)
-    });
+    const res = await fetch(url, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(payload) });
     const raw = await res.text();
-    let data;
-    try { data = JSON.parse(raw); } catch { console.error("Bad JSON:", raw); }
-    if(!data) throw new Error("Invalid Response");
-    if(!res.ok || data.ok === false) throw new Error(data.error || "Request failed");
+    let data; try { data = JSON.parse(raw); } catch { console.error("Bad JSON:", raw); }
+    if(!data) throw new Error("Invalid Response"); if(!res.ok || data.ok === false) throw new Error(data.error || "Request failed");
     return data;
   }
 
-  function parseLatLng(text){
-    const m = text.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
-    return m ? { lat:Number(m[1]), lng:Number(m[2]) } : null;
-  }
-
-  // 4. Map Setup
+  // 4. MAP SETUP
   const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 });
   const satellite = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19 });
-  const map = L.map("map", { zoomControl:false, layers:[osm] }).setView([14.5995,120.9842], 11);
-  L.control.zoom({ position:"bottomright" }).addTo(map);
-  L.control.layers({ "Map": osm, "Satellite": satellite }, null, { position:"topright" }).addTo(map);
+  const map = L.map("map", { zoomControl:false, layers:[osm] }).setView([myLat, myLng], 11);
+  L.control.zoom({ position:"bottomright" }).addTo(map); L.control.layers({ "Map": osm, "Satellite": satellite }, null, { position:"topright" }).addTo(map);
 
-  let routeLayers = [];
-  let originMarker = null, destMarker = null;
-  let selectedRouteObject = null; // Stores data for next page
+  let routeLayers = []; let originMarker = null, destMarker = null; let selectedRouteObject = null; let selectedOrigin = null, selectedDest = null; 
 
-  // 5. Markers & Lines
-  function clearRoutesOnly(){
-    routeLayers.forEach(l => map.removeLayer(l));
-    routeLayers = [];
-  }
-
+  function clearRoutesOnly(){ routeLayers.forEach(l => map.removeLayer(l)); routeLayers = []; }
   function addMarker(lat, lng, label, isStart){
     const color = isStart ? '#16a34a' : '#dc2626'; 
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" stroke="white" stroke-width="2" style="filter:drop-shadow(0 3px 3px rgba(0,0,0,0.5))"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5" fill="white"/></svg>`;
     const icon = L.divIcon({ html: svg, className: '', iconSize: [40, 40], iconAnchor: [20, 40], popupAnchor: [0, -40] });
-    return L.marker([lat, lng], {icon}).addTo(map).bindPopup(label);
+    const m = L.marker([lat, lng], {icon}).addTo(map).bindPopup(label);
+    m.on('click', () => { map.flyTo([lat, lng], 16, { animate: true, duration: 1.5 }); m.openPopup(); });
+    return m;
   }
-
   function drawRoute(encoded, isSelected, idx){
-    const pts = polyline.decode(encoded);
-    const color = isSelected ? "#2563eb" : "#9ca3af";
+    const pts = polyline.decode(encoded); const color = isSelected ? "#2563eb" : "#9ca3af";
     const line = L.polyline(pts, { color, weight: isSelected?6:4, opacity: isSelected?1:0.6 }).addTo(map);
-    line.routeId = idx;
-    if(isSelected) { line.bringToFront(); map.fitBounds(line.getBounds().pad(0.1)); }
-    routeLayers.push(line);
+    line.routeId = idx; if(isSelected) { line.bringToFront(); map.fitBounds(line.getBounds().pad(0.1)); } routeLayers.push(line);
   }
+  function highlightRoute(idx){ routeLayers.forEach(l => { const isSel = (l.routeId === idx); l.setStyle({ color: isSel ? "#2563eb" : "#9ca3af", weight: isSel?6:4, opacity: isSel?1:0.6 }); if(isSel) l.bringToFront(); }); }
 
-  function highlightRoute(idx){
-    routeLayers.forEach(l => {
-      const isSel = (l.routeId === idx);
-      l.setStyle({ color: isSel ? "#2563eb" : "#9ca3af", weight: isSel?6:4, opacity: isSel?1:0.6 });
-      if(isSel) l.bringToFront();
-    });
-  }
-
-  // 6. WEATHER (Direct Browser Fetch)
   async function loadWeather(lat, lng, label){
     try {
       const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`);
-      const data = await res.json();
-      const c = data.current_weather;
-      
-      let icon = "☀️", cond = "Clear";
-      if(c.weathercode > 3) icon = "☁️", cond = "Cloudy";
-      if(c.weathercode > 50) icon = "🌧️", cond = "Rainy";
-
+      const data = await res.json(); const c = data.current_weather;
+      let icon = "☀️"; if(c.weathercode > 3) icon = "☁️"; if(c.weathercode > 50) icon = "🌧️";
       document.getElementById("weatherTemp").innerText = Math.round(c.temperature) + "°C";
-      document.getElementById("weatherDesc").innerText = cond;
       document.getElementById("weatherIcon").innerText = icon;
       document.getElementById("weatherLoc").innerText = "📍 " + (label || "Current Loc");
-    } catch(e) {
-      document.getElementById("weatherDesc").innerText = "Offline";
-    }
+    } catch(e) { document.getElementById("weatherDesc").innerText = "Offline"; }
   }
-  loadWeather(14.5995, 120.9842, "Manila");
 
-  // 7. MAIN LOGIC
-  document.getElementById("calcBtn").addEventListener("click", async () => {
-    const btn = document.getElementById("calcBtn");
-    const list = document.getElementById("routeList");
-    const startWrap = document.getElementById("startWrap");
-    
-    const origTxt = document.getElementById("origin").value.trim();
-    const destTxt = document.getElementById("destination").value.trim();
-    const batt = document.getElementById("battery").value;
+  // 5. SMART SEARCH V4
+  function getDistanceKm(lat1, lon1, lat2, lon2) {
+      const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
 
-    if(!origTxt || !destTxt) return alert("Enter Start/End");
+  async function smartSearch(query) {
+      if(!query || query.length < 2) return [];
 
-    btn.disabled = true; btn.innerText = "Processing...";
-    list.innerHTML = "Loading..."; startWrap.classList.add("hidden");
+      let qMain = query.toLowerCase()
+          .replace(/\bsjdm\b/g, "san jose del monte")
+          .replace(/\bqc\b/g, "quezon city")
+          .replace(/\bbgc\b/g, "bonifacio global city")
+          .replace(/\bncr\b/g, "metro manila");
 
-    try {
-      clearRoutesOnly();
-      if(originMarker) map.removeLayer(originMarker);
-      if(destMarker) map.removeLayer(destMarker);
-
-      const [orig, dest] = await Promise.all([ resolvePlace(origTxt), resolvePlace(destTxt) ]);
+      const injectedResults = [];
       
-      originMarker = addMarker(orig.lat, orig.lng, "Start", true);
-      destMarker = addMarker(dest.lat, dest.lng, "End", false);
+      if(qMain.includes("national") && qMain.includes("fairview") || qMain.includes("nu fairview")) {
+          injectedResults.push({
+              properties: {
+                  name: "National University - Fairview",
+                  street: "Quirino Highway",
+                  city: "Quezon City",
+                  district: "SM City Fairview Complex",
+                  country: "Philippines"
+              },
+              geometry: {
+                  coordinates: [121.0570, 14.7338] 
+              },
+              _score: 9999,
+              _distance: getDistanceKm(myLat, myLng, 14.7338, 121.0570)
+          });
+      }
 
-      const data = await postJSON(`${BASE_API}/TRIPS/calculate.php`, {
-        user_id: currentUser?.id||1, battery_percent: batt, origin: orig, destination: dest
+      const strategies = [qMain];
+      const words = qMain.split(" ");
+      if(words.length >= 2) strategies.push(words.slice(0, 2).join(" "));
+
+      const promises = strategies.map(q => 
+          fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&lat=${myLat}&lon=${myLng}&limit=30&bbox=116.8,4.5,126.7,21.2`)
+          .then(res => res.json()).then(data => data.features || []).catch(() => [])
+      );
+
+      const resultsArrays = await Promise.all(promises);
+      const allFeatures = resultsArrays.flat();
+
+      const uniqueResults = [...injectedResults]; 
+      const seenKeys = new Set();
+      
+      injectedResults.forEach(i => seenKeys.add((i.properties.name || "") + i.geometry.coordinates.join(",")));
+
+      allFeatures.forEach(f => {
+          const key = (f.properties.name || "") + f.geometry.coordinates.join(",");
+          if (!seenKeys.has(key)) {
+              seenKeys.add(key);
+              const dist = getDistanceKm(myLat, myLng, f.geometry.coordinates[1], f.geometry.coordinates[0]);
+              f._distance = dist; 
+              
+              let score = 0;
+              const propsStr = JSON.stringify(f.properties).toLowerCase();
+
+              if (f.properties.name && f.properties.name.toLowerCase().includes(qMain)) score += 100;
+              words.forEach(w => { if(w.length > 3 && propsStr.includes(w)) score += 20; });
+
+              f._score = score;
+              uniqueResults.push(f);
+          }
       });
 
-      const routes = data.routes || [];
-      if(!routes.length) throw new Error("No routes found");
+      uniqueResults.sort((a, b) => {
+          if (Math.abs(b._score - a._score) > 20) return b._score - a._score; 
+          return a._distance - b._distance;
+      });
+
+      return uniqueResults.slice(0, 15);
+  }
+
+  // 6. SUGGESTION UI
+  let destDebounce;
+  document.getElementById("destination").addEventListener("input", (e) => {
+    clearTimeout(destDebounce);
+    const box = document.getElementById("destSuggest");
+    
+    destDebounce = setTimeout(async()=>{
+      const q = e.target.value;
+      if(q.length < 2) return box.classList.add("hidden");
+      
+      const results = await smartSearch(q);
+      box.innerHTML = "";
+      
+      if(results.length === 0) { box.classList.add("hidden"); return; }
+
+      results.forEach(r => {
+           const p = r.properties; const g = r.geometry;
+           const addressParts = [ p.name, p.street, p.district, p.suburb, p.city || p.town || p.municipality, p.county ];
+           const fullLabel = [...new Set(addressParts.filter(Boolean))].join(", ");
+           const distLabel = r._distance < 1 ? Math.round(r._distance * 1000) + " m" : r._distance.toFixed(1) + " km";
+
+           const div = document.createElement("div");
+           div.className = "suggestItem flex justify-between items-center"; 
+           div.innerHTML = `
+               <div style="flex:1; overflow:hidden;">
+                   <div class="font-bold text-gray-900 text-sm truncate">${p.name || fullLabel.split(",")[0]}</div>
+                   <div class="text-xs text-gray-500 truncate">${fullLabel}</div>
+               </div>
+               <div class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-md ml-2 whitespace-nowrap">${distLabel}</div>
+           `;
+           div.onclick = () => { document.getElementById("destination").value = fullLabel; selectedDest = { lat: g.coordinates[1], lng: g.coordinates[0] }; box.classList.add("hidden"); };
+           box.appendChild(div);
+      });
+      box.classList.remove("hidden");
+    }, 300);
+  });
+
+  // 7. FIND ROUTES
+  document.getElementById("calcBtn").addEventListener("click", async () => {
+    // === NEW BATTERY CHECK ON FIND ROUTES ===
+    if (checkBatteryGate()) return;
+
+    const btn = document.getElementById("calcBtn"); const list = document.getElementById("routeList"); const startWrap = document.getElementById("startWrap");
+    const origTxt = document.getElementById("origin").value.trim(); const destTxt = document.getElementById("destination").value.trim(); const batt = document.getElementById("battery").value;
+
+    if(!origTxt || !destTxt) return alert("Enter Start/End");
+    btn.disabled = true; btn.innerText = "Processing..."; list.innerHTML = "Loading..."; startWrap.classList.add("hidden");
+
+    try {
+      clearRoutesOnly(); if(originMarker) map.removeLayer(originMarker); if(destMarker) map.removeLayer(destMarker);
+      let orig = selectedOrigin || await resolveSmart(origTxt); let dest = selectedDest || await resolveSmart(destTxt);
+
+      originMarker = addMarker(orig.lat, orig.lng, "Start", true); destMarker = addMarker(dest.lat, dest.lng, "End", false);
+      map.fitBounds(L.latLngBounds([orig.lat, orig.lng], [dest.lat, dest.lng]), { padding: [50, 50] });
+
+      const data = await postJSON(`${BASE_API}/TRIPS/calculate.php`, { user_id: currentUser?.id||1, battery_percent: batt, origin: orig, destination: dest });
+      const routes = data.routes || []; if(!routes.length) throw new Error("No routes found");
 
       list.innerHTML = "";
       routes.forEach((r, idx) => {
-        const isBest = (idx === 0);
-        drawRoute(r.geometry, isBest, idx);
-
-        const card = document.createElement("div");
-        card.className = `route-card ${isBest?'selected':''}`;
-        card.innerHTML = `
-          <div class="flex justify-between items-center">
-            <div>
-              <span class="badge ${isBest?'rec':'alt'}">${isBest?'BEST':'OPTION'}</span>
-              <div class="font-bold text-lg">${r.distance_km} km</div>
-              <div class="text-xs text-gray-500">${r.duration_min} min</div>
-            </div>
-            <div class="text-right">
-              <div class="text-xs font-bold">Battery</div>
-              <div class="text-lg font-black ${r.end_battery<20?'text-red-600':'text-green-600'}">${r.end_battery}%</div>
-            </div>
-          </div>
-        `;
-        card.onclick = () => {
-          document.querySelectorAll(".route-card").forEach(c => c.classList.remove("selected"));
-          card.classList.add("selected");
-          highlightRoute(idx);
-          
-          // --- CONNECT LOGIC: Store data for next page ---
-          selectedRouteObject = { route: r }; 
-          startWrap.classList.remove("hidden");
-        };
+        const isBest = (idx === 0); drawRoute(r.geometry, isBest, idx);
+        const card = document.createElement("div"); card.className = `route-card ${isBest?'selected':''}`;
+        card.innerHTML = `<div class="flex justify-between items-center"><div><span class="badge ${isBest?'rec':'alt'}">${isBest?'BEST':'OPTION'}</span><div class="font-bold text-lg">${r.distance_km} km</div><div class="text-xs text-gray-500">${r.duration_min} min</div></div><div class="text-right"><div class="text-xs font-bold">Battery</div><div class="text-lg font-black ${r.end_battery<20?'text-red-600':'text-green-600'}">${r.end_battery}%</div></div></div>`;
+        card.onclick = () => { document.querySelectorAll(".route-card").forEach(c => c.classList.remove("selected")); card.classList.add("selected"); highlightRoute(idx); selectedRouteObject = { route: r }; startWrap.classList.remove("hidden"); };
         list.appendChild(card);
       });
+      selectedRouteObject = { route: routes[0] }; startWrap.classList.remove("hidden"); toast(`Found ${routes.length} routes!`);
+    } catch(e){ console.error(e); list.innerHTML = `<div class="text-red-500 font-bold">Error: ${e.message}</div>`; } 
+    finally { btn.disabled = false; btn.innerText = "🚀 Find Routes"; }
+  });
 
-      // Default selection
-      selectedRouteObject = { route: routes[0] };
-      startWrap.classList.remove("hidden");
-      toast(`Found ${routes.length} routes!`);
+  async function resolveSmart(txt) {
+      const m = txt.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/); if(m) return { lat:Number(m[1]), lng:Number(m[2]) };
+      const res = await smartSearch(txt); if(!res.length) throw new Error(`Location not found: ${txt}`);
+      return { lat: res[0].geometry.coordinates[1], lng: res[0].geometry.coordinates[0] };
+  }
+  function useMyLocation(){ navigator.geolocation.getCurrentPosition(p => { myLat = p.coords.latitude; myLng = p.coords.longitude; document.getElementById("origin").value = `${myLat.toFixed(5)}, ${myLng.toFixed(5)} (My Location)`; selectedOrigin = { lat: myLat, lng: myLng, label: "My Location" }; loadWeather(myLat, myLng, "My Location"); map.flyTo([myLat, myLng], 15); }, err => alert("GPS Error")); }
+  
+  // =======================================================
+  // ⚡ GATEKEEPER LOGIC (THE FIX)
+  // =======================================================
+  
+  // 1. Check Function
+  function checkBatteryGate() {
+      // NOTE: Your ID is 'battery', NOT 'battery_level'
+      const battInput = document.getElementById("battery");
+      const batt = parseInt(battInput.value) || 0;
 
-    } catch(e){
-      console.error(e);
-      list.innerHTML = `<div class="text-red-500 font-bold">Error: ${e.message}</div>`;
-    } finally {
-      btn.disabled = false; btn.innerText = "🚀 Find Routes";
+      if (batt <= 20) {
+          alert("⛔ BATTERY LOW (≤20%)\n\nYou cannot start a trip.\nRedirecting to Charging Station...");
+          
+          // Save lock state
+          localStorage.setItem("forceCharging", "1");
+          localStorage.setItem("ev_lock_status", "critical");
+          
+          // Force Redirect (Using relative path as requested)
+          window.location.href = "charging.html";
+          return true; // Blocked
+      }
+      return false; // Safe
+  }
+
+  // 2. Updated Navigation Function
+  function startNavigation(){ 
+      // Run the check FIRST
+      if (checkBatteryGate()) return;
+
+      if (!selectedRouteObject) return alert("Select a route first.");
+      localStorage.setItem("activeTrip", JSON.stringify(selectedRouteObject));
+      window.location.href = "test_navigation.html"; 
+  }
+
+  // 3. Run check on load immediately
+  document.addEventListener("DOMContentLoaded", () => {
+     checkBatteryGate();
+  });
+</script>
+
+<script>
+    console.log("🛡️ Battery Guard Active");
+
+    // 1. HIJACK THE "START NAVIGATION" FUNCTION
+    // We overwrite the existing function so it CANNOT run without checking battery first.
+    window.startNavigation = function() {
+        if (checkBatteryAndRedirect()) return; // Stop if low
+
+        // Only run this if battery is safe
+        if (!selectedRouteObject) return alert("Select a route first.");
+        localStorage.setItem("activeTrip", JSON.stringify(selectedRouteObject));
+        window.location.href = "test_navigation.html"; 
+    };
+
+    // 2. INTERCEPT CLICKS ON THE "GHOST" MODAL
+    // This catches the "Reroute" button on the white modal you are seeing.
+    document.addEventListener('click', function(e) {
+        // Check if the clicked element (or its parent) is a button/link
+        const target = e.target.closest('button') || e.target.closest('a') || e.target;
+        
+        if (!target) return;
+
+        // If the button says "Reroute" or "Start"
+        const text = target.innerText || "";
+        if (text.includes('Reroute') || text.includes('Start') || text.includes('Navigation')) {
+             if (checkBatteryAndRedirect()) {
+                 // ⛔ STOP THE CLICK
+                 e.preventDefault();
+                 e.stopPropagation();
+                 e.stopImmediatePropagation();
+                 console.log("⛔ Blocked navigation due to low battery.");
+                 return false;
+             }
+        }
+    }, true); // 'true' means we catch the click BEFORE the old code does
+
+    // 3. THE CHECKER LOGIC
+    function checkBatteryAndRedirect() {
+        // Use the ID 'battery' because that matches your HTML
+        const input = document.getElementById('battery'); 
+        const level = parseInt(input?.value || 0);
+
+        // TRIGGER AT 20% or LOWER
+        if (level <= 20) {
+            alert("⚠️ BATTERY LOW (" + level + "%)\n\nRerouting to Charging Station...");
+            
+            // SAVE STATE
+            localStorage.setItem("ev_lock_status", "critical");
+            localStorage.setItem("forceCharging", "1");
+
+            // FORCE REDIRECT
+            window.location.href = "charging.html"; 
+            return true; // Return true means "Yes, we redirected"
+        }
+        return false; // Return false means "Safe to drive"
     }
-  });
-
-  async function resolvePlace(txt){
-    const p = parseLatLng(txt);
-    if(p) return p;
-    const d = await postJSON(`${BASE_API}/MAPS/geocode.php`, { text: txt });
-    if(!d.results.length) throw new Error("Loc not found");
-    return { lat: Number(d.results[0].lat), lng: Number(d.results[0].lng) };
-  }
-
-  // 8. START NAVIGATION (The Connection)
-  // In FRONTEND/HTML/trip_planner.html
-
-function startNavigation(){
-  if (!selectedRouteObject) return alert("Select a route first.");
-  localStorage.setItem("activeTrip", JSON.stringify(selectedRouteObject));
-  
-  // FIX: Go up one level, then into TEST folder
-  window.location.href = "../TEST/test_navigation.html"; 
-}
-
-  // 9. Extra: GPS & Suggestions
-  function useMyLocation(){
-    navigator.geolocation.getCurrentPosition(p => {
-      document.getElementById("origin").value = `${p.coords.latitude}, ${p.coords.longitude}`;
-      loadWeather(p.coords.latitude, p.coords.longitude, "Your GPS");
-    });
-  }
-  
-  let dbnc;
-  document.getElementById("destination").addEventListener("input", (e) => {
-    clearTimeout(dbnc);
-    dbnc = setTimeout(async()=>{
-      const q = e.target.value;
-      const b = document.getElementById("destSuggest");
-      if(q.length<3) return b.classList.add("hidden");
-      try {
-        const d = await postJSON(`${BASE_API}/MAPS/geocode.php`, { text: q });
-        b.innerHTML="";
-        d.results.forEach(r=>{
-           const i=document.createElement("div");
-           i.className="suggestItem"; i.innerText=r.label;
-           i.onclick=()=>{ document.getElementById("destination").value=r.label; b.classList.add("hidden"); };
-           b.appendChild(i);
-        });
-        b.classList.remove("hidden");
-      } catch(e){}
-    }, 400);
-  });
 </script>
 </body>
 </html>

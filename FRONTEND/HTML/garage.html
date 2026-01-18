@@ -10,8 +10,6 @@
         .car-card { transition: all 0.2s; }
         .car-card:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
         .active-ring { ring: 4px solid #16a34a; background: #f0fdf4; }
-        
-        /* Modal Animation */
         .modal { opacity: 0; pointer-events: none; transition: 0.2s; }
         .modal.open { opacity: 1; pointer-events: auto; }
     </style>
@@ -30,7 +28,7 @@
                 <button onclick="logout()" class="text-xs font-bold bg-red-600 px-3 py-1 rounded-full hover:bg-red-700">Logout</button>
             </div>
         </div>
-        <p class="text-gray-400 text-sm">Select the vehicle you want to use for your trip.</p>
+        <p class="text-gray-400 text-sm" id="who">Loading user...</p>
     </div>
 
     <div id="carList" class="p-6 space-y-4">
@@ -39,7 +37,7 @@
 
     <div id="plannerBtnWrap" class="fixed bottom-6 left-0 right-0 px-6 hidden z-40">
         <button onclick="window.location.href='trip_planner.html'" 
-                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-xl shadow-xl text-lg flex items-center justify-center gap-2 animate-bounce">
+                class="w-full bg-green-600 hover:bg-green-700 text-white font-black py-4 rounded-xl shadow-xl text-lg flex items-center justify-center gap-2 animate-bounce">
             Plan Trip with Active Car ➜
         </button>
     </div>
@@ -61,8 +59,7 @@
                     Find Car
                 </button>
                 
-                <div id="searchResults" class="max-h-60 overflow-y-auto space-y-2 pt-2">
-                    </div>
+                <div id="searchResults" class="max-h-60 overflow-y-auto space-y-2 pt-2"></div>
             </div>
         </div>
     </div>
@@ -70,44 +67,62 @@
 </div>
 
 <script>
-    // CONFIG
-    const BASE_API = "http://localhost/WEBPROG_PROJ/BACKEND/API";
-    const currentUser = JSON.parse(localStorage.getItem("currentUser") || "null");
+    // ✅ 1. CONFIG (Same logic as your working test_garage)
+    const API_URL = "http://localhost/WEBPROG_PROJ/BACKEND/api/GARAGE";
+    const user = JSON.parse(localStorage.getItem("currentUser") || "null");
 
-    if (!currentUser) window.location.href = "login.html";
+    if (!user || !user.id) window.location.href = "login.html";
+    document.getElementById("who").innerText = "Logged in as: " + user.email;
+    const USER_ID = user.id;
 
-    // --- 1. Load Garage ---
+    // ✅ 2. HELPER (Same as your working code)
+    async function postJSON(url, payload) {
+        const res = await fetch(url, {
+            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+        });
+        const text = await res.text();
+        let data;
+        try { data = JSON.parse(text); } catch { console.error("Bad JSON", text); throw new Error("Server Error"); }
+        if (!res.ok) throw new Error(data.error || "HTTP Error");
+        return data;
+    }
+
+    // ✅ 3. LOAD GARAGE (Uses your working list.php)
     async function loadGarage() {
+        const list = document.getElementById("carList");
+        list.innerHTML = `<div class="text-center text-gray-400">Loading...</div>`;
+        
         try {
-            const res = await fetch(`${BASE_API}/GARAGE/get_user_garage.php?user_id=${currentUser.id}`);
-            const data = await res.json();
-            
-            const list = document.getElementById("carList");
+            // Using list.php since you confirmed it works
+            const data = await postJSON(`${API_URL}/list.php`, { user_id: USER_ID });
             list.innerHTML = "";
 
-            if (!data.ok || !data.garage || data.garage.length === 0) {
+            if (!data.cars || data.cars.length === 0) {
                 list.innerHTML = `<div class="text-center text-gray-400 font-bold mt-10">Garage is empty.<br>Tap "+ Add Car" to start!</div>`;
                 return;
             }
 
             let hasActive = false;
 
-            data.garage.forEach(car => {
-                const isActive = (car.is_active == 1);
-                if(isActive) hasActive = true;
+            data.cars.forEach(car => {
+                const isActive = Number(car.is_active) === 1;
+                if (isActive) hasActive = true;
+                
+                const label = `${car.brand_name} ${car.model_name} ${car.variant_name || ""}`.trim();
 
                 const card = document.createElement("div");
                 card.className = `car-card border rounded-2xl p-4 flex justify-between items-center cursor-pointer ${isActive ? 'active-ring border-green-500' : 'border-gray-200 bg-white'}`;
                 
-                if(!isActive) card.onclick = () => setActive(car.garage_id);
+                // If not active, clicking selects it
+                if (!isActive) card.onclick = () => setActive(car.garage_id);
 
                 card.innerHTML = `
                     <div class="flex items-center gap-4">
                         <div class="text-3xl">${isActive ? '🚘' : '🚗'}</div>
                         <div>
-                            <div class="font-black text-gray-900 text-lg">${car.nickname || car.model}</div>
-                            <div class="text-xs text-gray-500 font-bold">${car.brand} ${car.model}</div>
-                            <div class="text-[10px] text-gray-400 mt-1">Eff: ${car.efficiency_wh_per_km} Wh/km</div>
+                            <div class="font-black text-gray-900 text-lg">${label}</div>
+                            <div class="text-xs text-gray-500 font-bold">${car.battery_capacity_kwh} kWh • ${car.efficiency_wh_per_km} Wh/km</div>
+                            ${car.nickname ? `<div class="text-[10px] text-gray-400 mt-1">"${car.nickname}"</div>` : ""}
                         </div>
                     </div>
                     <div>
@@ -117,113 +132,108 @@
                         }
                     </div>
                 `;
+                
+                // Add Delete Button (Small X)
+                const delBtn = document.createElement("button");
+                delBtn.className = "absolute top-2 right-2 text-gray-300 hover:text-red-500 font-bold px-2";
+                delBtn.innerHTML = "&times;";
+                delBtn.onclick = (e) => { e.stopPropagation(); removeCar(car.garage_id); };
+                // card.appendChild(delBtn); // Uncomment if you want delete button on card
+
                 list.appendChild(card);
             });
 
+            // SHOW/HIDE PLAN TRIP BUTTON
             const btn = document.getElementById("plannerBtnWrap");
-            if(hasActive) btn.classList.remove("hidden");
+            if (hasActive) btn.classList.remove("hidden");
             else btn.classList.add("hidden");
 
-        } catch (err) {
-            document.getElementById("carList").innerHTML = `<div class="text-red-500 text-center">Error loading garage.</div>`;
+        } catch (e) {
+            console.error(e);
+            list.innerHTML = `<div class="text-red-500 text-center">Error loading garage.</div>`;
         }
     }
 
-    // --- 2. Set Active ---
-    async function setActive(garageId) {
-        await fetch(`${BASE_API}/GARAGE/set_active.php`, {
-            method: "POST", headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({ user_id: currentUser.id, garage_id: garageId })
-        });
-        loadGarage();
-    }
-
-    // --- 3. Search & Add Car ---
-    function openSearch() { document.getElementById("searchModal").classList.add("open"); }
-    function closeSearch() { document.getElementById("searchModal").classList.remove("open"); }
-
+    // ✅ 4. SEARCH (Uses your working garage_search.php)
     async function searchCar() {
         const q = document.getElementById("searchInput").value.trim();
-        const resultsBox = document.getElementById("searchResults");
+        const results = document.getElementById("searchResults");
         const btn = document.getElementById("findBtn");
 
-        if(!q) return alert("Enter a car name");
-        
+        if (!q) return;
+
         btn.disabled = true; btn.innerText = "Searching...";
-        resultsBox.innerHTML = '<div class="text-center text-gray-400 text-sm">Searching API...</div>';
+        results.innerHTML = "";
 
         try {
-            // Re-using your existing garage_search.php
-            const res = await fetch(`${BASE_API}/GARAGE/garage_search.php`, {
-                method: "POST", headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({ search: q })
-            });
-            const data = await res.json();
-            
-            resultsBox.innerHTML = "";
-            const items = data.results || [];
+            const data = await postJSON(`${API_URL}/garage_search.php`, { search: q });
 
-            if(items.length === 0) {
-                resultsBox.innerHTML = '<div class="text-center text-red-400 text-sm">No results found. Try "Tesla"</div>';
+            if (!data.results || data.results.length === 0) {
+                results.innerHTML = `<div class="text-center text-gray-500 text-sm">No results.</div>`;
                 return;
             }
 
-            items.slice(0, 5).forEach(car => {
-                const row = document.createElement("div");
-                row.className = "flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100";
-                row.innerHTML = `
+            data.results.slice(0, 5).forEach(r => {
+                const label = `${r.brand_name} ${r.model_name} ${r.variant_name || ""}`.trim();
+                const div = document.createElement("div");
+                div.className = "flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100";
+                div.innerHTML = `
                     <div>
-                        <div class="font-bold text-gray-800 text-sm">${car.make} ${car.model}</div>
-                        <div class="text-xs text-gray-500">${car.variant || 'Standard'} • ${car.battery_kwh} kWh</div>
+                        <div class="font-bold text-gray-800 text-sm">${label}</div>
+                        <div class="text-xs text-gray-500">${r.battery_capacity_kwh} kWh</div>
                     </div>
                     <button class="bg-blue-600 text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-blue-700">Add</button>
                 `;
-                // Click Add
-                row.querySelector("button").onclick = () => addCar(car);
-                resultsBox.appendChild(row);
+                div.querySelector("button").onclick = () => addCar(r.variant_id);
+                results.appendChild(div);
             });
-
-        } catch(e) {
-            resultsBox.innerHTML = '<div class="text-center text-red-500 text-sm">Search failed.</div>';
+        } catch (e) {
+            results.innerHTML = `<div class="text-red-500 text-sm">Search failed.</div>`;
         } finally {
             btn.disabled = false; btn.innerText = "Find Car";
         }
     }
 
-    async function addCar(car) {
-        const nickname = prompt(`Nickname for your ${car.model}?`, car.model) || car.model;
-        
+    // ✅ 5. ADD CAR (Uses your working logic: variant_id)
+    async function addCar(variantId) {
+        const nickname = prompt("Nickname (optional):") || "";
         try {
-            // Re-using your existing add.php
-            const res = await fetch(`${BASE_API}/GARAGE/add.php`, {
-                method: "POST", headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({
-                    user_id: currentUser.id,
-                    make: car.make, model: car.model, variant: car.variant,
-                    battery_kwh: car.battery_kwh, eff_wh_km: car.eff_wh_km,
-                    drive_mode: car.drive_mode, nickname: nickname
-                })
-            });
-            const data = await res.json();
-            
-            if(data.ok) {
-                closeSearch();
-                document.getElementById("searchInput").value = "";
-                document.getElementById("searchResults").innerHTML = "";
-                loadGarage(); // Refresh list to show new car
-            } else {
-                alert("Error adding car: " + (data.error || "Unknown error"));
-            }
-        } catch(e) {
-            alert("Failed to add car.");
+            await postJSON(`${API_URL}/add.php`, { user_id: USER_ID, variant_id: Number(variantId), nickname });
+            closeSearch();
+            document.getElementById("searchInput").value = "";
+            document.getElementById("searchResults").innerHTML = "";
+            loadGarage();
+        } catch (e) {
+            alert(e.message);
         }
     }
 
-    function logout() {
-        localStorage.removeItem("currentUser");
-        window.location.href = "login.html";
+    // ✅ 6. SET ACTIVE & REDIRECT BUTTON Logic
+    async function setActive(garageId) {
+        try {
+            await postJSON(`${API_URL}/set_active.php`, { user_id: USER_ID, garage_id: Number(garageId) });
+            loadGarage();
+        } catch (e) {
+            alert(e.message);
+        }
     }
 
+    async function removeCar(garageId) {
+        if (!confirm("Delete this vehicle?")) return;
+        try {
+            await postJSON(`${API_URL}/remove.php`, { user_id: USER_ID, garage_id: Number(garageId) });
+            loadGarage();
+        } catch (e) {
+            alert(e.message);
+        }
+    }
+
+    // Modal UI
+    function openSearch() { document.getElementById("searchModal").classList.add("open"); }
+    function closeSearch() { document.getElementById("searchModal").classList.remove("open"); }
+    function logout() { localStorage.removeItem("currentUser"); window.location.href = "login.html"; }
+
+    // Init
     loadGarage();
 </script>
 </body>

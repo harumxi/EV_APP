@@ -128,7 +128,7 @@
                     <div class="text-xl font-black text-green-600" id="sumCo2">0 kg</div>
                 </div>
             </div>
-            <button onclick="window.location.href='../HTML/trip_planner.html'" class="w-full py-4 rounded-xl bg-gray-900 text-white text-lg font-black shadow-xl hover:bg-black transition">
+            <button onclick="window.location.href='trip_planner.html'" class="w-full py-4 rounded-xl bg-gray-900 text-white text-lg font-black shadow-xl hover:bg-black transition">
                 Done
             </button>
         </div>
@@ -142,7 +142,7 @@
         const activeTrip = JSON.parse(localStorage.getItem("activeTrip"));
         if (!activeTrip) {
             alert("No active trip found.");
-            window.location.href = "../HTML/trip_planner.html";
+            window.location.href = "trip_planner.html";
         }
 
         // 2. REALISTIC MAP SETUP
@@ -177,7 +177,7 @@
         const routeData = activeTrip.route;
         const totalDistKm = routeData.distance_km;
         const totalTimeMin = routeData.duration_min;
-        const totalUsage = routeData.est_usage; // e.g. 2.8%
+        const totalUsage = routeData.est_usage || 20; // Default to 20 if missing
         
         // This is the REAL starting battery you entered in the planner
         const realStartBattery = parseFloat(routeData.end_battery) + parseFloat(totalUsage);
@@ -266,7 +266,7 @@
         }
 
         function stopSimulation() {
-            window.location.href = "../HTML/trip_planner.html";
+            window.location.href = "trip_planner.html";
         }
 
         function getAngle(start, end) {
