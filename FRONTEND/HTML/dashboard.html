@@ -1,159 +1,371 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - EcoTrack</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-  <link rel="stylesheet" href="../UI_CSS/style.css">
-  <link rel="stylesheet" href="../UI_CSS/dashboard.css">
+    <style>
+        body { background: #f3f4f6; font-family: 'Segoe UI', sans-serif; }
+        
+        .sidebar {
+            width: 260px; background: white; height: 100vh; position: fixed;
+            border-right: 1px solid #e5e7eb; display: flex; flex-direction: column;
+            padding: 20px; z-index: 50;
+        }
+        
+        .nav-item {
+            padding: 12px 16px; border-radius: 12px; color: #4b5563; font-weight: 600;
+            display: flex; align-items: center; gap: 12px; transition: 0.2s; cursor: pointer;
+            margin-bottom: 5px; text-decoration: none;
+        }
+        .nav-item:hover { background: #f3f4f6; color: #111827; }
+        .nav-item.active { background: #eff6ff; color: #2563eb; }
 
-  <script src="https://unpkg.com/lucide@latest"></script>
+        .main-content { margin-left: 260px; padding: 40px; }
+
+        .stat-card {
+            background: white; border-radius: 20px; padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid #e5e7eb;
+            page-break-inside: avoid; /* Prevents cutting in half on PDF */
+        }
+
+        .history-row { transition: 0.2s; border-bottom: 1px solid #f3f4f6; position: relative; }
+        .history-row:hover { background: #f9fafb; }
+
+        /* Report Paper Look for PDF */
+        #printable-area { background: #f3f4f6; }
+
+        /* ACTION MENU STYLES */
+        .action-btn {
+            width: 32px; height: 32px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: #9ca3af; transition: 0.2s; cursor: pointer;
+        }
+        .action-btn:hover { background: #e5e7eb; color: #111827; }
+
+        .menu-dropdown {
+            position: absolute; right: 45px; top: 15px;
+            background: white; border: 1px solid #e5e7eb;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border-radius: 12px; z-index: 50; width: 140px;
+            display: none; overflow: hidden;
+        }
+        .menu-dropdown.show { display: block; animation: fadeIn 0.2s; }
+        
+        .menu-item {
+            padding: 10px 14px; font-size: 13px; color: #ef4444; font-weight: 600;
+            cursor: pointer; display: flex; align-items: center; gap: 8px;
+            transition: 0.2s;
+        }
+        .menu-item:hover { background: #fef2f2; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
 </head>
-
 <body>
 
-<header class="header">
-  <div class="header-left">
-    <div class="ev-icon">
-      <i data-lucide="car"></i>
-    </div>
->
-    <div class="ev-info">
-      <div class="owner" id="evOwner">EV Owner</div>
-      <div class="vehicle" id="evModel">Brand · Model</div>
-    </div>
-  </div>
-
-  <div class="header-center">DASHBOARD</div>
-
-  <div class="header-right">
-    <button class="icon-btn" type="button" aria-label="Settings">
-      <i data-lucide="settings"></i>
-    </button>
-  </div>
-</header>
-
-<main class="container">
-
-  <section class="card">
-    <div class="ev-info-card">
-      <div class="ev-icon-large" id="evIcon">🚗</div>
-
-      <div class="ev-text">
-        <p class="owner" id="evOwnerCard">Owner: EV Owner</p>
-        <h2 class="ev-brand" id="evBrand">Brand</h2>
-        <p class="ev-model" id="evModelCard">Model</p>
-      </div>
-    </div>
-  </section>
-
-  <section class="card">
-    <img
-      src="https://digitalassets.tesla.com/tesla-contents/image/upload/f_auto,q_auto/Model-3-Main-Hero-Desktop-LHD.png"
-      alt="Tesla Model 3"
-      class="car-image"
-    />
-  </section>
-
-  <section class="stats-grid">
-    <div class="stat-card">
-      <span class="label">Drivetrain</span>
-      <span class="value">RWD</span>
-    </div>
-    <div class="stat-card">
-      <span class="label">Consumption</span>
-      <span class="value">16.1 kWh/100km</span>
-    </div>
-    <div class="stat-card">
-      <span class="label">Tire Pressure</span>
-      <span class="value">36 PSI</span>
-    </div>
-  </section>
-
-  <section class="grid-2 section-row">
-    <div class="card">
-      <h3 class="card-title">Location</h3>
-
-      <div class="map-placeholder">
-        <div class="map-pin">
-          <i data-lucide="navigation"></i>
+    <div class="sidebar">
+        <div class="flex items-center gap-3 mb-10 px-2">
+            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
+                <i class="fa-solid fa-bolt"></i>
+            </div>
+            <h1 class="text-xl font-black text-gray-800 tracking-tight">EcoTrack</h1>
         </div>
-      </div>
 
-      <p class="address-strong">52 Sardinia St,</p>
-      <p class="address-muted">London WC2A 3LZ</p>
-      <p class="distance">370m · 7mins</p>
-    </div>
-
-    <div class="card weather-light">
-      <div class="weather-top">
-        <h3 class="card-title">Weather</h3>
-        <span class="weather-live">Live (API)</span>
-      </div>
-
-      <div class="weather-temp-light">30°C</div>
-      <div class="weather-desc-light">Partly cloudy</div>
-
-      <div class="weather-chips-light">
-        <span>City: Manila</span>
-        <span>Feels: 33°C</span>
-        <span>Humidity: 72%</span>
-        <span>Wind: 14 kph</span>
-      </div>
-    </div>
-  </section>
-
-  <section class="card vehicle-stats">
-    <button class="dropdown-header" id="toggleAnalytics" type="button">
-      <div>
-        <h3 class="card-title">Vehicle Statistics</h3>
-        <p class="subtitle">Last 7 days</p>
-      </div>
-      <i data-lucide="chevron-down" id="analyticsChevron"></i>
-    </button>
-
-    <div class="dropdown-body hidden" id="analyticsBody">
-      <div class="analytics-body">
-        <div class="graph-placeholder"></div>
-        <div class="key-metric">
-          <span class="label">Avg Consumption</span>
-          <span class="value">16.1 kWh/100km</span>
+        <nav>
+            <a href="dashboard.html" class="nav-item active"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+            <a href="trip_planner.html" class="nav-item"><i class="fa-solid fa-map-location-dot"></i> Trip Planner</a>
+            <a href="hubs.html" class="nav-item"><i class="fa-solid fa-charging-station"></i> Charging Hubs</a>
+            <a href="garage.html" class="nav-item"><i class="fa-solid fa-warehouse"></i> My Garage</a>
+            <a href="profile.html" class="nav-item"><i class="fa-solid fa-user-gear"></i> Profile</a>
+        </nav>
+        
+        <div class="mt-auto">
+            <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 cursor-pointer hover:bg-blue-100 transition" onclick="window.location.href='garage.html'">
+                <div class="text-xs font-bold text-blue-600 uppercase mb-1 flex justify-between">
+                    Active Car <i class="fa-solid fa-pen text-blue-400"></i>
+                </div>
+                <div class="font-black text-gray-800" id="sidebar-car-name">--</div>
+            </div>
         </div>
-      </div>
     </div>
-  </section>
 
-  <div class="bottom-spacer"></div>
-</main>
+    <div class="main-content" id="printable-area">
+        
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h2 class="text-3xl font-black text-gray-900">Dashboard</h2>
+                <p class="text-gray-500">Overview of your environmental impact and trips.</p>
+            </div>
+            <button id="export-btn" onclick="downloadPDF()" class="bg-gray-900 hover:bg-black text-white px-6 py-3 rounded-xl font-bold shadow-lg flex items-center gap-2 transition">
+                <i class="fa-solid fa-file-arrow-down"></i> Export Report
+            </button>
+        </div>
 
-<nav class="bottom-nav">
-  <button class="nav-item active" type="button">
-    <i data-lucide="layout-dashboard"></i>
-    <span>Dashboard</span>
-  </button>
-<button
-  class="nav-item"
-  type="button"
-  onclick="goToTripPlanner()"
->
-  <i data-lucide="route"></i>
-  <span>Trip Planner</span>
-</button>
-  <button class="nav-item" type="button">
-    <i data-lucide="history"></i>
-    <span>Trip History</span>
-  </button>
-  <button class="nav-item" type="button">
-    <i data-lucide="zap"></i>
-    <span>Charging Hub</span>
-  </button>
-  <button class="nav-item" type="button">
-    <i data-lucide="user"></i>
-    <span>Profile</span>
-  </button>
-</nav>
+        <div class="grid grid-cols-3 gap-6 mb-8">
+            <div class="stat-card border-l-4 border-l-green-500">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                        <i class="fa-solid fa-leaf"></i>
+                    </div>
+                    <span class="text-xs font-bold bg-green-100 text-green-700 px-2 py-1 rounded-full">Lifetime</span>
+                </div>
+                <div class="text-3xl font-black text-gray-900" id="total-co2">0 kg</div>
+                <div class="text-sm font-bold text-gray-400 uppercase">CO₂ Emissions Saved</div>
+                <p class="text-xs text-gray-400 mt-2">Vs. Standard Gasoline Vehicle.</p>
+            </div>
 
-<script src="../UI_JS/dashboard.js"></script>
+            <div class="stat-card border-l-4 border-l-blue-500">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                        <i class="fa-solid fa-bolt"></i>
+                    </div>
+                    <span class="text-xs font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-full">Total</span>
+                </div>
+                <div class="text-3xl font-black text-gray-900" id="total-energy">0 kWh</div>
+                <div class="text-sm font-bold text-gray-400 uppercase">Total Energy Used</div>
+                <p class="text-xs text-gray-400 mt-2">Calculated from efficiency data.</p>
+            </div>
+
+            <div class="stat-card border-l-4 border-l-purple-500">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
+                        <i class="fa-solid fa-route"></i>
+                    </div>
+                    <span class="text-xs font-bold bg-purple-100 text-purple-700 px-2 py-1 rounded-full">Optimized</span>
+                </div>
+                <div class="text-3xl font-black text-gray-900" id="total-time">0 hrs</div>
+                <div class="text-sm font-bold text-gray-400 uppercase">Time Saved</div>
+                <p class="text-xs text-gray-400 mt-2">Via Smart Route Optimization.</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-6 mb-8">
+            <div class="stat-card">
+                <h3 class="font-bold text-gray-800 mb-4">Carbon Savings (kg)</h3>
+                <canvas id="co2Chart"></canvas>
+            </div>
+            <div class="stat-card">
+                <h3 class="font-bold text-gray-800 mb-4">Energy Efficiency (Wh/km)</h3>
+                <canvas id="effChart"></canvas>
+            </div>
+        </div>
+
+        <div class="stat-card p-0 overflow-visible">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                <h3 class="font-bold text-lg text-gray-900">Recent Trip History</h3>
+            </div>
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-50 text-gray-500 text-xs uppercase font-bold">
+                        <th class="p-4">Date</th>
+                        <th class="p-4">Route</th>
+                        <th class="p-4">Distance</th>
+                        <th class="p-4">Efficiency</th>
+                        <th class="p-4 text-green-600">CO₂ Saved</th>
+                        <th class="p-4 text-right" id="action-header">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="history-body" class="text-sm text-gray-700">
+                    </tbody>
+            </table>
+        </div>
+        
+        <div class="mt-8 text-center text-gray-400 text-xs pb-10">
+            Generated by EcoTrack EV System • <span id="report-date"></span>
+        </div>
+
+    </div>
+
+    <script>
+        // AUTH GUARD
+        if(!localStorage.getItem("user_id")) window.location.href = "login.html";
+
+        // MOCK DATA (Editable)
+        let trips = [
+            { id: 1, date: "2026-01-18", from: "Home", to: "Office", dist: 25.4, eff: 155 },
+            { id: 2, date: "2026-01-17", from: "Office", to: "SM North", dist: 12.1, eff: 160 },
+            { id: 3, date: "2026-01-16", from: "QC Circle", to: "Tagaytay", dist: 65.8, eff: 145 },
+            { id: 4, date: "2026-01-15", from: "Home", to: "NU Fairview", dist: 8.5, eff: 170 },
+            { id: 5, date: "2026-01-14", from: "Makati", to: "BGC", dist: 5.2, eff: 180 },
+            { id: 6, date: "2026-01-12", from: "Baguio", to: "Manila", dist: 240.5, eff: 130 },
+        ];
+
+        document.addEventListener("DOMContentLoaded", () => {
+            loadActiveCar();
+            updateDashboard(); // Initial Render
+            document.getElementById('report-date').innerText = new Date().toLocaleString();
+
+            // Click outside to close menus
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.action-wrapper')) {
+                    document.querySelectorAll('.menu-dropdown').forEach(d => d.classList.remove('show'));
+                }
+            });
+        });
+
+        function loadActiveCar() {
+            const activeCar = JSON.parse(localStorage.getItem('active_car') || "null");
+            if(activeCar) {
+                document.getElementById('sidebar-car-name').innerText = `${activeCar.brand} ${activeCar.model}`;
+            } else {
+                document.getElementById('sidebar-car-name').innerText = "No Car Selected";
+            }
+        }
+
+        // --- CORE UPDATE FUNCTION ---
+        function updateDashboard() {
+            calculateStats();
+            renderTable();
+        }
+
+        function calculateStats() {
+            let totalDist = 0;
+            let totalSavings = 0;
+            let totalEnergy = 0;
+
+            trips.forEach(trip => {
+                totalDist += trip.dist;
+                totalSavings += (trip.dist * 0.192); // kg CO2
+                totalEnergy += (trip.dist * trip.eff) / 1000; // kWh
+            });
+
+            const totalHoursDriven = (totalDist / 30);
+            const timeSaved = totalHoursDriven * 0.15; 
+
+            document.getElementById('total-co2').innerText = totalSavings.toFixed(1) + " kg";
+            document.getElementById('total-energy').innerText = totalEnergy.toFixed(1) + " kWh";
+            document.getElementById('total-time').innerText = timeSaved.toFixed(1) + " hrs";
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('history-body');
+            tbody.innerHTML = '';
+            
+            if(trips.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400">No trip history available.</td></tr>`;
+                return;
+            }
+
+            trips.forEach(trip => {
+                const savings = (trip.dist * 0.192).toFixed(2);
+                
+                // ADDING THE ACTION MENU
+                const tr = document.createElement('tr');
+                tr.className = "history-row";
+                tr.innerHTML = `
+                    <td class="p-4 font-bold text-gray-600 whitespace-nowrap">${trip.date}</td>
+                    <td class="p-4">
+                        <div class="font-bold text-gray-800">${trip.to}</div>
+                        <div class="text-xs text-gray-400">from ${trip.from}</div>
+                    </td>
+                    <td class="p-4 font-mono">${trip.dist} km</td>
+                    <td class="p-4"><span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">${trip.eff} Wh/km</span></td>
+                    <td class="p-4 font-bold text-green-600">+${savings} kg</td>
+                    <td class="p-4 text-right relative action-wrapper action-col">
+                        <div class="action-btn ml-auto" onclick="toggleMenu(${trip.id})">
+                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                        </div>
+                        <div id="menu-${trip.id}" class="menu-dropdown text-left">
+                            <div class="menu-item" onclick="deleteTrip(${trip.id})">
+                                <i class="fa-solid fa-trash"></i> Delete
+                            </div>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function toggleMenu(id) {
+            // Close all other open menus first
+            document.querySelectorAll('.menu-dropdown').forEach(d => {
+                if(d.id !== `menu-${id}`) d.classList.remove('show');
+            });
+            const menu = document.getElementById(`menu-${id}`);
+            menu.classList.toggle('show');
+        }
+
+        function deleteTrip(id) {
+            if(confirm("Delete this trip?")) {
+                trips = trips.filter(t => t.id !== id);
+                updateDashboard();
+            }
+        }
+
+        function renderCharts() {
+            const ctx1 = document.getElementById('co2Chart').getContext('2d');
+            new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+                    datasets: [{
+                        label: 'CO₂ Saved (kg)',
+                        data: [12, 19, 3, 5, 2, 30], 
+                        backgroundColor: '#22c55e',
+                        borderRadius: 6
+                    }]
+                },
+                options: { responsive: true, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+            });
+
+            const ctx2 = document.getElementById('effChart').getContext('2d');
+            new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+                    datasets: [{
+                        label: 'Efficiency (Wh/km)',
+                        data: [160, 155, 150, 145, 148, 142],
+                        borderColor: '#3b82f6',
+                        tension: 0.4,
+                        fill: true,
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)'
+                    }]
+                },
+                options: { responsive: true, scales: { y: { beginAtZero: false } }, plugins: { legend: { display: false } } }
+            });
+        }
+
+        renderCharts();
+
+        // --- FIXED PDF EXPORT FUNCTION ---
+        function downloadPDF() {
+            const element = document.getElementById('printable-area');
+            const btn = document.getElementById('export-btn');
+            
+            // 1. Hide buttons/actions for the print
+            btn.style.display = 'none';
+            
+            // 2. Hide "Actions" column temporarily so they don't appear in PDF
+            const actionHeaders = document.querySelectorAll('#action-header');
+            const actionCols = document.querySelectorAll('.action-col');
+            actionHeaders.forEach(el => el.style.display = 'none');
+            actionCols.forEach(el => el.style.display = 'none');
+
+            // 3. Configure HTML2PDF to be smarter about page sizes
+            const opt = {
+                margin:       0.3, // Add margins so text isn't cut
+                filename:     'EcoTrack_Report.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, windowWidth: 1200 }, // FORCE Desktop Width
+                jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
+                pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] } // Avoid cutting cards in half
+            };
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                // 4. Restore buttons after printing
+                btn.style.display = 'flex';
+                actionHeaders.forEach(el => el.style.display = 'table-cell');
+                actionCols.forEach(el => el.style.display = 'table-cell');
+            });
+        }
+    </script>
 </body>
 </html>

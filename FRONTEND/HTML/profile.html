@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - EnerGo</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // CRITICAL: Check preference before the body renders to ensure all features start dark
+        if (localStorage.getItem('pref_dark') === 'true') {
+            document.documentElement.classList.add('dark');
+        }
+        tailwind.config = { darkMode: 'class' };
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; transition: background-color 0.3s ease; }
+        
+        .sidebar { 
+            width: 280px; height: 100vh; position: fixed; background: white; 
+            border-right: 1px solid #e5e7eb; padding: 24px; display: flex; flex-direction: column; 
+        }
+        
+        .nav-item { 
+            padding: 14px 18px; border-radius: 14px; font-weight: 600; display: flex; 
+            align-items: center; gap: 14px; transition: all 0.2s ease; cursor: pointer; 
+            text-decoration: none; color: #6b7280; margin-bottom: 8px; 
+        }
+        .nav-item:hover { background: #f9fafb; color: #111827; }
+        .nav-item.active { background: #eff6ff; color: #2563eb; }
+        
+        .main-content { margin-left: 280px; padding: 60px; }
+
+        .glass-card { 
+            background: white; border-radius: 32px; border: 1px solid #f3f4f6; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.04); padding: 48px; 
+        }
+
+        .info-field { 
+            background: #f8fafc; padding: 18px 24px; border-radius: 16px; 
+            border: 1px solid #f1f5f9; color: #334155; font-weight: 600;
+        }
+
+        /* TOGGLE SWITCH */
+        .toggle-switch { 
+            width: 52px; height: 28px; border-radius: 99px; position: relative; 
+            cursor: pointer; transition: 0.4s; background: #e2e8f0; 
+        }
+        .toggle-switch.on { background: #10b981; }
+        .toggle-circle { 
+            width: 22px; height: 22px; background: white; border-radius: 50%; 
+            position: absolute; top: 3px; left: 3px; transition: 0.4s; 
+        }
+        .toggle-switch.on .toggle-circle { left: 27px; }
+
+        /* --- GLOBAL DARK MODE OVERRIDES --- */
+        html.dark body { background: #0f172a; color: #f8fafc; }
+        html.dark .sidebar { background: #1e293b; border-color: #334151; }
+        html.dark .nav-item { color: #94a3b8; }
+        html.dark .nav-item:hover { background: #334155; color: white; }
+        html.dark .nav-item.active { background: #334155; color: #38bdf8; }
+        html.dark .glass-card { background: #1e2937; border-color: #334155; }
+        html.dark .info-field { background: #0f172a; border-color: #334155; color: #cbd5e1; }
+        html.dark .text-gray-900 { color: #ffffff; }
+        html.dark .text-gray-500 { color: #94a3b8; }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    <div class="sidebar">
+        <div class="flex items-center gap-4 mb-12 px-2">
+            <div class="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
+                <i class="fa-solid fa-bolt text-xl"></i>
+            </div>
+            <h1 class="text-2xl font-black tracking-tight text-gray-900 dark:text-white">EcoTrack</h1>
+        </div>
+
+        <nav>
+            <a href="dashboard.html" class="nav-item"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+            <a href="trip_planner.html" class="nav-item"><i class="fa-solid fa-map-location-dot"></i> Trip Planner</a>
+            <a href="hubs.html" class="nav-item"><i class="fa-solid fa-charging-station"></i> Charging Hubs</a>
+            <a href="garage.html" class="nav-item"><i class="fa-solid fa-warehouse"></i> My Garage</a>
+            <a href="profile.html" class="nav-item active"><i class="fa-solid fa-user-gear"></i> Profile</a>
+        </nav>
+        
+        <button onclick="logout()" class="mt-auto w-full py-4 bg-red-50 dark:bg-red-900/10 text-red-600 font-bold rounded-2xl hover:bg-red-100 transition flex items-center justify-center gap-3">
+            <i class="fa-solid fa-power-off"></i> Sign Out
+        </button>
+    </div>
+
+    <div class="main-content">
+        <div class="mb-12">
+            <h2 class="text-4xl font-black text-gray-900 dark:text-white mb-2">My Profile</h2>
+            <p class="text-gray-500 dark:text-gray-400 font-medium">Manage your identity and app experience.</p>
+        </div>
+
+        <div class="glass-card">
+            <div class="flex flex-col md:flex-row items-center gap-10 mb-16 pb-12 border-b border-gray-100 dark:border-gray-700">
+                <div id="avatar" class="w-32 h-32 bg-gradient-to-tr from-blue-600 to-indigo-600 text-white rounded-full flex items-center justify-center text-5xl font-black shadow-xl">?</div>
+                <div class="text-center md:text-left">
+                    <h3 id="display-name" class="text-3xl font-black text-gray-900 dark:text-white mb-2">User Name</h3>
+                    <div class="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-bold uppercase tracking-widest text-sm">
+                        <i class="fa-solid fa-circle-check"></i> Verified Account
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-16">
+                <div class="space-y-10">
+                    <div class="text-gray-400 uppercase font-black text-xs tracking-widest">Profile Identity</div>
+                    <div class="space-y-8">
+                        <div>
+                            <label class="text-sm font-bold text-gray-500 mb-3 block">Full Name</label>
+                            <div id="user-name" class="info-field">--</div>
+                        </div>
+                        <div>
+                            <label class="text-sm font-bold text-gray-500 mb-3 block">Email Address</label>
+                            <div id="user-email" class="info-field">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-10">
+                    <div class="text-gray-400 uppercase font-black text-xs tracking-widest">App Experience</div>
+                    <div class="space-y-6">
+                        <div class="flex justify-between items-center p-6 bg-gray-50 dark:bg-slate-800/50 rounded-2xl">
+                            <div class="flex items-center gap-4">
+                                <i class="fa-solid fa-moon text-blue-500"></i>
+                                <span class="font-bold">Dark Mode</span>
+                            </div>
+                            <div id="toggle-dark" class="toggle-switch" onclick="toggleDark()">
+                                <div class="toggle-circle"></div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center p-6 bg-gray-50 dark:bg-slate-800/50 rounded-2xl">
+                            <div class="flex items-center gap-4">
+                                <i class="fa-solid fa-ruler text-emerald-500"></i>
+                                <span class="font-bold">Units</span>
+                            </div>
+                            <button id="unit-btn" onclick="toggleUnits()" class="px-6 py-2 bg-white dark:bg-slate-700 shadow-sm border border-gray-100 dark:border-slate-600 rounded-xl font-black text-sm">KM</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const name = localStorage.getItem("user_name");
+            const email = localStorage.getItem("user_email");
+
+            if (!name || !email) {
+                window.location.href = "login.html";
+                return;
+            }
+
+            document.getElementById('display-name').innerText = name;
+            document.getElementById('user-name').innerText = name;
+            document.getElementById('user-email').innerText = email;
+            document.getElementById('avatar').innerText = name.charAt(0).toUpperCase();
+
+            initUI();
+        });
+
+        function initUI() {
+            // Sync Toggle Button Visuals
+            const isDark = localStorage.getItem('pref_dark') === 'true';
+            if (isDark) document.getElementById('toggle-dark').classList.add('on');
+
+            // Sync Units Visuals
+            const unit = localStorage.getItem('pref_units') || 'KM';
+            document.getElementById('unit-btn').innerText = unit;
+        }
+
+        function toggleDark() {
+            const toggle = document.getElementById('toggle-dark');
+            const isTurningOn = !toggle.classList.contains('on');
+            
+            toggle.classList.toggle('on');
+            // This line ensures all "dark:..." features activate globally
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem('pref_dark', isTurningOn);
+        }
+
+        function toggleUnits() {
+            const btn = document.getElementById('unit-btn');
+            const newUnit = btn.innerText === 'KM' ? 'MILES' : 'KM';
+            btn.innerText = newUnit;
+            localStorage.setItem('pref_units', newUnit);
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = "login.html";
+        }
+    </script>
+</body>
+</html>

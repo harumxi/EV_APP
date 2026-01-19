@@ -3,135 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    <title>EnerGo - Login</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    
-    <link rel="stylesheet" href="../CSS/login.css">
+    <title>EnerGo - Access</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .hidden { display: none !important; }
+        .success-toast { transition: all 0.4s ease; transform: translate(-50%, -20px); opacity: 0; }
+        .success-toast.show { transform: translate(-50%, 0); opacity: 1; }
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+    </style>
 </head>
-<body>
-    <div class="success-message" id="successMessage">Welcome to EnerGo!</div>
+<body class="bg-slate-50 overflow-hidden">
+    <div id="successMessage" class="success-toast fixed top-8 left-1/2 bg-slate-900 text-white px-8 py-4 rounded-2xl shadow-2xl z-[1000] font-bold"></div>
 
-    <div class="main-container">
-        <div class="left-panel">
-            <div class="logo">
-                <div class="logo-icon">⚡</div>
-                EnerGo
+    <div class="flex h-screen">
+        <div class="hidden lg:flex w-7/12 bg-blue-600 relative overflow-hidden items-center justify-center">
+            <div class="absolute top-12 left-12 z-20">
+                <div class="text-white text-3xl font-black italic flex items-center gap-2">
+                    <span class="bg-white text-blue-600 w-10 h-10 flex items-center justify-center rounded-xl shadow-lg">⚡</span> EnerGo
+                </div>
             </div>
             
-            <div class="form-container">
-                <div class="welcome-section">
-                    <h1 class="welcome-title">Welcome</h1>
-                    <p class="welcome-subtitle">Power your journey with smart energy management. Connect to a sustainable future.</p>
-                </div>
-
-                <div class="form-content">
-                    <div class="form-panel" id="loginForm">
-                        <form id="loginFormElement">
-                            <div class="input-group">
-                                <label class="input-label">Email</label>
-                                <div class="input-wrapper">
-                                    <input type="email" class="input-field" id="loginEmail" required>
-                                </div>
-                            </div>
-
-                            <div class="input-group">
-                                <label class="input-label">Password</label>
-                                <div class="input-wrapper">
-                                    <input type="password" class="input-field" id="loginPassword" required>
-                                    <span class="password-toggle" onclick="togglePassword('loginPassword', this)">
-                                        <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                            <circle cx="12" cy="12" r="3"></circle>
-                                        </svg>
-                                    </span>
-                                </div>
-                                <div class="error-message" id="loginPasswordError">Password is required</div>
-                                <div class="forgot-password">
-                                    <a onclick="handleForgotPassword()">Forgot Password?</a>
-                                </div>
-                            </div>
-
-                            <button type="submit" class="submit-btn">
-                                <span>Login</span>
-                            </button>
-                        </form>
-
-                        <div class="toggle-form">
-                            Don't have an account? <a onclick="showSignup()">Create an Account</a>
-                        </div>
-                    </div>
-
-                    <div class="form-panel hidden" id="signupForm">
-                        <form id="signupFormElement">
-                            <div class="input-group">
-                                <label class="input-label">Full Name</label>
-                                <div class="input-wrapper">
-                                    <input type="text" class="input-field" id="signupName" required>
-                                </div>
-                                <div class="error-message" id="signupNameError">Name is required</div>
-                            </div>
-
-                            <div class="input-group">
-                                <label class="input-label">Email Address</label>
-                                <div class="input-wrapper">
-                                    <input type="email" class="input-field" id="signupEmail" required>
-                                </div>
-                                <div class="error-message" id="signupEmailError">Valid email is required</div>
-                            </div>
-
-                            <div class="input-group">
-                                <label class="input-label">Password</label>
-                                <div class="input-wrapper">
-                                    <input type="password" class="input-field" id="signupPassword" required>
-                                    <span class="password-toggle" onclick="togglePassword('signupPassword', this)">
-                                        <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                            <circle cx="12" cy="12" r="3"></circle>
-                                        </svg>
-                                    </span>
-                                </div>
-                                <div class="error-message" id="signupPasswordError">Password must be at least 6 characters</div>
-                            </div>
-
-                            <div class="input-group">
-                                <label class="input-label">Confirm Password</label>
-                                <div class="input-wrapper">
-                                    <input type="password" class="input-field" id="confirmPassword" required>
-                                    <span class="password-toggle" onclick="togglePassword('confirmPassword', this)">
-                                        <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                            <circle cx="12" cy="12" r="3"></circle>
-                                        </svg>
-                                    </span>
-                                </div>
-                                <div class="error-message" id="confirmPasswordError">Passwords do not match</div>
-                            </div>
-
-                            <button type="submit" class="submit-btn">
-                                <span>Create Account</span>
-                            </button>
-                        </form>
-
-                        <div class="toggle-form">
-                            Already have an account? <a onclick="showLogin()">Login</a>
-                        </div>
-                    </div>
-                </div>
+            <div class="text-center z-10 p-20">
+                <img src="car.png" class="w-full max-w-xl drop-shadow-[0_50px_50px_rgba(0,0,0,0.3)] transform -rotate-3" onerror="this.src='https://raw.githubusercontent.com/TailwindCSS/heroicons/master/src/outline/lightning-bolt.svg'">
+                <h2 class="text-white text-5xl font-extrabold mt-12 leading-tight">Empowering your <br>EV journey.</h2>
+                <p class="text-blue-100 text-xl mt-6 font-light">The ultimate dashboard for the sustainable driver.</p>
             </div>
+
+            <div class="absolute -bottom-20 -right-20 w-96 h-96 bg-blue-400 rounded-full blur-[120px] opacity-40"></div>
+            <div class="absolute -top-20 -left-20 w-96 h-96 bg-blue-800 rounded-full blur-[120px] opacity-40"></div>
         </div>
 
-        <div class="right-panel">
-            <img src="bg.jpg" class="bg-image" alt="City Background">
-            <div class="car-container">
-                <img src="car.png" alt="Electric Car">
+        <div class="w-full lg:w-5/12 flex items-center justify-center p-8 bg-white">
+            <div class="w-full max-w-md">
+                
+                <div id="loginForm" class="space-y-8">
+                    <div>
+                        <h1 class="text-4xl font-black text-slate-900 tracking-tight">Welcome back</h1>
+                        <p class="text-slate-500 mt-2 font-medium">Please enter your details to sign in.</p>
+                    </div>
+
+                    <form id="loginFormElement" class="space-y-5">
+                        <div class="space-y-2">
+                            <label class="text-xs font-extrabold uppercase text-slate-400 tracking-widest">Email Address</label>
+                            <input type="email" id="loginEmail" class="w-full px-5 py-4 bg-slate-100 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl outline-none transition-all" placeholder="name@email.com" required>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-xs font-extrabold uppercase text-slate-400 tracking-widest">Password</label>
+                            <input type="password" id="loginPassword" class="w-full px-5 py-4 bg-slate-100 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl outline-none transition-all" placeholder="••••••••" required>
+                        </div>
+                        <button type="submit" class="w-full py-5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-xl shadow-blue-100 transition-all transform active:scale-[0.98]">Sign In</button>
+                    </form>
+                    <p class="text-center text-slate-500 font-medium">Don't have an account? <button onclick="showSignup()" class="text-blue-600 font-extrabold hover:underline">Create one</button></p>
+                </div>
+
+                <div id="signupForm" class="hidden space-y-6">
+                    <div>
+                        <h1 class="text-3xl font-black text-slate-900 tracking-tight">Create Account</h1>
+                        <p class="text-slate-500 mt-1 font-medium">Join the sustainable future today.</p>
+                    </div>
+
+                    <form id="signupFormElement" class="space-y-4">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Username</label>
+                            <input type="text" id="signupUserCustom" class="w-full px-5 py-3 bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-xl outline-none transition-all" placeholder="venven" required>
+                        </div>
+                        
+                        <div class="flex gap-4">
+                            <div class="w-1/2 space-y-1">
+                                <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest">First Name</label>
+                                <input type="text" id="signupFirstName" class="w-full px-5 py-3 bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-xl outline-none transition-all" placeholder="Alexa" required>
+                            </div>
+                            <div class="w-1/2 space-y-1">
+                                <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Last Name</label>
+                                <input type="text" id="signupLastName" class="w-full px-5 py-3 bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-xl outline-none transition-all" placeholder="Baldueza" required>
+                            </div>
+                        </div>
+
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Email</label>
+                            <input type="email" id="signupEmail" class="w-full px-5 py-3 bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-xl outline-none transition-all" required>
+                        </div>
+
+                        <div class="flex gap-4">
+                            <div class="w-1/2 space-y-1">
+                                <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Password</label>
+                                <input type="password" id="signupPassword" class="w-full px-5 py-3 bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-xl outline-none transition-all" required>
+                            </div>
+                            <div class="w-1/2 space-y-1">
+                                <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Confirm</label>
+                                <input type="password" id="confirmPassword" class="w-full px-5 py-3 bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-xl outline-none transition-all" required>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg mt-4 transition-all transform active:scale-[0.98]">Create Account</button>
+                    </form>
+                    <p class="text-center text-slate-500 font-medium">Already a member? <button onclick="showLogin()" class="text-blue-600 font-extrabold hover:underline">Sign In</button></p>
+                </div>
+
             </div>
         </div>
     </div>
-
     <script src="../JS/login.js"></script>
 </body>
 </html>

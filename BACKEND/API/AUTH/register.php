@@ -1,76 +1,63 @@
 <?php
 /* ===========================
-   BACKEND/api/AUTH/register.php
-   Full working file:
-   - Strong password rules
-   - Uses users(username,email,password_hash)
+   BACKEND/API/AUTH/register.php
    =========================== */
 
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
-header("Content-Type: application/json; charset=UTF-8");
+// 1. PATH FIX: If auth_middleware is in the SAME folder (AUTH)
+require_once __DIR__ . '/auth_middleware.php'; 
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(204);
-    exit;
-}
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['ok' => false, 'error' => 'Method not allowed']);
-    exit;
-}
-
+// 2. DATABASE FIX: Looking for Database.php in the CORE folder
 require_once __DIR__ . '/../../CORE/Database.php';
 
+// Set header to JSON so the browser understands the response
+header('Content-Type: application/json');
+
+// 3. CAPTURE DATA
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
-$name = trim($input['name'] ?? '');
+
+// Combine split names from frontend
+$fName = trim($input['firstName'] ?? '');
+$lName = trim($input['lastName'] ?? '');
+$fullName = trim("$fName $lName"); 
+
+$customUsername = trim($input['username'] ?? '');
 $email = trim($input['email'] ?? '');
 $password = $input['password'] ?? '';
+$confirmPass = $input['confirmPassword'] ?? '';
 
-if ($name === '' || $email === '' || $password === '') {
+// 4. VALIDATION
+if (empty($customUsername) || empty($fullName) || empty($email) || empty($password)) {
     http_response_code(400);
-    echo json_encode(['ok' => false, 'error' => 'All fields (name, email, password) are required']);
+    echo json_encode(['ok' => false, 'error' => 'All fields are required.']);
     exit;
 }
 
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+if ($password !== $confirmPass) {
     http_response_code(400);
-    echo json_encode(['ok' => false, 'error' => 'Invalid email format']);
-    exit;
-}
-
-// Strong password: 8+ chars, 1 uppercase, 1 number, 1 special
-if (!preg_match('/^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/', $password)) {
-    http_response_code(400);
-    echo json_encode(['ok' => false, 'error' => 'Password must be 8+ chars and include 1 uppercase, 1 number, and 1 special character.']);
+    echo json_encode(['ok' => false, 'error' => 'Passwords do not match.']);
     exit;
 }
 
 try {
     $db = Database::conn();
-
-    $check = $db->prepare("SELECT user_id FROM users WHERE email = ? LIMIT 1");
-    $check->execute([$email]);
-    if ($check->fetch()) {
-        http_response_code(409);
-        echo json_encode(['ok' => false, 'error' => 'Email already registered.']);
-        exit;
-    }
-
     $hashed = password_hash($password, PASSWORD_DEFAULT);
 
-    $stmt = $db->prepare("INSERT INTO users (username, email, password_hash, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())");
-    $stmt->execute([$name, $email, $hashed]);
+    // SQL matches your 'username' and 'name' columns
+    $sql = "INSERT INTO users (username, name, email, password_hash, created_at, updated_at) 
+            VALUES (?, ?, ?, ?, NOW(), NOW())";
+    
+    $stmt = $db->prepare($sql);
+    $stmt->execute([$customUsername, $fullName, $email, $hashed]);
 
-    http_response_code(201);
     echo json_encode([
         'ok' => true,
-        'message' => 'Your account has been successfully created.',
-        'user_id' => (int)$db->lastInsertId()
+        'user' => [
+            'id' => $db->lastInsertId(),
+            'username' => $customUsername,
+            'full_name' => $fullName
+        ]
     ]);
-
 } catch (Throwable $e) {
     http_response_code(500);
-    echo json_encode(['ok' => false, 'error' => 'Database Error']);
+    echo json_encode(['ok' => false, 'error' => 'Database error: ' . $e->getMessage()]);
 }

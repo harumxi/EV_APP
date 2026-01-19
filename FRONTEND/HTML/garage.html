@@ -6,13 +6,19 @@
     <title>My Garage</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Apply Dark Mode immediately from Profile preferences
+        if (localStorage.getItem('pref_dark') === 'true') {
+            document.documentElement.classList.add('dark');
+        }
+        tailwind.config = { darkMode: 'class' };
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        body { background: #f3f4f6; font-family: 'Segoe UI', sans-serif; }
-        
-        .car-card {
-            background: white; border-radius: 20px; overflow: hidden;
+        body { background: #f3f4f6; font-family: 'Segoe UI', sans-serif; transition: 0.3s; }
+        .car-card { 
+            background: white; border-radius: 20px; overflow: visible;
             box-shadow: 0 10px 20px rgba(0,0,0,0.05);
             transition: all 0.2s ease; border: 2px solid transparent;
             position: relative;
@@ -27,98 +33,92 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.08);
             font-size: 16px; outline: none; transition: 0.2s;
         }
-        .search-input:focus { box-shadow: 0 8px 25px rgba(37,99,235,0.2); }
 
         .modal-bg { background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); }
         
-        .btn-delete {
-            position: absolute; top: 10px; left: 10px;
-            background: rgba(255, 255, 255, 0.9); color: #ef4444;
-            width: 32px; height: 32px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2); cursor: pointer;
-            transition: 0.2s; z-index: 10;
+        .action-btn { 
+            position: absolute; top: 10px; right: 10px; background: rgba(255, 255, 255, 0.95); 
+            color: #4b5563; width: 32px; height: 32px; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 20; 
         }
-        .btn-delete:hover { background: #ef4444; color: white; }
+        .menu-dropdown { 
+            position: absolute; top: 45px; right: 10px; background: white; border-radius: 12px; 
+            z-index: 50; width: 140px; display: none; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.1); 
+        }
+        .menu-dropdown.show { display: block; }
+
+        html.dark body { background: #0f172a; color: white; }
+        html.dark .car-card { background: #1e293b; border-color: #334151; }
+        html.dark .car-card.active-car { background: #064e3b; border-color: #10b981; }
+        html.dark .bg-white { background: #1e293b; }
+        html.dark .search-input { background: #1e293b; color: white; }
     </style>
 </head>
 <body class="pb-20">
 
     <div class="bg-white shadow-sm sticky top-0 z-50">
         <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 class="text-2xl font-black text-gray-900 flex items-center gap-2">
+            <h1 class="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2">
                 <i class="fa-solid fa-warehouse text-blue-600"></i> My Garage
             </h1>
-            <a href="trip_planner.html" class="text-gray-500 hover:text-blue-600 font-bold text-sm">
-                <i class="fa-solid fa-map"></i> Go to Planner
-            </a>
+            
+            <div class="flex items-center gap-4">
+                <a href="dashboard.html" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-bold transition">
+                    Dashboard
+                </a>
+            </div>
         </div>
     </div>
 
     <div class="max-w-4xl mx-auto px-4 mt-8">
-        
         <div class="text-center mb-10">
-            <h2 class="text-3xl font-bold text-gray-800 mb-2">Find Your EV</h2>
-            <p class="text-gray-500 mb-6">Search our database to add cars to your garage.</p>
-            
-            <div class="search-wrap">
+            <h2 class="text-3xl font-bold dark:text-white mb-2">Find Your EV</h2>
+            <div class="search-wrap relative max-w-lg mx-auto">
                 <i class="fa-solid fa-search absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 text-lg"></i>
                 <input type="text" id="car-search" class="search-input" placeholder="e.g. Tesla, BYD, Nissan..." oninput="handleSearch(this.value)">
-                <div id="search-results" class="absolute w-full bg-white mt-2 rounded-2xl shadow-2xl overflow-hidden hidden z-50 text-left"></div>
+                <div id="search-results" class="absolute w-full bg-white dark:bg-slate-800 mt-2 rounded-2xl shadow-2xl overflow-hidden hidden z-50 text-left"></div>
             </div>
-        </div>
-
-        <div class="flex justify-between items-center mb-6">
-            <h3 class="text-xl font-bold text-gray-800">Your Vehicles</h3>
-            <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold" id="car-count">0 Cars</span>
         </div>
 
         <div id="garage-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
     </div>
 
     <div id="spec-modal" class="fixed inset-0 modal-bg hidden z-[100] flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl relative animate-bounce-in">
-            <button onclick="closeModal()" class="absolute top-4 right-4 bg-black/50 hover:bg-black text-white w-8 h-8 rounded-full flex items-center justify-center transition">
+        <div class="bg-white dark:bg-slate-800 w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl relative">
+            <button onclick="closeModal()" class="absolute top-4 right-4 bg-black/50 hover:bg-black text-white w-8 h-8 rounded-full flex items-center justify-center z-50">
                 <i class="fa-solid fa-times"></i>
             </button>
-            
             <div class="w-full h-64 bg-gray-100 relative">
                  <img id="modal-img" src="" class="w-full h-full object-cover">
             </div>
-
             <div class="p-8">
-                <div class="flex justify-between items-start mb-2">
+                <div class="flex justify-between items-start mb-6">
                     <div>
-                        <div class="text-sm font-bold text-blue-600 uppercase tracking-wider" id="modal-brand">--</div>
-                        <h2 class="text-3xl font-black text-gray-900 leading-none" id="modal-model">--</h2>
+                        <div class="text-sm font-bold text-blue-600 uppercase tracking-widest" id="modal-brand">--</div>
+                        <h2 class="text-3xl font-black text-gray-900 dark:text-white leading-none" id="modal-model">--</h2>
                     </div>
-                    <div class="bg-gray-100 px-3 py-1 rounded-lg font-bold text-gray-600" id="modal-year">--</div>
+                    <div class="bg-gray-100 dark:bg-slate-700 px-3 py-1 rounded-lg font-bold text-gray-600 dark:text-gray-300" id="modal-year">--</div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4 mt-6">
-                    <div class="bg-blue-50 p-4 rounded-xl">
-                        <div class="text-xs text-blue-500 font-bold uppercase">Official Range</div>
-                        <div class="text-2xl font-black text-gray-900"><span id="modal-range">--</span> <span class="text-sm">km</span></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl">
+                        <div class="text-[10px] text-blue-500 font-bold uppercase">Official Range</div>
+                        <div class="text-2xl font-black dark:text-white"><span id="modal-range">--</span> <small class="text-xs">km</small></div>
                     </div>
-                    <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-100">
-                        <div class="text-xs text-yellow-600 font-bold uppercase flex items-center gap-1">
-                            <i class="fa-solid fa-leaf"></i> Real World
-                        </div>
-                        <div class="text-2xl font-black text-gray-900"><span id="modal-real-range">--</span> <span class="text-sm">km</span></div>
+                    <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-xl">
+                        <div class="text-[10px] text-green-500 font-bold uppercase">Battery</div>
+                        <div class="text-2xl font-black dark:text-white"><span id="modal-batt">--</span> <small class="text-xs">kWh</small></div>
                     </div>
-                    <div class="bg-green-50 p-4 rounded-xl">
-                        <div class="text-xs text-green-500 font-bold uppercase">Battery</div>
-                        <div class="text-2xl font-black text-gray-900"><span id="modal-batt">--</span> <span class="text-sm">kWh</span></div>
+                    <div class="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-xl">
+                        <div class="text-[10px] text-yellow-600 font-bold uppercase">Real Range</div>
+                        <div class="text-2xl font-black dark:text-white"><span id="modal-real">--</span> <small class="text-xs">km</small></div>
                     </div>
-                    <div class="bg-purple-50 p-4 rounded-xl">
-                        <div class="text-xs text-purple-500 font-bold uppercase">Plug Type</div>
-                        <div class="text-lg font-bold text-gray-900 truncate" id="modal-plug">--</div>
+                    <div class="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-xl">
+                        <div class="text-[10px] text-purple-500 font-bold uppercase">Plug Type</div>
+                        <div class="text-lg font-black dark:text-white truncate" id="modal-plug">--</div>
                     </div>
                 </div>
-
-                <button id="btn-activate" class="w-full mt-6 py-4 bg-gray-900 hover:bg-black text-white rounded-xl font-bold text-lg shadow-lg transition flex justify-center gap-2 items-center">
-                    Set as Active Car
-                </button>
+                <button id="btn-activate" class="w-full mt-6 py-4 bg-gray-900 dark:bg-blue-600 text-white rounded-xl font-bold shadow-lg transition active:scale-95">Set as Active Car</button>
             </div>
         </div>
     </div>
@@ -128,8 +128,12 @@
         const FALLBACK_IMG = "https://placehold.co/600x400/EEE/31343C?text=EV+Image";
         let searchTimeout;
 
-        document.addEventListener("DOMContentLoaded", () => renderGarage());
+        document.addEventListener("DOMContentLoaded", () => {
+            if(!localStorage.getItem("user_id")) window.location.href = "login.html";
+            renderGarage();
+        });
 
+        // RESTORED OLD SEARCH LOGIC
         function handleSearch(query) {
             clearTimeout(searchTimeout);
             const dropdown = document.getElementById('search-results');
@@ -153,20 +157,26 @@
                     if(cars.length > 0) {
                         cars.forEach(car => {
                             const div = document.createElement('div');
-                            div.className = "p-4 border-b hover:bg-gray-50 cursor-pointer flex items-center gap-4 transition";
+                            div.className = "p-4 border-b dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer flex items-center justify-between transition";
                             div.innerHTML = `
-                                <img src="${car.image}" onerror="this.src='${FALLBACK_IMG}'" class="w-12 h-12 rounded-lg object-cover bg-gray-200">
-                                <div>
-                                    <div class="font-bold text-gray-900">${car.brand} ${car.model}</div>
-                                    <div class="text-xs text-gray-500">${car.year} • ${car.range_km} km</div>
+                                <div class="flex items-center gap-4">
+                                    <img src="${car.image}" onerror="this.src='${FALLBACK_IMG}'" class="w-12 h-12 rounded-lg object-cover bg-gray-200">
+                                    <div>
+                                        <div class="font-bold text-gray-900 dark:text-white">${car.brand} ${car.model}</div>
+                                        <div class="text-xs text-gray-500">${car.year} • ${car.range_km} km</div>
+                                    </div>
                                 </div>
-                                <div class="ml-auto text-blue-600 font-bold text-sm">Add +</div>
+                                <div class="text-blue-600 font-bold text-sm">+ Add</div>
                             `;
-                            div.onclick = () => addToGarage(car);
+                            div.onclick = () => {
+                                addToGarage(car);
+                                dropdown.classList.add('hidden');
+                                document.getElementById('car-search').value = '';
+                            };
                             dropdown.appendChild(div);
                         });
                     } else {
-                        dropdown.innerHTML = `<div class="p-4 text-gray-400 text-center">No vehicles found.</div>`;
+                        dropdown.innerHTML = `<div class="p-4 text-gray-400 text-center italic">No vehicles found.</div>`;
                     }
                 } catch(e) {
                     console.error("Search Error", e);
@@ -177,30 +187,8 @@
 
         function addToGarage(car) {
             let garage = JSON.parse(localStorage.getItem('my_garage') || "[]");
-            if(garage.some(c => c.id === car.id)) {
-                alert("Car already in garage!");
-                return;
-            }
+            if(garage.some(c => c.id === car.id)) return alert("Already added!");
             garage.push(car);
-            localStorage.setItem('my_garage', JSON.stringify(garage));
-            
-            if(garage.length === 1) setActiveCar(car);
-
-            document.getElementById('search-results').classList.add('hidden');
-            document.getElementById('car-search').value = '';
-            renderGarage();
-        }
-
-        function removeFromGarage(carId) {
-            if(!confirm("Remove this car?")) return;
-            let garage = JSON.parse(localStorage.getItem('my_garage') || "[]");
-            let activeCar = JSON.parse(localStorage.getItem('active_car') || "null");
-
-            if (activeCar && activeCar.id === carId) {
-                alert("Cannot delete active car. Switch first.");
-                return;
-            }
-            garage = garage.filter(c => c.id !== carId);
             localStorage.setItem('my_garage', JSON.stringify(garage));
             renderGarage();
         }
@@ -209,111 +197,65 @@
             const garage = JSON.parse(localStorage.getItem('my_garage') || "[]");
             const activeCar = JSON.parse(localStorage.getItem('active_car') || "null");
             const grid = document.getElementById('garage-grid');
-            
-            document.getElementById('car-count').innerText = `${garage.length} Cars`;
+            grid.innerHTML = '';
 
             if(garage.length === 0) {
-                grid.innerHTML = `<div class="col-span-full text-center py-10 text-gray-400">Your garage is empty.</div>`;
+                grid.innerHTML = '<div class="col-span-full text-center py-10 text-gray-400 italic">Garage empty. Search to add cars.</div>';
                 return;
             }
 
-            grid.innerHTML = '';
             garage.forEach(car => {
                 const isActive = activeCar && activeCar.id === car.id;
                 const div = document.createElement('div');
-                div.className = `car-card ${isActive ? 'active-car' : ''}`;
-                
+                div.className = `car-card p-6 ${isActive ? 'active-car' : ''}`;
                 div.innerHTML = `
-                    <div class="btn-delete" onclick="event.stopPropagation(); removeFromGarage('${car.id}')"><i class="fa-solid fa-trash"></i></div>
-                    <div class="relative h-48 bg-gray-100">
-                        <img src="${car.image}" onerror="this.src='${FALLBACK_IMG}'" class="w-full h-full object-cover">
-                        ${isActive ? '<div class="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg"><i class="fa-solid fa-check"></i> Active</div>' : ''}
+                    <div class="action-btn dark:bg-slate-700 dark:text-white" onclick="toggleMenu(event, '${car.id}')"><i class="fa-solid fa-ellipsis-vertical"></i></div>
+                    <div id="menu-${car.id}" class="menu-dropdown dark:bg-slate-800 dark:border-slate-700">
+                        <div class="p-3 text-red-500 font-bold cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/10" onclick="deleteCar('${car.id}')">Delete</div>
                     </div>
-                    <div class="p-6">
-                        <div class="flex justify-between items-start mb-2">
-                            <div>
-                                <div class="text-xs font-bold text-gray-400 uppercase">${car.brand}</div>
-                                <h3 class="text-xl font-black text-gray-900">${car.model}</h3>
-                            </div>
-                            <div class="text-right">
-                                <div class="text-2xl font-bold text-gray-900">${car.range_km}</div>
-                                <div class="text-xs text-gray-500 font-bold uppercase">km Range</div>
-                            </div>
-                        </div>
-                        <div class="flex gap-2 mt-4">
-                            <button onclick='openSpecModal(${JSON.stringify(car).replace(/'/g, "&#39;")})' class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold text-gray-700 text-sm transition">Specs</button>
-                            ${!isActive ? `<button onclick='setActiveCar(${JSON.stringify(car).replace(/'/g, "&#39;")})' class="flex-1 py-3 bg-gray-900 hover:bg-black text-white rounded-xl font-bold text-sm transition">Activate</button>` : ''}
-                        </div>
+                    <img src="${car.image}" onerror="this.src='${FALLBACK_IMG}'" class="w-full h-40 object-contain mb-4">
+                    <h3 class="font-black text-xl dark:text-white">${car.brand} ${car.model}</h3>
+                    <div class="flex gap-2 mt-4">
+                        <button onclick='openSpecModal(${JSON.stringify(car)})' class="flex-1 py-3 bg-gray-100 dark:bg-slate-700 dark:text-white rounded-xl font-bold text-sm">Specs</button>
+                        <button onclick='setActiveCar(${JSON.stringify(car)})' class="flex-1 py-3 ${isActive ? 'bg-green-500' : 'bg-gray-900 dark:bg-blue-600'} text-white rounded-xl font-bold text-sm">${isActive ? 'Active' : 'Activate'}</button>
                     </div>
                 `;
                 grid.appendChild(div);
             });
         }
 
-        // --- THE CRITICAL "CALCULATED PROPERLY" PART ---
         function setActiveCar(car) {
-            // 1. Save Full Object
             localStorage.setItem('active_car', JSON.stringify(car));
-            
-            // 2. Save Specific Calculation Metrics
-            localStorage.setItem('ev_capacity', car.battery_kwh);
-            localStorage.setItem('ev_efficiency', car.efficiency_whkm);
-            
-            // 3. Save RANGES (Official vs Real World)
-            // Use real_world_range from backend if available, otherwise 85% of official
-            const safeRange = car.real_world_range_km || Math.round(car.range_km * 0.85);
-            
             localStorage.setItem('ev_max_range', car.range_km);
-            localStorage.setItem('ev_safe_range', safeRange); 
-
-            // 4. Update UI
             renderGarage();
-            
-            // Close Modal if open
-            if(!document.getElementById('spec-modal').classList.contains('hidden')) {
-                closeModal();
-                setTimeout(() => openSpecModal(car), 100); // Re-open to update button
-            }
         }
 
         function openSpecModal(car) {
-            const modal = document.getElementById('spec-modal');
-            const activeCar = JSON.parse(localStorage.getItem('active_car') || "null");
-            const isActive = activeCar && activeCar.id === car.id;
-
-            const imgEl = document.getElementById('modal-img');
-            imgEl.src = car.image;
-            imgEl.onerror = function() { this.src = FALLBACK_IMG; };
-
+            document.getElementById('modal-img').src = car.image;
             document.getElementById('modal-brand').innerText = car.brand;
             document.getElementById('modal-model').innerText = car.model;
             document.getElementById('modal-year').innerText = car.year;
             document.getElementById('modal-range').innerText = car.range_km;
-            
-            // SHOW CALCULATED REAL WORLD RANGE
-            const realRange = car.real_world_range_km || Math.round(car.range_km * 0.85);
-            document.getElementById('modal-real-range').innerText = realRange;
-            
             document.getElementById('modal-batt').innerText = car.battery_kwh;
-            document.getElementById('modal-plug').innerText = car.plug_type;
+            document.getElementById('modal-real').innerText = car.real_world_range_km || Math.round(car.range_km * 0.85);
+            document.getElementById('modal-plug').innerText = car.plug_type || 'Type 2';
+            document.getElementById('btn-activate').onclick = () => { setActiveCar(car); closeModal(); };
+            document.getElementById('spec-modal').classList.remove('hidden');
+        }
 
-            const btn = document.getElementById('btn-activate');
-            if(isActive) {
-                btn.innerHTML = '<i class="fa-solid fa-check"></i> Currently Active';
-                btn.className = "w-full mt-6 py-4 bg-green-600 text-white rounded-xl font-bold text-lg shadow-lg cursor-default";
-                btn.onclick = null;
-            } else {
-                btn.innerHTML = 'Set as Active Car';
-                btn.className = "w-full mt-6 py-4 bg-gray-900 hover:bg-black text-white rounded-xl font-bold text-lg shadow-lg transition";
-                btn.onclick = () => { setActiveCar(car); closeModal(); };
-            }
-            modal.classList.remove('hidden');
+        function toggleMenu(e, id) { e.stopPropagation(); document.getElementById(`menu-${id}`).classList.toggle('show'); }
+        
+        function deleteCar(id) { 
+            let g = JSON.parse(localStorage.getItem('my_garage')).filter(c => c.id !== id); 
+            localStorage.setItem('my_garage', JSON.stringify(g)); 
+            renderGarage(); 
         }
 
         function closeModal() { document.getElementById('spec-modal').classList.add('hidden'); }
-        document.getElementById('spec-modal').addEventListener('click', (e) => {
-            if(e.target.id === 'spec-modal') closeModal();
-        });
+        window.onclick = () => {
+            document.querySelectorAll('.menu-dropdown').forEach(m => m.classList.remove('show'));
+            if(event.target.id === 'spec-modal') closeModal();
+        };
     </script>
 </body>
 </html>
