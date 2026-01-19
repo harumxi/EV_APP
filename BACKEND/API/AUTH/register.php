@@ -16,9 +16,16 @@ header('Content-Type: application/json');
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
 
 // Combine split names from frontend
+// Inside register.php
 $fName = trim($input['firstName'] ?? '');
 $lName = trim($input['lastName'] ?? '');
-$fullName = trim("$fName $lName"); 
+$fullName = trim("$fName $lName"); // This merges them into one string
+
+// Insert into the 'name' column
+$sql = "INSERT INTO users (username, name, email, password_hash, created_at, updated_at) 
+        VALUES (?, ?, ?, ?, NOW(), NOW())";
+$stmt = $db->prepare($sql);
+$stmt->execute([$customUsername, $fullName, $email, $hashed]); 
 
 $customUsername = trim($input['username'] ?? '');
 $email = trim($input['email'] ?? '');

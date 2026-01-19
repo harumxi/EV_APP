@@ -149,23 +149,40 @@
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const name = localStorage.getItem("user_name");
-            const email = localStorage.getItem("user_email");
+        /* Inside your Profile Page Script */
+    document.addEventListener("DOMContentLoaded", () => {
+    // 1. Retrieve the fresh data saved during login
+    const fullName = localStorage.getItem("full_display_name");
+    const email = localStorage.getItem("user_email");
+    const username = localStorage.getItem("user_name");
 
-            if (!name || !email) {
-                window.location.href = "login.html";
-                return;
-            }
+    // 2. Select the EXACT IDs currently in your HTML
+    const nameHeader = document.getElementById("display-name"); // Big "User Name" text
+    const fullNameDiv = document.getElementById("user-name");   // The box that says "No Name Set"
+    const emailDiv = document.getElementById("user-email");     // The box that says "ksalisa86@gmail.com"
+    const avatar = document.getElementById("avatar");           // The "?" circle
 
-            document.getElementById('display-name').innerText = name;
-            document.getElementById('user-name').innerText = name;
-            document.getElementById('user-email').innerText = email;
-            document.getElementById('avatar').innerText = name.charAt(0).toUpperCase();
+    // 3. Populate the Header with the @Username handle
+    if (username && username !== "undefined") {
+        if (nameHeader) nameHeader.innerText = `@${username}`;
+    }
 
-            initUI();
-        });
+    // 4. Populate the Identity Fields with Full Name and Email
+    // Use .innerText because your HTML uses <div> tags
+    if (fullName && fullName !== "undefined" && fullName !== "null") {
+        if (fullNameDiv) fullNameDiv.innerText = fullName;
+        
+        // Bonus: Update avatar with first letter of the name
+        if (avatar) avatar.innerText = fullName.charAt(0).toUpperCase();
+    }
+    
+    if (email && email !== "undefined") {
+        if (emailDiv) emailDiv.innerText = email;
+    }
 
+    // Initialize your theme/unit toggles
+    initUI();
+});
         function initUI() {
             // Sync Toggle Button Visuals
             const isDark = localStorage.getItem('pref_dark') === 'true';

@@ -1,9 +1,6 @@
 <?php
 /* ===========================
    BACKEND/api/AUTH/login.php
-   Full working file:
-   - Verifies bcrypt hash
-   - Returns user object
    =========================== */
 
 header("Access-Control-Allow-Origin: *");
@@ -15,6 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
 }
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['ok' => false, 'error' => 'Method not allowed']);
@@ -36,7 +34,8 @@ if ($email === '' || $password === '') {
 try {
     $db = Database::conn();
 
-    $stmt = $db->prepare("SELECT user_id, username, email, password_hash FROM users WHERE email = ? LIMIT 1");
+    // ✅ FIXED: Added 'name' to the SELECT query
+    $stmt = $db->prepare("SELECT user_id, username, name, email, password_hash FROM users WHERE email = ? LIMIT 1");
     $stmt->execute([$email]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -52,8 +51,9 @@ try {
         'message' => 'Login successful',
         'user' => [
             'id' => (int)$user['user_id'],
-            'name' => $user['username'],
-            'email' => $user['email']
+            'username' => $user['username'], // @venven
+            'name' => $user['name'],         // Alexa Baldueza
+            'email' => $user['email']        // email address
         ]
     ]);
 

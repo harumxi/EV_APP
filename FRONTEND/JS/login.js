@@ -1,24 +1,14 @@
 /* ===========================
-   FRONTEND/JS/login.js
-   Full working file:
-   - Login calls backend (no fake redirect)
-   - Signup calls backend
-   - Strong password rules on signup
-   - No infinite reload
-   =========================== */
-
-/* ===========================
     FRONTEND/JS/login.js
-    =========================== */
+   =========================== */
 
 console.log("LOGIN.JS LOADED (NEW)");
 
-// Toggle between Login and Signup
+// Toggle functions and utility functions remain the same...
 function showSignup() {
     const loginForm = document.getElementById("loginForm");
     const signupForm = document.getElementById("signupForm");
     clearErrors();
-
     loginForm.classList.add("slide-out-left");
     setTimeout(() => {
         loginForm.classList.add("hidden");
@@ -31,7 +21,6 @@ function showLogin() {
     const loginForm = document.getElementById("loginForm");
     const signupForm = document.getElementById("signupForm");
     clearErrors();
-
     signupForm.classList.add("slide-out-left");
     setTimeout(() => {
         signupForm.classList.add("hidden");
@@ -57,10 +46,9 @@ function showSuccess(message) {
     setTimeout(() => successMsg.classList.remove("show"), 3000);
 }
 
-// ===== CONFIG =====
 const API_BASE = "http://localhost/WEBPROG_PROJ/BACKEND/api/AUTH";
 
-// ===== LOGIN =====
+// ===== LOGIN HANDLER =====
 document.getElementById("loginFormElement")?.addEventListener("submit", async function (e) {
     e.preventDefault();
     clearErrors();
@@ -82,20 +70,20 @@ document.getElementById("loginFormElement")?.addEventListener("submit", async fu
             return;
         }
 
-        // ✅ Save all profile data for the profile page
-        localStorage.setItem("user_id", data.user.id);
-        localStorage.setItem("user_name", data.user.username);
-        localStorage.setItem("full_display_name", data.user.name);
-        localStorage.setItem("user_email", data.user.email);
-        localStorage.setItem("currentUser", JSON.stringify(data.user));
-
-        window.location.href = "garage.html";
-    } catch (err) {
+        // ✅ INTEGRATED FIX: Save specific keys for Profile Page
+       // Inside login.js success block
+if (data.ok) {
+    localStorage.setItem("user_name", data.user.username);
+    localStorage.setItem("full_display_name", data.user.name); // This is the merged First + Last name
+    localStorage.setItem("user_email", data.user.email);
+    
+    window.location.href = "garage.html";
+} catch (err) {
         showSuccess("Server connection error. Check XAMPP.");
     }
 });
 
-// ===== SIGNUP (Register) =====
+// ===== SIGNUP HANDLER =====
 document.getElementById("signupFormElement")?.addEventListener("submit", async function (e) {
     e.preventDefault();
     clearErrors();
@@ -134,7 +122,7 @@ document.getElementById("signupFormElement")?.addEventListener("submit", async f
         }
 
         showSuccess("Account created! Please login.");
-        setTimeout(() => showLogin(), 1500); // Redirect to login
+        setTimeout(() => showLogin(), 1500); 
     } catch (err) {
         showSuccess("Server connection error.");
     }
