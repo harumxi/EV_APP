@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // =======================================================
 // 1. CONFIGURATION & SETUP
 // =======================================================
@@ -368,3 +369,5 @@ function useMyLocation() {
         document.getElementById('from-loc').value = `${pos.coords.latitude}, ${pos.coords.longitude}`;
     });
 }
+=======
+>>>>>>> 6ccadb508b5398d94dd890fcfa1fe69cbdc9d091
