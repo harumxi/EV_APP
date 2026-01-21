@@ -61,6 +61,16 @@
         /* MAP */
         #map { flex: 1; height: 100%; z-index: 10; }
         .leaflet-control-layers { border-radius: 12px !important; border: none !important; box-shadow: 0 4px 10px rgba(0,0,0,0.15) !important; }
+
+        /* Toast */
+        #toast { 
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); 
+            z-index: 2000; background: #1e293b; color: white; padding: 12px 24px; 
+            border-radius: 99px; font-weight: 700; font-size: 13px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2); opacity: 0; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            pointer-events: none; display: flex; align-items: center; gap: 8px;
+        }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     </style>
 </head>
 <body>
@@ -87,9 +97,7 @@
 
             <div class="flex gap-2 flex-wrap">
                 <div class="filter-chip active" onclick="toggleFilter(this, 'all')">All</div>
-                <div class="filter-chip" onclick="toggleFilter(this, 'DC Fast')">⚡ DC Fast</div>
-                <div class="filter-chip" onclick="toggleFilter(this, 'Type 2')">Type 2</div>
-                <div class="filter-chip" onclick="toggleFilter(this, 'Free')">Free Charge</div>
+                <div class="filter-chip" onclick="toggleFilter(this, 'Favorites')">❤️ Favorites</div>
             </div>
         </div>
 
@@ -101,14 +109,70 @@
         </div>
     </div>
 
+    <!-- REVIEWS MODAL -->
+    <div id="reviews-modal" class="hidden fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <h3 class="font-black text-lg text-gray-800 truncate pr-4" id="review-station-name">Station Reviews</h3>
+                <button onclick="closeReviewsModal()" class="w-8 h-8 rounded-full bg-white hover:bg-gray-200 flex items-center justify-center transition text-gray-500"><i class="fa-solid fa-times"></i></button>
+            </div>
+            
+            <div class="p-5 bg-blue-50 flex items-center justify-between">
+                <div>
+                    <div class="text-4xl font-black text-blue-600 tracking-tighter" id="review-avg">--</div>
+                    <div class="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Average Rating</div>
+                </div>
+                <div class="text-right">
+                    <button onclick="toggleReviewForm()" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-blue-200 hover:bg-blue-700 transition transform active:scale-95">Write Review</button>
+                </div>
+            </div>
+
+            <div id="review-form-box" class="hidden p-5 bg-gray-50 border-b border-gray-100 transition-all">
+                <div class="flex gap-2 mb-4 justify-center" id="star-container">
+                    <i class="fa-solid fa-star text-3xl cursor-pointer text-gray-200 hover:text-yellow-400 transition" onclick="setRating(1)"></i>
+                    <i class="fa-solid fa-star text-3xl cursor-pointer text-gray-200 hover:text-yellow-400 transition" onclick="setRating(2)"></i>
+                    <i class="fa-solid fa-star text-3xl cursor-pointer text-gray-200 hover:text-yellow-400 transition" onclick="setRating(3)"></i>
+                    <i class="fa-solid fa-star text-3xl cursor-pointer text-gray-200 hover:text-yellow-400 transition" onclick="setRating(4)"></i>
+                    <i class="fa-solid fa-star text-3xl cursor-pointer text-gray-200 hover:text-yellow-400 transition" onclick="setRating(5)"></i>
+                </div>
+                <input type="hidden" id="review-rating" value="0">
+                <textarea id="review-comment" class="w-full p-4 rounded-xl border border-gray-200 text-sm font-medium focus:border-blue-500 outline-none mb-3 resize-none" rows="3" placeholder="Share your experience..."></textarea>
+                <button onclick="submitReview()" class="w-full py-3 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-black transition shadow-lg">Post Review</button>
+            </div>
+
+            <div id="reviews-list" class="flex-1 overflow-y-auto p-5 space-y-4 bg-white"></div>
+        </div>
+    </div>
+
+    <!-- STATION DETAILS MODAL -->
+    <div id="details-modal" class="hidden fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <!-- Header -->
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <h3 class="font-black text-lg text-gray-800 truncate pr-4" id="detail-title">Station Details</h3>
+                <button onclick="closeDetailsModal()" class="w-8 h-8 rounded-full bg-white hover:bg-gray-200 flex items-center justify-center transition text-gray-500"><i class="fa-solid fa-times"></i></button>
+            </div>
+            
+            <!-- Content -->
+            <div id="detail-content" class="flex-1 overflow-y-auto p-6 space-y-6 text-sm text-gray-700">
+                <!-- Dynamic Content Here -->
+            </div>
+        </div>
+    </div>
+
     <div id="map"></div>
+    <div id="toast"><i class="fa-solid fa-circle-info text-blue-400"></i> <span id="toast-msg">Notification</span></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const API_URL = "http://localhost/WEBPROG_PROJ/BACKEND/API/CHARGING/nearby.php";
+        const API_URL = "http://localhost/WEBPROG_PROJ/BACKEND/API/CHARGING/nearby.php"; // Default OCM
+        const FAV_API = "http://localhost/WEBPROG_PROJ/BACKEND/API/CHARGING";
+        const USER_ID = localStorage.getItem("user_id");
         let map;
         let markers = [];
         let currentStations = [];
+        let favoriteIds = new Set();
+        let currentReviewStationId = null;
 
         const thunderIcon = L.divIcon({
             html: '<div style="background: white; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 8px rgba(0,0,0,0.3); border: 2px solid #eab308;"><i class="fa-solid fa-bolt text-yellow-500 text-xl"></i></div>',
@@ -120,7 +184,25 @@
 
         document.addEventListener("DOMContentLoaded", () => {
             initMap();
+            fetchFavorites();
+            setupFilters();
         });
+
+        function showToast(msg) {
+            const t = document.getElementById("toast");
+            document.getElementById("toast-msg").textContent = msg;
+            t.classList.add("show");
+            setTimeout(() => t.classList.remove("show"), 2500);
+        }
+
+        async function fetchFavorites() {
+            if (!USER_ID) return;
+            try {
+                const res = await fetch(`${FAV_API}/get_favorites.php?user_id=${USER_ID}`);
+                const data = await res.json();
+                if (data.ok) favoriteIds = new Set(data.favorites);
+            } catch (e) { console.error("Fav fetch error", e); }
+        }
 
         function initMap() {
             const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: 'OpenStreetMap' });
@@ -137,6 +219,21 @@
                     map.setView([latitude, longitude], 14);
                     fetchChargers(latitude, longitude);
                 });
+            }
+        }
+
+        function setupFilters() {
+            const activeCar = JSON.parse(localStorage.getItem('active_car'));
+            if (activeCar && activeCar.plug_type) {
+                // Display Active Plug Type (Info Only)
+                const container = document.querySelector('.search-area');
+                const filters = document.querySelector('.flex.gap-2.flex-wrap');
+                
+                const info = document.createElement('div');
+                info.className = "mb-3 px-3 py-2 bg-blue-50 border border-blue-100 rounded-xl text-xs font-bold text-blue-700 flex items-center gap-2";
+                info.innerHTML = `<i class="fa-solid fa-car"></i> Active: ${activeCar.plug_type}`;
+                
+                container.insertBefore(info, filters);
             }
         }
 
@@ -188,10 +285,10 @@
                 return;
             }
             stations.forEach((st, index) => {
-                const isFast = Math.random() > 0.5;
-                const plugs = isFast ? "CCS2 • Type 2" : "Type 2 Only";
-                const price = isFast ? "₱35/kWh" : "Free";
-                const iconColor = isFast ? "text-yellow-500" : "text-blue-500";
+                // Use REAL data from backend
+                const iconColor = "text-blue-500";
+                const isFav = favoriteIds.has(st.id);
+                const heartClass = isFav ? "fa-solid text-red-500" : "fa-regular text-gray-400";
 
                 const div = document.createElement('div');
                 div.className = "hub-card";
@@ -200,19 +297,41 @@
                     <div class="flex-1">
                         <div class="flex justify-between items-start">
                             <h3 class="font-bold text-gray-900 text-sm">${st.name}</h3>
-                            <span class="text-xs font-bold bg-gray-100 px-2 py-1 rounded text-gray-600">${price}</span>
+                            <div class="flex items-center gap-2">
+                                <button onclick="event.stopPropagation(); toggleFavorite('${st.id}', '${st.name.replace(/'/g, "\\'")}', '${st.address.town || ''}')" class="hover:scale-110 transition"><i class="${heartClass} fa-heart"></i></button>
+                            </div>
                         </div>
                         <div class="text-xs text-gray-500 mt-1">${st.address.town || st.address.city || 'Nearby'}</div>
-                        <div class="mt-3 flex justify-between items-center">
-                            <span class="text-[10px] font-bold border border-gray-200 px-2 py-0.5 rounded text-gray-500">${plugs}</span>
-                            <button onclick="event.stopPropagation(); triggerNavigation('${st.name}', ${st.location.latitude}, ${st.location.longitude})" class="nav-btn">
-                                <i class="fa-solid fa-location-arrow"></i> Navigate
-                            </button>
-                        </div>
                     </div>
                 `;
                 div.onclick = () => focusStation(st, div);
                 container.appendChild(div);
+            });
+        }
+
+        async function toggleFavorite(stationId, name, address) {
+            if (!USER_ID) return alert("Please login to save favorites.");
+            
+            let msg = "";
+            // Optimistic UI Update
+            if (favoriteIds.has(stationId)) {
+                favoriteIds.delete(stationId);
+                msg = "Removed from Favorites";
+            } else {
+                favoriteIds.add(stationId);
+                msg = "Added to Favorites";
+            }
+            
+            showToast(msg);
+            
+            // Re-render immediately to show change
+            const activeFilter = document.querySelector('.filter-chip.active');
+            if (activeFilter) activeFilter.click(); // Refresh current view
+
+            // Background API Call
+            await fetch(`${FAV_API}/toggle_favorite.php`, {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ user_id: USER_ID, station_id: stationId, name, address })
             });
         }
 
@@ -221,20 +340,10 @@
             markers = [];
             stations.forEach(st => {
                 const marker = L.marker([st.location.latitude, st.location.longitude], { icon: thunderIcon }).addTo(map);
-                
-                // Create detailed popup with Nav button
-                const popupContent = `
-                    <div class="text-center p-1">
-                        <b class="text-sm">${st.name}</b><br>
-                        <span class="text-xs text-gray-500">${st.address.town || ''}</span><br>
-                        <button onclick="triggerNavigation('${st.name}', ${st.location.latitude}, ${st.location.longitude})" 
-                                style="margin-top:8px; background:#2563eb; color:white; border:none; padding:5px 10px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:11px;">
-                            Navigate Here
-                        </button>
-                    </div>
-                `;
-                
-                marker.bindPopup(popupContent);
+                // Open Details Modal on Click
+                marker.on('click', () => {
+                    openDetailsModal(st);
+                });
                 markers.push(marker);
             });
         }
@@ -243,8 +352,6 @@
             document.querySelectorAll('.hub-card').forEach(c => c.classList.remove('active'));
             cardElement.classList.add('active');
             map.flyTo([st.location.latitude, st.location.longitude], 16);
-            const marker = markers.find(m => m.getLatLng().lat === st.location.latitude);
-            if(marker) marker.openPopup();
         }
 
         function toggleFilter(btn, type) {
@@ -252,10 +359,139 @@
             btn.classList.add('active');
             if(type === 'all') {
                 renderList(currentStations);
-            } else {
-                const filtered = currentStations.slice(0, Math.ceil(currentStations.length / 2));
+            } else if (type === 'my_plug') {
+                const activeCar = JSON.parse(localStorage.getItem('active_car'));
+                if (!activeCar) return;
+                
+                // Split car plugs (e.g. "Type 2 / CCS2" -> ["type 2", "ccs2"])
+                const carPlugs = activeCar.plug_type.toLowerCase().split('/').map(p => p.trim());
+                
+                const filtered = currentStations.filter(st => {
+                    if (!st.plugs) return false;
+                    // Check if ANY of the station's plugs match ANY of the car's plugs
+                    return st.plugs.some(stationPlug => {
+                        const sPlug = stationPlug.toLowerCase();
+                        return carPlugs.some(cPlug => sPlug.includes(cPlug) || cPlug.includes(sPlug));
+                    });
+                });
+                renderList(filtered);
+            } else if (type === 'Favorites') {
+                // Filter by Favorites
+                const filtered = currentStations.filter(st => favoriteIds.has(st.id));
                 renderList(filtered);
             }
+        }
+
+        // --- REVIEWS LOGIC ---
+        function openReviewsModal(stationId, stationName) {
+            currentReviewStationId = stationId;
+            document.getElementById('review-station-name').innerText = stationName;
+            document.getElementById('reviews-modal').classList.remove('hidden');
+            document.getElementById('review-form-box').classList.add('hidden');
+            loadReviews(stationId);
+        }
+
+        function closeReviewsModal() {
+            document.getElementById('reviews-modal').classList.add('hidden');
+        }
+
+        function toggleReviewForm() {
+            if (!USER_ID) return alert("Please login to write a review.");
+            document.getElementById('review-form-box').classList.toggle('hidden');
+        }
+
+        function setRating(n) {
+            document.getElementById('review-rating').value = n;
+            const stars = document.getElementById('star-container').children;
+            for(let i=0; i<5; i++) {
+                stars[i].classList.toggle('text-yellow-400', i < n);
+                stars[i].classList.toggle('text-gray-200', i >= n);
+            }
+        }
+
+        async function loadReviews(stationId) {
+            const list = document.getElementById('reviews-list');
+            list.innerHTML = '<div class="text-center text-gray-400 py-10 italic">Loading reviews...</div>';
+            
+            try {
+                const res = await fetch(`${FAV_API}/get_reviews.php?station_id=${stationId}`);
+                const data = await res.json();
+                
+                document.getElementById('review-avg').innerText = data.average || '--';
+                list.innerHTML = '';
+
+                if (data.reviews.length === 0) {
+                    list.innerHTML = '<div class="text-center text-gray-400 py-10">No reviews yet. Be the first!</div>';
+                    return;
+                }
+
+                data.reviews.forEach(r => {
+                    const stars = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating);
+                    list.innerHTML += `
+                        <div class="border-b border-gray-50 pb-3 last:border-0">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="font-bold text-sm text-gray-900">@${r.username}</span>
+                                <span class="text-xs text-gray-400">${new Date(r.created_at).toLocaleDateString()}</span>
+                            </div>
+                            <div class="text-yellow-400 text-xs mb-1">${stars}</div>
+                            <p class="text-sm text-gray-600 leading-relaxed">${r.comment}</p>
+                        </div>
+                    `;
+                });
+            } catch(e) { list.innerHTML = '<div class="text-center text-red-400">Failed to load reviews.</div>'; }
+        }
+
+        async function submitReview() {
+            const rating = document.getElementById('review-rating').value;
+            const comment = document.getElementById('review-comment').value;
+            if(rating == 0) return alert("Please select a star rating.");
+            
+            await fetch(`${FAV_API}/add_review.php`, {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ user_id: USER_ID, station_id: currentReviewStationId, rating, comment })
+            });
+            
+            document.getElementById('review-comment').value = '';
+            setRating(0);
+            toggleReviewForm();
+            loadReviews(currentReviewStationId);
+            showToast("Review posted!");
+        }
+
+        // --- DETAILS MODAL LOGIC ---
+        function openDetailsModal(st) {
+            document.getElementById('detail-title').innerText = st.name;
+            
+            // Station Photo
+            const imageHtml = (st.photos && st.photos.length > 0) 
+                ? `<img src="${st.photos[0]}" class="w-full h-48 object-cover rounded-xl mb-4 border border-gray-100" onerror="this.style.display='none'">` 
+                : '';
+
+            const content = `
+                <div class="space-y-6">
+                    ${imageHtml}
+                    <div>
+                        <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Location Details</div>
+                        <div class="font-bold text-gray-900 text-lg">${st.name}</div>
+                        <div class="text-gray-600">${st.address.line1 || ''}</div>
+                        ${st.address.line2 ? `<div class="text-gray-600">${st.address.line2}</div>` : ''}
+                        <div class="text-gray-600">${st.address.town || ''} ${st.address.state ? ', ' + st.address.state : ''}</div>
+                        <div class="text-gray-600">${st.address.postcode || ''}</div>
+                        <div class="text-gray-600">${st.address.country || ''}</div>
+                        <div class="text-xs text-gray-400 mt-1">Lat/Long: ${st.location.latitude.toFixed(6)}, ${st.location.longitude.toFixed(6)}</div>
+                    </div>
+
+                    <button onclick="triggerNavigation('${st.name.replace(/'/g, "\\'")}', ${st.location.latitude}, ${st.location.longitude})" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 transition transform active:scale-95">
+                        <i class="fa-solid fa-location-arrow"></i> Navigate Here
+                    </button>
+                </div>
+            `;
+            document.getElementById('detail-content').innerHTML = content;
+            document.getElementById('details-modal').classList.remove('hidden');
+        }
+
+        function closeDetailsModal() {
+            document.getElementById('details-modal').classList.add('hidden');
         }
     </script>
 </body>

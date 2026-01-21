@@ -54,6 +54,7 @@
                             <input type="password" id="loginPassword" class="w-full px-6 py-5 bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl outline-none transition-all duration-300" placeholder="••••••••" required>
                         </div>
                         <button type="submit" class="w-full py-5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-2xl shadow-blue-200 transition-all transform active:scale-[0.98]">Enter Dashboard</button>
+                        <div class="text-right"><button type="button" onclick="showForgot()" class="text-sm font-bold text-slate-400 hover:text-blue-600">Forgot Password?</button></div>
                     </form>
                     <p class="text-center text-slate-400 font-semibold">New here? <button onclick="showSignup()" class="text-blue-600 font-black hover:underline underline-offset-4">Create Account</button></p>
                 </div>
@@ -100,6 +101,66 @@
                         <button type="submit" class="w-full py-5 bg-slate-900 hover:bg-black text-white font-bold rounded-2xl shadow-xl mt-4 transition-all transform active:scale-[0.98]">Register Now</button>
                     </form>
                     <p class="text-center text-slate-400 font-semibold">Member already? <button onclick="showLogin()" class="text-blue-600 font-black hover:underline">Sign In</button></p>
+                </div>
+
+                <!-- OTP VERIFICATION FORM -->
+                <div id="otpForm" class="hidden space-y-8">
+                    <div>
+                        <h1 class="text-4xl font-black text-slate-900 tracking-tighter">Verification</h1>
+                        <p class="text-slate-400 mt-2 font-medium">Enter the 6-digit code sent to <span id="otpEmailDisplay" class="text-slate-900 font-bold">your email</span>.</p>
+                    </div>
+
+                    <form id="otpFormElement" class="space-y-6">
+                        <input type="hidden" id="otpUserId">
+                        <input type="hidden" id="otpPurpose">
+                        <div class="space-y-2">
+                            <input type="text" id="otpInput" class="w-full px-6 py-5 bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl outline-none text-center text-3xl font-black tracking-widest transition-all" placeholder="000000" maxlength="6" required>
+                        </div>
+                        <button type="submit" class="w-full py-5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-2xl shadow-xl transition-all transform active:scale-[0.98]">Verify Code</button>
+                    </form>
+                    <p class="text-center text-slate-400 text-sm cursor-pointer hover:text-blue-600" onclick="location.reload()">Cancel</p>
+                </div>
+
+                <!-- FORGOT PASSWORD FLOW -->
+                <div id="forgotForm" class="hidden space-y-8">
+                    <div>
+                        <h1 class="text-4xl font-black text-slate-900 tracking-tighter">Recovery</h1>
+                        <p class="text-slate-400 mt-2 font-medium">Reset your password securely.</p>
+                    </div>
+
+                    <!-- STEP 1: EMAIL -->
+                    <form id="forgotStep1" onsubmit="handleForgotRequest(event)" class="space-y-6">
+                        <div class="space-y-2">
+                            <label class="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em]">Email Address</label>
+                            <input type="email" id="forgotEmail" class="w-full px-6 py-5 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none" placeholder="your@email.com" required>
+                        </div>
+                        <button type="submit" class="w-full py-5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-xl">Send Reset Code</button>
+                    </form>
+
+                    <!-- STEP 2: OTP -->
+                    <form id="forgotStep2" onsubmit="handleForgotVerify(event)" class="hidden space-y-6">
+                        <div class="space-y-2">
+                            <label class="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em]">Verification Code</label>
+                            <input type="text" id="forgotOtp" class="w-full px-6 py-5 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none text-center text-2xl font-bold tracking-widest" placeholder="000000" maxlength="6" required>
+                        </div>
+                        <button type="submit" class="w-full py-5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-2xl shadow-xl">Verify Code</button>
+                    </form>
+
+                    <!-- STEP 3: NEW PASSWORD -->
+                    <form id="forgotStep3" onsubmit="handleNewPassword(event)" class="hidden space-y-6">
+                        <input type="hidden" id="resetToken">
+                        <div class="space-y-2">
+                            <label class="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em]">New Password</label>
+                            <input type="password" id="newPass" class="w-full px-6 py-5 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none" required>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em]">Confirm Password</label>
+                            <input type="password" id="confirmNewPass" class="w-full px-6 py-5 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none" required>
+                        </div>
+                        <button type="submit" class="w-full py-5 bg-slate-900 hover:bg-black text-white font-bold rounded-2xl shadow-xl">Update Password</button>
+                    </form>
+                    
+                    <p class="text-center text-slate-400 font-semibold cursor-pointer hover:text-blue-600" onclick="showLogin()">Back to Sign In</p>
                 </div>
 
             </div>

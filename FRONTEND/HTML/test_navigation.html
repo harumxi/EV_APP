@@ -215,8 +215,46 @@
             move();
         }
 
-        function endTrip() {
+        async function endTrip() {
             if(confirm("End current navigation?")) {
+                // SAVE TRIP TO HISTORY
+                try {
+                    const tripDataRaw = localStorage.getItem('activeTrip');
+                    if (tripDataRaw) {
+                        const trip = JSON.parse(tripDataRaw);
+                        const userId = localStorage.getItem("user_id");
+                        
+                        if (!userId) {
+                            alert("⚠️ Warning: You are not logged in. Trip will not be saved.");
+                            window.location.href = "login.html";
+                            return;
+                        }
+
+                        const res = await fetch('http://localhost/WEBPROG_PROJ/BACKEND/API/BATTERY/logs.php', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                user_id: userId,
+                                distance_km: trip.route.distance_km,
+                                battery_drained: trip.route.est_usage,
+                                origin: trip.origin || "Unknown",
+                                destination: trip.destination || trip.destLabel || "Unknown"
+                            })
+                        });
+
+                        if (!res.ok) {
+                            const errText = await res.text();
+                            console.error("Failed to save trip:", errText);
+                            alert("❌ Error saving trip history: " + errText);
+                        } else {
+                            console.log("Trip saved successfully");
+                        }
+                    }
+                } catch(e) { 
+                    console.error("Failed to save trip log", e);
+                    alert("❌ Network Error: Could not save trip.");
+                }
+                
                 window.location.href = "trip_planner.html";
             }
         }

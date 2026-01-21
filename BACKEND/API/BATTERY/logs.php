@@ -34,11 +34,26 @@ try {
             throw new Exception("Missing trip data");
         }
 
-        $userId = $input['user_id'] ?? 1;
+        $userId = (int)($input['user_id'] ?? 0);
+        if ($userId <= 0) {
+            throw new Exception("Invalid User ID");
+        }
+
         $dist = $input['distance_km'];
         $drain = $input['battery_drained'];
         $startAddr = $input['origin'] ?? 'Unknown';
         $endAddr = $input['destination'] ?? 'Unknown';
+
+        // Auto-Create Table if missing (Safety Net)
+        $db->exec("CREATE TABLE IF NOT EXISTS trip_logs (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            origin VARCHAR(255),
+            destination VARCHAR(255),
+            distance_km DECIMAL(10, 2),
+            battery_drained DECIMAL(10, 2),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )");
 
         // Insert into DB (Assuming you have a 'trip_logs' table)
         // If this table doesn't exist, you'll need to create it (SQL below)

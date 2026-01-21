@@ -1,57 +1,32 @@
 <?php
-// 1. Force Headers
+/* BACKEND/API/GARAGE/get_user_garage.php */
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
-header("Content-Type: application/json");
+header("Content-Type: application/json; charset=UTF-8");
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
+require_once __DIR__ . '/../../CORE/Database.php';
 
-ini_set('display_errors', 0);
-error_reporting(E_ALL);
+$user_id = isset($_GET['user_id']) ? (int)$_GET['user_id'] : 0;
 
 try {
-    // 2. Connect
-    $possiblePaths = [
-        __DIR__ . '/../../../CORE/Database.php',
-        __DIR__ . '/../../CORE/Database.php'
-    ];
-    $dbPath = null;
-    foreach ($possiblePaths as $path) { if (file_exists($path)) { $dbPath = $path; break; } }
-    if (!$dbPath) throw new Exception("Database.php not found");
-    require_once $dbPath;
     $db = Database::conn();
-
-    // 3. Get User ID
-    $userId = $_GET['user_id'] ?? null;
-    if (!$userId) throw new Exception("Missing user_id");
-
-    // 4. THE FIX: LEFT JOIN & COALESCE
-    // This query says: "Select EVERYTHING from user_garage where user_id matches."
-    // "Then try to find details in ev_variants. If missing, use defaults."
-    $sql = "SELECT 
-                g.garage_id, 
-                g.nickname, 
-                g.is_active, 
-                COALESCE(v.brand_name, v.make, 'Unknown Brand') AS brand, 
-                COALESCE(v.model_name, v.model, 'Unknown Model') AS model, 
-                COALESCE(v.variant_name, v.variant, 'Standard') AS variant, 
-                COALESCE(v.battery_capacity_kwh, 0) AS battery_capacity_kwh, 
-                COALESCE(v.efficiency_wh_per_km, 150) AS efficiency_wh_per_km 
-            FROM user_garage g
-            LEFT JOIN ev_variants v ON g.variant_id = v.variant_id
-            WHERE g.user_id = ?
-            ORDER BY g.is_active DESC, g.garage_id DESC";
-
-    $stmt = $db->prepare($sql);
-    $stmt->execute([$userId]);
+    
+    // Fetch user's garage cars joined with vehicle details
+    $stmt = $db->prepare("
+        SELECT g.garage_id, g.variant_id, g.is_active, 
+               v.make as brand, v.model, v.year,
+               v.battery_capacity_kwh as battery_kwh, 
+               v.efficiency_wh_per_km as efficiency_whkm,
+               CAST((v.battery_capacity_kwh * 1000 / v.efficiency_wh_per_km) AS UNSIGNED) as range_km,
+               v.image_url as image, v.plug_type
+        FROM user_garage g
+        JOIN ev_variants v ON g.variant_id = v.variant_id
+        WHERE g.user_id = ?
+        ORDER BY g.garage_id DESC
+    ");
+    $stmt->execute([$user_id]);
     $cars = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    echo json_encode(['ok' => true, 'garage' => $cars]);
-
+    
+    echo json_encode(['ok' => true, 'data' => $cars]);
 } catch (Exception $e) {
     echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
 }

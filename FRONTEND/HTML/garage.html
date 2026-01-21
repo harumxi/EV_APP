@@ -125,11 +125,15 @@
 
     <script>
         const API_URL = "http://localhost/WEBPROG_PROJ/BACKEND/API/GARAGE/vehicles.php";
+        const API_BASE = "http://localhost/WEBPROG_PROJ/BACKEND/API/GARAGE";
+        const VEHICLE_API = `${API_BASE}/vehicles.php`;
         const FALLBACK_IMG = "https://placehold.co/600x400/EEE/31343C?text=EV+Image";
+        const USER_ID = localStorage.getItem("user_id");
         let searchTimeout;
 
         document.addEventListener("DOMContentLoaded", () => {
             if(!localStorage.getItem("user_id")) window.location.href = "login.html";
+            if(!USER_ID) window.location.href = "login.html";
             renderGarage();
         });
 
@@ -148,7 +152,7 @@
 
             searchTimeout = setTimeout(async () => {
                 try {
-                    const res = await fetch(`${API_URL}?q=${encodeURIComponent(query)}`);
+                    const res = await fetch(`${VEHICLE_API}?q=${encodeURIComponent(query)}`);
                     const json = await res.json();
                     
                     dropdown.innerHTML = ''; 
@@ -185,49 +189,93 @@
             }, 300);
         }
 
-        function addToGarage(car) {
-            let garage = JSON.parse(localStorage.getItem('my_garage') || "[]");
-            if(garage.some(c => c.id === car.id)) return alert("Already added!");
-            garage.push(car);
-            localStorage.setItem('my_garage', JSON.stringify(garage));
-            renderGarage();
+        async function addToGarage(car) {
+            try {
+                const res = await fetch(`${API_BASE}/user_garage.php`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        user_id: USER_ID,
+                        nickname: `${car.brand} ${car.model}`,
+                        brand: car.brand,
+                        model: car.model,
+                        year: car.year,
+                        battery_kwh: car.battery_kwh,
+                        efficiency_whkm: car.efficiency_whkm,
+                        image: car.image,
+                        plug_type: car.plug_type
+                    })
+                });
+                const json = await res.json();
+                
+                if (json.ok) {
+                    renderGarage();
+                } else {
+                    alert(json.error || "Failed to add car");
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Connection Error");
+            }
         }
 
-        function renderGarage() {
-            const garage = JSON.parse(localStorage.getItem('my_garage') || "[]");
-            const activeCar = JSON.parse(localStorage.getItem('active_car') || "null");
+        async function renderGarage() {
             const grid = document.getElementById('garage-grid');
             grid.innerHTML = '';
+            
+            try {
+                const res = await fetch(`${API_BASE}/get_user_garage.php?user_id=${USER_ID}`);
+                const json = await res.json();
+                const garage = json.data || [];
 
-            if(garage.length === 0) {
-                grid.innerHTML = '<div class="col-span-full text-center py-10 text-gray-400 italic">Garage empty. Search to add cars.</div>';
-                return;
+                if(garage.length === 0) {
+                    grid.innerHTML = '<div class="col-span-full text-center py-10 text-gray-400 italic">Garage empty. Search to add cars.</div>';
+                    localStorage.removeItem('active_car'); // Clear local active car if garage empty
+                    return;
+                }
+
+                garage.forEach(car => {
+                    const isActive = car.is_active == 1;
+                    if (isActive) {
+                        // Sync local storage with DB truth
+                        localStorage.setItem('active_car', JSON.stringify(car));
+                        localStorage.setItem('ev_max_range', car.range_km);
+                    }
+
+                    const div = document.createElement('div');
+                    div.className = `car-card p-6 ${isActive ? 'active-car' : ''}`;
+                    div.innerHTML = `
+                        <div class="action-btn dark:bg-slate-700 dark:text-white" onclick="toggleMenu(event, '${car.garage_id}')"><i class="fa-solid fa-ellipsis-vertical"></i></div>
+                        <div id="menu-${car.garage_id}" class="menu-dropdown dark:bg-slate-800 dark:border-slate-700">
+                            <div class="p-3 text-red-500 font-bold cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/10" onclick="deleteCar('${car.garage_id}')">Delete</div>
+                        </div>
+                        <img src="${car.image}" onerror="this.src='${FALLBACK_IMG}'" class="w-full h-40 object-contain mb-4">
+                        <h3 class="font-black text-xl dark:text-white">${car.brand} ${car.model}</h3>
+                        <div class="flex gap-2 mt-4">
+                            <button onclick='openSpecModal(${JSON.stringify(car)})' class="flex-1 py-3 bg-gray-100 dark:bg-slate-700 dark:text-white rounded-xl font-bold text-sm">Specs</button>
+                            <button onclick='setActiveCar(${JSON.stringify(car)})' class="flex-1 py-3 ${isActive ? 'bg-green-500' : 'bg-gray-900 dark:bg-blue-600'} text-white rounded-xl font-bold text-sm">${isActive ? 'Active' : 'Activate'}</button>
+                        </div>
+                    `;
+                    grid.appendChild(div);
+                });
+            } catch (e) {
+                console.error(e);
+                grid.innerHTML = '<div class="col-span-full text-center text-red-500">Failed to load garage.</div>';
             }
-
-            garage.forEach(car => {
-                const isActive = activeCar && activeCar.id === car.id;
-                const div = document.createElement('div');
-                div.className = `car-card p-6 ${isActive ? 'active-car' : ''}`;
-                div.innerHTML = `
-                    <div class="action-btn dark:bg-slate-700 dark:text-white" onclick="toggleMenu(event, '${car.id}')"><i class="fa-solid fa-ellipsis-vertical"></i></div>
-                    <div id="menu-${car.id}" class="menu-dropdown dark:bg-slate-800 dark:border-slate-700">
-                        <div class="p-3 text-red-500 font-bold cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/10" onclick="deleteCar('${car.id}')">Delete</div>
-                    </div>
-                    <img src="${car.image}" onerror="this.src='${FALLBACK_IMG}'" class="w-full h-40 object-contain mb-4">
-                    <h3 class="font-black text-xl dark:text-white">${car.brand} ${car.model}</h3>
-                    <div class="flex gap-2 mt-4">
-                        <button onclick='openSpecModal(${JSON.stringify(car)})' class="flex-1 py-3 bg-gray-100 dark:bg-slate-700 dark:text-white rounded-xl font-bold text-sm">Specs</button>
-                        <button onclick='setActiveCar(${JSON.stringify(car)})' class="flex-1 py-3 ${isActive ? 'bg-green-500' : 'bg-gray-900 dark:bg-blue-600'} text-white rounded-xl font-bold text-sm">${isActive ? 'Active' : 'Activate'}</button>
-                    </div>
-                `;
-                grid.appendChild(div);
-            });
         }
 
-        function setActiveCar(car) {
-            localStorage.setItem('active_car', JSON.stringify(car));
-            localStorage.setItem('ev_max_range', car.range_km);
-            renderGarage();
+        async function setActiveCar(car) {
+            try {
+                const res = await fetch(`${API_BASE}/set_active_car.php`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ user_id: USER_ID, garage_id: car.garage_id })
+                });
+                const json = await res.json();
+                if (json.ok) {
+                    renderGarage(); // Re-render to update UI
+                }
+            } catch (e) { console.error(e); }
         }
 
         function openSpecModal(car) {
@@ -245,10 +293,17 @@
 
         function toggleMenu(e, id) { e.stopPropagation(); document.getElementById(`menu-${id}`).classList.toggle('show'); }
         
-        function deleteCar(id) { 
-            let g = JSON.parse(localStorage.getItem('my_garage')).filter(c => c.id !== id); 
-            localStorage.setItem('my_garage', JSON.stringify(g)); 
-            renderGarage(); 
+        async function deleteCar(garageId) { 
+            if(!confirm("Delete this car?")) return;
+            try {
+                const res = await fetch(`${API_BASE}/delete_user_garage.php`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ garage_id: garageId })
+                });
+                const json = await res.json();
+                if (json.ok) renderGarage();
+            } catch (e) { console.error(e); }
         }
 
         function closeModal() { document.getElementById('spec-modal').classList.add('hidden'); }

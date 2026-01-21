@@ -108,6 +108,26 @@
             </button>
         </div>
 
+        <!-- BATTERY SYNC CARD -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-8 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-xl">
+                    <i class="fa-solid fa-car-battery"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-gray-900">Current Battery Level</h3>
+                    <p class="text-xs text-gray-500">Syncs automatically with Trip Planner</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4 w-full md:w-auto">
+                <input type="range" id="dash-batt-slider" min="1" max="100" class="flex-1 md:w-48 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-600">
+                <div class="relative">
+                    <input type="number" id="dash-batt-input" min="1" max="100" class="w-20 pl-3 pr-8 py-2 border-2 border-gray-200 rounded-xl font-black text-gray-800 focus:border-green-500 outline-none text-center">
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">%</span>
+                </div>
+            </div>
+        </div>
+
         <div class="grid grid-cols-3 gap-6 mb-8">
             <div class="stat-card border-l-4 border-l-green-500">
                 <div class="flex justify-between items-start mb-4">
@@ -187,19 +207,14 @@
         // AUTH GUARD
         if(!localStorage.getItem("user_id")) window.location.href = "login.html";
 
-        // MOCK DATA (Editable)
-        let trips = [
-            { id: 1, date: "2026-01-18", from: "Home", to: "Office", dist: 25.4, eff: 155 },
-            { id: 2, date: "2026-01-17", from: "Office", to: "SM North", dist: 12.1, eff: 160 },
-            { id: 3, date: "2026-01-16", from: "QC Circle", to: "Tagaytay", dist: 65.8, eff: 145 },
-            { id: 4, date: "2026-01-15", from: "Home", to: "NU Fairview", dist: 8.5, eff: 170 },
-            { id: 5, date: "2026-01-14", from: "Makati", to: "BGC", dist: 5.2, eff: 180 },
-            { id: 6, date: "2026-01-12", from: "Baguio", to: "Manila", dist: 240.5, eff: 130 },
-        ];
+        // FIX: Use relative path
+        const API_BASE = "../../BACKEND/API";
+        let trips = [];
 
         document.addEventListener("DOMContentLoaded", () => {
             loadActiveCar();
-            updateDashboard(); // Initial Render
+            initBatterySync();
+            fetchTripHistory();
             document.getElementById('report-date').innerText = new Date().toLocaleString();
 
             // Click outside to close menus
@@ -209,6 +224,46 @@
                 }
             });
         });
+
+        function initBatterySync() {
+            const slider = document.getElementById('dash-batt-slider');
+            const input = document.getElementById('dash-batt-input');
+            
+            // Load saved value
+            const savedBatt = localStorage.getItem('user_battery_level') || 80;
+            slider.value = savedBatt;
+            input.value = savedBatt;
+
+            // Sync functions
+            const updateVal = (val) => {
+                slider.value = val;
+                input.value = val;
+                localStorage.setItem('user_battery_level', val);
+            };
+
+            slider.addEventListener('input', (e) => updateVal(e.target.value));
+            input.addEventListener('input', (e) => updateVal(e.target.value));
+        }
+
+        async function fetchTripHistory() {
+            const userId = localStorage.getItem("user_id");
+            try {
+                const res = await fetch(`${API_BASE}/BATTERY/logs.php?user_id=${userId}`);
+                const data = await res.json();
+                
+                if(data.ok && data.logs) {
+                    trips = data.logs.map(log => ({
+                        id: log.id,
+                        date: new Date(log.created_at).toLocaleDateString(),
+                        from: log.origin || 'Unknown',
+                        to: log.destination || 'Unknown',
+                        dist: parseFloat(log.distance_km),
+                        eff: 160 // Default efficiency if not stored
+                    }));
+                    updateDashboard();
+                }
+            } catch(e) { console.error("Failed to fetch trips", e); }
+        }
 
         function loadActiveCar() {
             const activeCar = JSON.parse(localStorage.getItem('active_car') || "null");

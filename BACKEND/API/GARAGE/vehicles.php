@@ -13,7 +13,7 @@ header("Content-Type: application/json; charset=UTF-8");
 // =================================================================================
 // 🔑 CONFIGURATION
 // =================================================================================
-$API_KEY = "PASTE_YOUR_API_KEY_HERE"; 
+$API_KEY = 'LbrluHCyTzaxVI1CJAtO2LQMnrcfstO5gnjABkWh';
 $CACHE_FILE = sys_get_temp_dir() . '/ev_api_cache.json'; // Auto-managed temp file
 $CACHE_DURATION = 86400; // 24 Hours
 // =================================================================================
@@ -203,7 +203,7 @@ if ($query !== '') {
 }
 
 // STEP B: API Fallback (Only if Local failed & Query exists)
-if (empty($results) && $query !== '' && strpos($API_KEY, "PASTE") === false) {
+if (empty($results) && $query !== '' && !empty($API_KEY)) {
     
     // Guess Make/Model
     $parts = explode(' ', $query, 2);

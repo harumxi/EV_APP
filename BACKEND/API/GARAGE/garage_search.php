@@ -8,7 +8,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(204); exit; }
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); echo json_encode(['ok'=>false,'error'=>'Method not allowed']); exit; }
 
 require_once __DIR__ . '/../../CORE/Database.php';
-$keys = require __DIR__ . '/../../CONFIG/api_keys.php';
 
 $input = json_decode(file_get_contents("php://input"), true) ?? [];
 $q = trim($input['search'] ?? '');
@@ -17,8 +16,8 @@ if ($q === '') { echo json_encode(['ok'=>true,'results'=>[]]); exit; }
 
 try {
     // --- Call API Ninjas EV endpoint ---
-    $base = $keys['api_ninjas']['base_url'];
-    $apiKey = $keys['api_ninjas']['api_key'];
+    $base = 'https://api.api-ninjas.com/v1/';
+    $apiKey = 'LbrluHCyTzaxVI1CJAtO2LQMnrcfstO5gnjABkWh';
 
     // API supports: make, model, year (not full-text)
     // We'll treat the input as a loose query:
@@ -27,7 +26,7 @@ try {
     $make = $parts[0] ?? '';
     $model = (count($parts) > 1) ? implode(' ', array_slice($parts, 1)) : '';
 
-    $url = $base . "?make=" . urlencode($make);
+    $url = $base . "electricvehicle?make=" . urlencode($make);
     if ($model) $url .= "&model=" . urlencode($model);
 
     $ch = curl_init($url);

@@ -35,7 +35,7 @@ try {
     $db = Database::conn();
 
     // ✅ FIXED: Added 'name' to the SELECT query
-    $stmt = $db->prepare("SELECT user_id, username, name, email, password_hash FROM users WHERE email = ? LIMIT 1");
+    $stmt = $db->prepare("SELECT id, username, name, email, password_hash, is_verified FROM users WHERE email = ? LIMIT 1");
     $stmt->execute([$email]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -45,12 +45,25 @@ try {
         exit;
     }
 
+    // 🚀 FAST LOGIN FIX: Check verification but DO NOT send email here.
+    // Return a flag so Frontend triggers the email asynchronously.
+    if ($user['is_verified'] == 0) {
+        http_response_code(200); // 200 OK because credentials are valid
+        echo json_encode([
+            'ok' => true,
+            'require_verification' => true,
+            'user_id' => $user['id'],
+            'email' => $user['email']
+        ]);
+        exit;
+    }
+
     http_response_code(200);
     echo json_encode([
         'ok' => true,
         'message' => 'Login successful',
         'user' => [
-            'id' => (int)$user['user_id'],
+            'id' => (int)$user['id'],
             'username' => $user['username'], // @venven
             'name' => $user['name'],         // Alexa Baldueza
             'email' => $user['email']        // email address

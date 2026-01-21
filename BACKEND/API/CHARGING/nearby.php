@@ -10,14 +10,16 @@ $API_KEY = "b81965b3-ac20-4da1-af40-4b450c802e3e"; // Your Key
 $lat = isset($_GET['lat']) ? $_GET['lat'] : 14.5995;
 $lng = isset($_GET['lon']) ? $_GET['lon'] : 120.9842;
 $radius = 50; // Search radius in KM (increased for better results)
-$limit = 20;  // Max stations to show
+$limit = 100; // Increased limit to find better stations
+
+require_once __DIR__ . '/../../CORE/Database.php';
 
 $finalStations = [];
 
 // ========================================================
 // STRATEGY A: FETCH FROM OPEN CHARGE MAP API (REAL DATA)
 // ========================================================
-$apiUrl = "https://api.openchargemap.io/v3/poi/?output=json&latitude=$lat&longitude=$lng&distance=$radius&maxresults=$limit&compact=true&verbose=false&key=$API_KEY";
+$apiUrl = "https://api.openchargemap.io/v3/poi/?output=json&latitude=$lat&longitude=$lng&distance=$radius&maxresults=$limit&compact=false&verbose=true&key=$API_KEY";
 
 // Use CURL to fetch data
 $ch = curl_init();
@@ -37,23 +39,90 @@ if ($apiData && is_array($apiData)) {
         $status = $station['StatusType'] ?? [];
         $op = $station['OperatorInfo'] ?? [];
 
+        // Extract Detailed Connections
+        $plugs = [];
+        $connections = [];
+        if (isset($station['Connections']) && is_array($station['Connections'])) {
+            foreach ($station['Connections'] as $conn) {
+                if (isset($conn['ConnectionType']['Title'])) {
+                    $plugs[] = $conn['ConnectionType']['Title'];
+                }
+                $connections[] = [
+                    'type' => $conn['ConnectionType']['Title'] ?? 'Unknown Type',
+                    'power' => $conn['PowerKW'] ?? 0,
+                    'current' => $conn['CurrentType']['Title'] ?? '',
+                    'qty' => $conn['Quantity'] ?? 1,
+                    'status' => $conn['StatusType']['Title'] ?? 'Operational'
+                ];
+            }
+        }
+        $plugs = array_values(array_unique($plugs));
+
+        // Smart Operator Fallback
+        $operatorName = $op['Title'] ?? "Unknown Operator";
+        if ($operatorName === "Unknown Operator" && isset($addr['Title'])) {
+            $commonBrands = ['Petron', 'Shell', 'Tesla', 'SM ', 'Ayala', 'Robinsons', 'Unioil', 'Caltex', 'Total', 'CleanFuel', 'Galaxy'];
+            foreach ($commonBrands as $brand) {
+                if (stripos($addr['Title'], $brand) !== false) {
+                    $operatorName = trim($brand) . " (Inferred)";
+                    break;
+                }
+            }
+        }
+
+        // Smart Usage Cost Logic
+        $cost = $station['UsageCost'] ?? "";
+        if (empty($cost)) {
+            $uTitle = $usage['Title'] ?? "";
+            if (stripos($uTitle, "Free") !== false) $cost = "Free";
+            elseif (stripos($uTitle, "Pay") !== false || stripos($uTitle, "Membership") !== false) $cost = "Paid (See Operator)";
+            else $cost = "Unknown";
+        }
+
+        // Merge Comments (Access + General)
+        $commentsParts = [];
+        if (!empty($addr['AccessComments'])) $commentsParts[] = $addr['AccessComments'];
+        if (!empty($station['GeneralComments'])) $commentsParts[] = $station['GeneralComments'];
+        $finalComments = implode(". ", $commentsParts);
+
+        // Extract Photos (MediaItems)
+        $photos = [];
+        if (isset($station['MediaItems']) && is_array($station['MediaItems'])) {
+            foreach ($station['MediaItems'] as $media) {
+                if (isset($media['ItemURL'])) $photos[] = $media['ItemURL'];
+            }
+        }
+
         $finalStations[] = [
-            "id" => "OCM_" . ($station['ID'] ?? uniqid()),
+            "id" => "OCM-" . ($station['ID'] ?? uniqid()),
             "name" => $addr['Title'] ?? "Unknown Station",
-            "operator" => $op['Title'] ?? "Unknown Operator",
+            "operator" => $operatorName,
+            "website" => $op['WebsiteURL'] ?? "",
+            "email" => $op['ContactEmail'] ?? "",
             "status" => $status['Title'] ?? "Unknown",
-            // Determine if free or paid based on API data
-            "usage_cost" => ($usage['Title'] ?? "Unknown"), 
-            "is_free" => (stripos($usage['Title'] ?? '', 'Free') !== false) ? 1 : 0,
+            "usage" => $usage['Title'] ?? "Public",
+            "usage_cost" => $cost,
+            "is_free" => (stripos($cost, 'Free') !== false) ? 1 : 0,
             "address" => [
-                "address_line_1" => $addr['AddressLine1'] ?? "",
-                "town" => $addr['Town'] ?? ""
+                "line1" => $addr['AddressLine1'] ?? $addr['Title'] ?? "",
+                "line2" => $addr['AddressLine2'] ?? null,
+                "town" => $addr['Town'] ?? $addr['StateOrProvince'] ?? "",
+                "state" => $addr['StateOrProvince'] ?? null,
+                "postcode" => $addr['Postcode'] ?? "",
+                "country" => $addr['Country']['Title'] ?? ""
             ],
             "location" => [
                 "latitude" => (float)($addr['Latitude'] ?? 0),
                 "longitude" => (float)($addr['Longitude'] ?? 0)
             ],
-            "distance_km" => calculateDistance($lat, $lng, $addr['Latitude'] ?? 0, $addr['Longitude'] ?? 0)
+            "distance_km" => calculateDistance($lat, $lng, $addr['Latitude'] ?? 0, $addr['Longitude'] ?? 0),
+            "plugs" => $plugs,
+            "connections" => $connections,
+            "bays" => $station['NumberOfPoints'] ?? 1,
+            "access_comments" => $finalComments,
+            "data_provider" => $station['DataProvider']['Title'] ?? "Open Charge Map Contributors",
+            "last_verified" => $station['DateLastVerified'] ?? null,
+            "photos" => $photos
         ];
     }
 }
@@ -62,39 +131,54 @@ if ($apiData && is_array($apiData)) {
 // STRATEGY B: FALLBACK TO LOCAL DATABASE (IF API FAILS)
 // ========================================================
 if (empty($finalStations)) {
-    $conn = new mysqli("localhost", "root", "", "ev_app_db");
-    
-    if (!$conn->connect_error) {
-        $sql = "SELECT * FROM charging_stations"; // Simple fetch all for demo
-        $result = $conn->query($sql);
+    try {
+        $db = Database::conn();
+        $stmt = $db->prepare("SELECT * FROM charging_stations");
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        if ($result) {
-            while($row = $result->fetch_assoc()) {
-                $dist = calculateDistance($lat, $lng, $row['lat'], $row['lng']);
-                // Only show if within radius
-                if($dist <= $radius) {
-                    $finalStations[] = [
-                        "id" => $row['station_id'],
-                        "name" => $row['station_name'],
-                        "operator" => $row['operator_name'],
-                        "status" => "Operational",
-                        "usage_cost" => ($row['is_free'] == 1) ? "Free" : "Paid",
-                        "is_free" => $row['is_free'],
-                        "address" => [
-                            "address_line_1" => $row['operator_name'] . " Station",
-                            "town" => "Metro Manila"
-                        ],
-                        "location" => [
-                            "latitude" => (float)$row['lat'],
-                            "longitude" => (float)$row['lng']
-                        ],
-                        "distance_km" => $dist
-                    ];
-                }
+        foreach ($rows as $row) {
+            $dist = calculateDistance($lat, $lng, $row['latitude'], $row['longitude']);
+            
+            // Decode connections JSON
+            $connections = json_decode($row['connections_json'] ?? '[]', true);
+            $plugs = array_map(function($c) { return $c['type']; }, $connections);
+
+            if($dist <= $radius) {
+                $finalStations[] = [
+                    "id" => "DB-" . $row['station_id'],
+                    "name" => $row['name'],
+                    "operator" => $row['operator'],
+                    "status" => $row['status_type'],
+                    "usage" => $row['usage_type'],
+                    "usage_cost" => $row['usage_cost'],
+                    "is_free" => (int)$row['is_free'],
+                    "address" => [
+                        "line1" => $row['address_line1'],
+                        "line2" => null,
+                        "town" => $row['town'],
+                        "state" => $row['state'],
+                        "postcode" => $row['postcode'],
+                        "country" => $row['country']
+                    ],
+                    "location" => [
+                        "latitude" => (float)$row['latitude'],
+                        "longitude" => (float)$row['longitude']
+                    ],
+                    "distance_km" => $dist,
+                    "plugs" => $plugs,
+                    "connections" => $connections,
+                    "bays" => (int)$row['bays'],
+                    "website" => $row['website'],
+                    "email" => $row['email'],
+                    "access_comments" => "",
+                    "data_provider" => "Local Database",
+                    "last_verified" => null,
+                    "photos" => []
+                ];
             }
         }
-        $conn->close();
-    }
+    } catch (Exception $e) { /* Ignore DB errors in fallback */ }
 }
 
 // SORT BY DISTANCE (Nearest First)
