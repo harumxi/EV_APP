@@ -65,6 +65,7 @@ function showSuccess(message) {
     }, 3000);
 }
 
+<<<<<<< Updated upstream
 // Handle Login form submission
 document.getElementById('loginFormElement').addEventListener('submit', function(e) {
     e.preventDefault();
@@ -75,6 +76,109 @@ document.getElementById('loginFormElement').addEventListener('submit', function(
     
     if (!password) {
         document.getElementById('loginPasswordError').classList.add('show');
+=======
+// FIX: Ensure API path is correct (Uppercase API)
+const API_BASE = "http://localhost/WEBPROG_PROJ/BACKEND/API/AUTH";
+console.log("Active API:", API_BASE);
+let tempUserId = null;
+let tempEmail = null;
+
+// ===== OTP SENDER (Smart) =====
+async function sendOtpAsync(userId, purpose) {
+    try {
+        const res = await fetch(`${API_BASE}/resend_otp.php`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id: userId, purpose: purpose })
+        });
+        const data = await res.json();
+        
+        if (data.ok) {
+            showSuccess("Verification code sent to email.");
+        } else {
+            // If rate limited (e.g. user just registered), don't show error, just log it.
+            // This prevents "Please wait 60s" error appearing immediately after registration.
+            console.log("OTP Send Status:", data.error);
+        }
+    } catch (e) {
+        console.error("OTP Send Error", e);
+    }
+}
+
+// ===== LOGIN HANDLER =====
+document.getElementById("loginFormElement")?.addEventListener("submit", async function (e) {
+    e.preventDefault();
+    clearErrors();
+
+    const btn = e.target.querySelector("button[type='submit']");
+    setLoading(btn, true, "Signing In...");
+
+    const email = document.getElementById("loginEmail")?.value.trim();
+    const password = document.getElementById("loginPassword")?.value;
+
+    try {
+        const res = await fetch(`${API_BASE}/login.php`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+        });
+
+        const data = await res.json().catch(() => null);
+
+        if (!res.ok || !data || data.ok !== true) {
+            setLoading(btn, false);
+            // Handle specific "require_verification" case from login.php
+            if (data && data.require_verification) {
+                tempUserId = data.user_id;
+                tempEmail = data.email;
+                
+                // FIX: Trigger OTP email here because login.php doesn't send it anymore
+                sendOtpAsync(tempUserId, 'register');
+                showOTP(tempUserId, 'register', tempEmail);
+                return;
+            }
+            
+            showSuccess(data?.error || "Invalid email or password");
+            return;
+        }
+
+        // ✅ LOGIN SUCCESS
+        if (data.ok) {
+            localStorage.setItem("user_id", data.user.id);
+            localStorage.setItem("user_name", data.user.username);
+            localStorage.setItem("full_display_name", data.user.name);
+            localStorage.setItem("user_email", data.user.email);
+            
+            // FIX: Redirect to Dashboard with feedback
+            showSuccess("Login Successful!");
+            setTimeout(() => window.location.href = "dashboard.html", 500);
+        }
+    } catch (err) {
+        setLoading(btn, false);
+        console.error("Login Error:", err);
+        showSuccess("Server connection error. Check XAMPP.");
+    }
+});
+
+// ===== SIGNUP HANDLER =====
+document.getElementById("signupFormElement")?.addEventListener("submit", async function (e) {
+    e.preventDefault();
+    clearErrors();
+
+    const btn = e.target.querySelector("button[type='submit']");
+    setLoading(btn, true, "Creating Account...");
+
+    const username = document.getElementById("signupUserCustom")?.value.trim();
+    const firstName = document.getElementById("signupFirstName")?.value.trim();
+    const lastName = document.getElementById("signupLastName")?.value.trim();
+    const email = document.getElementById("signupEmail")?.value.trim();
+    const password = document.getElementById("signupPassword")?.value;
+    const confirmPassword = document.getElementById("confirmPassword")?.value;
+
+    if (password !== confirmPassword) {
+        setLoading(btn, false);
+        showSuccess("Passwords do not match.");
+>>>>>>> Stashed changes
         return;
     }
     
