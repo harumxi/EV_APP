@@ -118,7 +118,7 @@ class AuthHelper {
             
             // SENDER SETTINGS (This is the account SENDING the email)
             $mail->Username = 'energo.noreply@gmail.com'; 
-            $mail->Password = 'ljtnxczhqeanwkdq'; // Your App Password (No spaces)
+            $mail->Password = 'ohoeuyvoixgsqpor'; // Your App Password (No spaces)
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
             $mail->Port = 587;
             $mail->setFrom('energo.noreply@gmail.com', 'EnerGo');
