@@ -5,6 +5,1748 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EnerGo - Access</title>
     <script src="https://cdn.tailwindcss.com"></script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Friend Map</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    
+    <style>
+        body { margin: 0; overflow: hidden; background: #f3f4f6; font-family: 'Segoe UI', sans-serif; }
+        #map { height: 100vh; width: 100%; z-index: 1; }
+        
+        .sidebar {
+            position: absolute; top: 20px; left: 20px; bottom: 20px; width: 380px;
+            background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            z-index: 1000; display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        .tab-btn { flex: 1; padding: 15px; text-align: center; font-weight: bold; color: #9ca3af; cursor: pointer; border-bottom: 2px solid transparent; }
+        .tab-btn.active { color: #2563eb; border-bottom-color: #2563eb; background: #eff6ff; }
+        
+        .list-item { padding: 12px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; justify-content: space-between; }
+        .list-item:last-child { border: none; }
+        
+        .friend-marker { text-align: center; }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 8px rgba(0,0,0,0.3); background: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; margin: 0 auto; font-size: 18px; }
+        .label { background: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; margin-top: 4px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1); color: #1e293b; }
+
+        /* Connection Status Indicator */
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #ccc; display: inline-block; margin-right: 5px; }
+        .status-dot.connected { background: #22c55e; box-shadow: 0 0 5px #22c55e; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="p-4 border-b border-gray-100 flex justify-between items-center">
+            <h1 class="text-xl font-black text-gray-800 flex items-center">
+                <span id="socket-status" class="status-dot" title="Disconnected"></span> Friend Map
+            </h1>
+            <div class="flex gap-3 items-center">
+                <button onclick="resetFriendships()" class="text-[10px] uppercase font-bold text-red-400 hover:text-red-600 border border-red-200 px-2 py-1 rounded">Reset DB</button>
+                <a href="dashboard.html" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-times"></i></a>
+            </div>
+        </div>
+        
+        <div class="flex border-b border-gray-100">
+            <div class="tab-btn active" onclick="switchTab('friends')">Friends</div>
+            <div class="tab-btn" onclick="switchTab('add')">Add Friend</div>
+            <div class="tab-btn" onclick="switchTab('requests')">Requests</div>
+        </div>
+
+        <div id="tab-friends" class="flex-1 overflow-y-auto p-2">
+            <div id="friends-list" class="space-y-1">
+                <div class="text-center text-gray-400 py-4 text-sm">Loading friends...</div>
+            </div>
+            <!-- Debug Tool for Localhost Testing -->
+            <div class="p-4 mt-auto border-t border-gray-100 bg-gray-50">
+                <button onclick="simulateMovement()" class="w-full bg-white border border-gray-300 text-gray-600 font-bold py-2 rounded-lg text-xs hover:bg-gray-100">
+                    <i class="fa-solid fa-person-walking"></i> Simulate Move (Test)
+                </button>
+                <p class="text-[10px] text-gray-400 text-center mt-2">Click to separate markers if overlapping</p>
+            </div>
+        </div>
+
+        <div id="tab-add" class="flex-1 overflow-y-auto p-4 hidden">
+            <div class="flex gap-2 mb-4">
+                <input type="text" id="search-input" class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500" placeholder="Email or Username..." onkeypress="if(event.key === 'Enter') searchUsers()">
+                <button onclick="searchUsers()" class="bg-blue-600 text-white px-4 rounded-lg"><i class="fa-solid fa-search"></i></button>
+            </div>
+            <div id="search-results" class="space-y-2"></div>
+        </div>
+
+        <div id="tab-requests" class="flex-1 overflow-y-auto p-2 hidden">
+            <div id="requests-list" class="space-y-1">
+                <div class="text-center text-gray-400 py-4 text-sm">No pending requests.</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Use localhost to match login.js and ensure session consistency
+        const API_BASE = "http://localhost/WEBPROG_PROJ/BACKEND/API/FRIENDS";
+        const SOCKET_URL = "http://localhost:3000";
+        const USER_ID = localStorage.getItem("user_id");
+        
+        let map, socket;
+        let markers = {};
+        let myMarker = null;
+        let friendsData = [];
+        let myLat = 14.5995, myLng = 120.9842; // Default
+
+        document.addEventListener("DOMContentLoaded", () => {
+            if(!USER_ID) window.location.href = 'login.html';
+            
+            // Init Map
+            map = L.map('map', { zoomControl: false }).setView([myLat, myLng], 13);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
+            
+            // Add "Me" Marker (Blue Dot)
+            const meIcon = L.divIcon({
+                className: '',
+                html: '<div style="width: 16px; height: 16px; background: #2563eb; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.3);"></div>',
+                iconSize: [16, 16]
+            });
+            myMarker = L.marker([myLat, myLng], { icon: meIcon, zIndexOffset: 1000 }).addTo(map).bindPopup("You");
+
+            loadFriendsAndRequests();
+            initSocket();
+            
+            // Check for Email Invite Link
+            const urlParams = new URLSearchParams(window.location.search);
+            const inviteId = urlParams.get('accept_invite');
+            if (inviteId) {
+                acceptRequest(inviteId);
+                window.history.replaceState({}, document.title, window.location.pathname); // Clean URL
+            }
+        });
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('tab-friends').classList.add('hidden');
+            document.getElementById('tab-add').classList.add('hidden');
+            document.getElementById('tab-requests').classList.add('hidden');
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+        }
+
+        async function loadFriendsAndRequests() {
+            try {
+                console.log(`Fetching friends from: /list.php?user_id=`);
+                const res = await fetch(`/list.php?user_id=`);
+                const data = await res.json();
+                
+                // Render Friends
+                const fList = document.getElementById('friends-list');
+                fList.innerHTML = '';
+                friendsData = data.friends || [];
+                
+                if(friendsData.length === 0) fList.innerHTML = '<div class="text-center text-gray-400 py-4 text-sm">No friends yet. Add some!</div>';
+                
+                friendsData.forEach(f => {
+                    fList.innerHTML += `
+                        <div class="list-item hover:bg-gray-50 cursor-pointer" onclick="focusFriend(${f.id})">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-xs">${f.name.charAt(0)}</div>
+                                <div>
+                                    <div class="font-bold text-sm text-gray-800">${f.name}</div>
+                                    <div class="text-xs text-gray-400">@${f.username}</div>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-400 font-bold" id="status-${f.id}">Offline</div>
+                        </div>`;
+                    
+                    // Tell socket to watch this friend
+                    if(socket && socket.connected) socket.emit('watch_friend', f.id);
+                });
+
+                // Render Requests
+                const rList = document.getElementById('requests-list');
+                rList.innerHTML = '';
+                const reqs = data.requests || [];
+                
+                if(reqs.length === 0) rList.innerHTML = '<div class="text-center text-gray-400 py-4 text-sm">No pending requests.</div>';
+                
+                reqs.forEach(r => {
+                    rList.innerHTML += `
+                        <div class="list-item">
+                            <div class="font-bold text-sm text-gray-800">${r.name}</div>
+                            <button onclick="acceptRequest(${r.friendship_id})" class="bg-green-500 text-white px-3 py-1 rounded text-xs font-bold">Accept</button>
+                        </div>`;
+                });
+
+            } catch(e) { console.error("Load Friends Error:", e); }
+        }
+
+        async function searchUsers() {
+            const q = document.getElementById('search-input').value;
+            const box = document.getElementById('search-results');
+            box.innerHTML = '<div class="text-center text-gray-400 py-4 text-sm"><i class="fa-solid fa-circle-notch fa-spin"></i> Searching...</div>';
+            
+            try {
+                const res = await fetch(`/search.php`, {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ query: q, user_id: USER_ID })
+                });
+
+                const text = await res.text();
+                let data;
+                try { data = JSON.parse(text); } catch (e) { throw new Error("Server returned invalid JSON."); }
+
+                if (!res.ok) throw new Error("API Error: " + res.status);
+                
+                box.innerHTML = '';
+                if(data.users.length === 0) box.innerHTML = '<div class="text-gray-400 text-sm">No users found.</div>';
+                
+                data.users.forEach(u => {
+                    box.innerHTML += `
+                        <div class="list-item">
+                            <div class="text-sm font-bold">${u.name} <span class="text-gray-400 font-normal">(@${u.username})</span></div>
+                            <button onclick="sendRequest(${u.id}, this)" class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-blue-700 transition">Add</button>
+                        </div>`;
+                });
+            } catch (e) {
+                console.error("Search Error:", e);
+                box.innerHTML = '<div class="text-center text-red-400 py-4 text-sm">Search failed. Check connection.</div>';
+            }
+        }
+
+        async function sendRequest(receiverId, btn) {
+            const originalText = btn.innerText;
+            btn.innerText = "Sending...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`/request.php`, {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ requester_id: USER_ID, receiver_id: receiverId })
+                });
+                const data = await res.json();
+
+                if (data.ok) {
+                    btn.innerText = "Request Sent";
+                    btn.classList.remove("bg-blue-600", "hover:bg-blue-700");
+                    btn.classList.add("bg-gray-400", "cursor-not-allowed");
+                    if (data.debug_link) console.log("📧 DEBUG Link:", data.debug_link);
+                } else {
+                    alert(data.error || "Failed to send request");
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                alert("Connection Error");
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function acceptRequest(id) {
+            await fetch(`/accept.php`, {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ friendship_id: id })
+            });
+            alert("Friend request accepted!");
+            loadFriendsAndRequests();
+        }
+
+        function initSocket() {
+            try {
+                socket = io(SOCKET_URL);
+                
+                socket.on("connect", () => {
+                    console.log("Socket Connected");
+                    document.getElementById('socket-status').classList.add('connected');
+                    document.getElementById('socket-status').title = "Connected";
+                    
+                    socket.emit("register", USER_ID);
+                    friendsData.forEach(f => socket.emit('watch_friend', f.id));
+                    startTracking();
+                });
+
+                socket.on("disconnect", () => {
+                    document.getElementById('socket-status').classList.remove('connected');
+                });
+
+                socket.on("friend_moved", (data) => {
+                    updateFriendMarker(data);
+                });
+            } catch(e) {
+                console.error("Socket Init Error. Is node server running?", e);
+            }
+        }
+
+        function startTracking() {
+            if(!navigator.geolocation) return;
+            navigator.geolocation.watchPosition((pos) => {
+                myLat = pos.coords.latitude;
+                myLng = pos.coords.longitude;
+                
+                // Update "Me" marker
+                if(myMarker) myMarker.setLatLng([myLat, myLng]);
+                else myMarker = L.marker([myLat, myLng]).addTo(map);
+
+                // Send to server
+                socket.emit("update_location", { lat: myLat, lng: myLng });
+            }, null, { enableHighAccuracy: true });
+        }
+
+        // DEBUG: Simulate movement to separate markers on same device
+        function simulateMovement() {
+            if(!socket) return alert("Socket not connected");
+            // Add random offset (approx 50-100 meters)
+            const offsetLat = (Math.random() - 0.5) * 0.002;
+            const offsetLng = (Math.random() - 0.5) * 0.002;
+            
+            const fakeLat = myLat + offsetLat;
+            const fakeLng = myLng + offsetLng;
+            
+            console.log("Simulating move to:", fakeLat, fakeLng);
+            socket.emit("update_location", { lat: fakeLat, lng: fakeLng });
+            
+            // Move my marker too just to show it happened
+            if(myMarker) myMarker.setLatLng([fakeLat, fakeLng]).bindPopup("Simulated Location").openPopup();
+        }
+
+        function updateFriendMarker(data) {
+            const friend = friendsData.find(f => f.id == data.userId);
+            if(!friend) return;
+
+            const statusEl = document.getElementById(`status-${friend.id}`);
+            if(statusEl) {
+                statusEl.innerText = "Online";
+                statusEl.className = "text-xs text-blue-600 font-bold animate-pulse";
+            }
+
+            if(markers[data.userId]) {
+                markers[data.userId].setLatLng([data.lat, data.lng]);
+            } else {
+                const icon = L.divIcon({
+                    className: 'friend-marker',
+                    html: `<div class="avatar">${friend.name.charAt(0)}</div><div class="label">${friend.name}</div>`,
+                    iconSize: [40, 60], iconAnchor: [20, 60]
+                });
+                markers[data.userId] = L.marker([data.lat, data.lng], { icon }).addTo(map);
+            }
+        }
+
+        function focusFriend(id) {
+            if(markers[id]) map.flyTo(markers[id].getLatLng(), 16);
+            else alert("Friend location not yet received. They might be offline.");
+        }
+
+        async function resetFriendships() {
+            if(!confirm("⚠️ RESET WARNING\n\nDelete ALL friends?")) return;
+            await fetch(`/reset.php`);
+            alert("Reset complete.");
+            loadFriendsAndRequests();
+        }
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Friend Map</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    
+    <style>
+        body { margin: 0; overflow: hidden; background: #f3f4f6; font-family: 'Segoe UI', sans-serif; }
+        #map { height: 100vh; width: 100%; z-index: 1; }
+        
+        .sidebar {
+            position: absolute; top: 20px; left: 20px; bottom: 20px; width: 380px;
+            background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            z-index: 1000; display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        .tab-btn { flex: 1; padding: 15px; text-align: center; font-weight: bold; color: #9ca3af; cursor: pointer; border-bottom: 2px solid transparent; }
+        .tab-btn.active { color: #2563eb; border-bottom-color: #2563eb; background: #eff6ff; }
+        
+        .list-item { padding: 12px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; justify-content: space-between; }
+        .list-item:last-child { border: none; }
+        
+        .friend-marker { text-align: center; }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 8px rgba(0,0,0,0.3); background: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; margin: 0 auto; font-size: 18px; }
+        .label { background: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; margin-top: 4px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1); color: #1e293b; }
+
+        /* Connection Status Indicator */
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #ccc; display: inline-block; margin-right: 5px; }
+        .status-dot.connected { background: #22c55e; box-shadow: 0 0 5px #22c55e; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="p-4 border-b border-gray-100 flex justify-between items-center">
+            <h1 class="text-xl font-black text-gray-800 flex items-center">
+                <span id="socket-status" class="status-dot" title="Disconnected"></span> Friend Map
+            </h1>
+            <div class="flex gap-3 items-center">
+                <button onclick="resetFriendships()" class="text-[10px] uppercase font-bold text-red-400 hover:text-red-600 border border-red-200 px-2 py-1 rounded">Reset DB</button>
+                <a href="dashboard.html" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-times"></i></a>
+            </div>
+        </div>
+        
+        <div class="flex border-b border-gray-100">
+            <div class="tab-btn active" onclick="switchTab('friends')">Friends</div>
+            <div class="tab-btn" onclick="switchTab('add')">Add Friend</div>
+            <div class="tab-btn" onclick="switchTab('requests')">Requests</div>
+        </div>
+
+        <div id="tab-friends" class="flex-1 overflow-y-auto p-2">
+            <div id="friends-list" class="space-y-1">
+                <div class="text-center text-gray-400 py-4 text-sm">Loading friends...</div>
+            </div>
+            <!-- Debug Tool for Localhost Testing -->
+            <div class="p-4 mt-auto border-t border-gray-100 bg-gray-50">
+                <button onclick="simulateMovement()" class="w-full bg-white border border-gray-300 text-gray-600 font-bold py-2 rounded-lg text-xs hover:bg-gray-100">
+                    <i class="fa-solid fa-person-walking"></i> Simulate Move (Test)
+                </button>
+                <p class="text-[10px] text-gray-400 text-center mt-2">Click to separate markers if overlapping</p>
+            </div>
+        </div>
+
+        <div id="tab-add" class="flex-1 overflow-y-auto p-4 hidden">
+            <div class="flex gap-2 mb-4">
+                <input type="text" id="search-input" class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500" placeholder="Email or Username..." onkeypress="if(event.key === 'Enter') searchUsers()">
+                <button onclick="searchUsers()" class="bg-blue-600 text-white px-4 rounded-lg"><i class="fa-solid fa-search"></i></button>
+            </div>
+            <div id="search-results" class="space-y-2"></div>
+        </div>
+
+        <div id="tab-requests" class="flex-1 overflow-y-auto p-2 hidden">
+            <div id="requests-list" class="space-y-1">
+                <div class="text-center text-gray-400 py-4 text-sm">No pending requests.</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Use localhost to match login.js and ensure session consistency
+        const API_BASE = "http://localhost/WEBPROG_PROJ/BACKEND/API/FRIENDS";
+        const SOCKET_URL = "http://localhost:3000";
+        const USER_ID = localStorage.getItem("user_id");
+        
+        let map, socket;
+        let markers = {};
+        let myMarker = null;
+        let friendsData = [];
+        let myLat = 14.5995, myLng = 120.9842; // Default
+
+        document.addEventListener("DOMContentLoaded", () => {
+            if(!USER_ID) window.location.href = 'login.html';
+            
+            // Init Map
+            map = L.map('map', { zoomControl: false }).setView([myLat, myLng], 13);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
+            
+            // Add "Me" Marker (Blue Dot)
+            const meIcon = L.divIcon({
+                className: '',
+                html: '<div style="width: 16px; height: 16px; background: #2563eb; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.3);"></div>',
+                iconSize: [16, 16]
+            });
+            myMarker = L.marker([myLat, myLng], { icon: meIcon, zIndexOffset: 1000 }).addTo(map).bindPopup("You");
+
+            loadFriendsAndRequests();
+            initSocket();
+            
+            // Check for Email Invite Link
+            const urlParams = new URLSearchParams(window.location.search);
+            const inviteId = urlParams.get('accept_invite');
+            if (inviteId) {
+                acceptRequest(inviteId);
+                window.history.replaceState({}, document.title, window.location.pathname); // Clean URL
+            }
+        });
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('tab-friends').classList.add('hidden');
+            document.getElementById('tab-add').classList.add('hidden');
+            document.getElementById('tab-requests').classList.add('hidden');
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+        }
+
+        async function loadFriendsAndRequests() {
+            try {
+                console.log(`Fetching friends from: /list.php?user_id=`);
+                const res = await fetch(`/list.php?user_id=`);
+                const data = await res.json();
+                
+                // Render Friends
+                const fList = document.getElementById('friends-list');
+                fList.innerHTML = '';
+                friendsData = data.friends || [];
+                
+                if(friendsData.length === 0) fList.innerHTML = '<div class="text-center text-gray-400 py-4 text-sm">No friends yet. Add some!</div>';
+                
+                friendsData.forEach(f => {
+                    fList.innerHTML += `
+                        <div class="list-item hover:bg-gray-50 cursor-pointer" onclick="focusFriend(${f.id})">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-xs">${f.name.charAt(0)}</div>
+                                <div>
+                                    <div class="font-bold text-sm text-gray-800">${f.name}</div>
+                                    <div class="text-xs text-gray-400">@${f.username}</div>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-400 font-bold" id="status-${f.id}">Offline</div>
+                        </div>`;
+                    
+                    // Tell socket to watch this friend
+                    if(socket && socket.connected) socket.emit('watch_friend', f.id);
+                });
+
+                // Render Requests
+                const rList = document.getElementById('requests-list');
+                rList.innerHTML = '';
+                const reqs = data.requests || [];
+                
+                if(reqs.length === 0) rList.innerHTML = '<div class="text-center text-gray-400 py-4 text-sm">No pending requests.</div>';
+                
+                reqs.forEach(r => {
+                    rList.innerHTML += `
+                        <div class="list-item">
+                            <div class="font-bold text-sm text-gray-800">${r.name}</div>
+                            <button onclick="acceptRequest(${r.friendship_id})" class="bg-green-500 text-white px-3 py-1 rounded text-xs font-bold">Accept</button>
+                        </div>`;
+                });
+
+            } catch(e) { console.error("Load Friends Error:", e); }
+        }
+
+        async function searchUsers() {
+            const q = document.getElementById('search-input').value;
+            const box = document.getElementById('search-results');
+            box.innerHTML = '<div class="text-center text-gray-400 py-4 text-sm"><i class="fa-solid fa-circle-notch fa-spin"></i> Searching...</div>';
+            
+            try {
+                const res = await fetch(`/search.php`, {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ query: q, user_id: USER_ID })
+                });
+
+                const text = await res.text();
+                let data;
+                try { data = JSON.parse(text); } catch (e) { throw new Error("Server returned invalid JSON."); }
+
+                if (!res.ok) throw new Error("API Error: " + res.status);
+                
+                box.innerHTML = '';
+                if(data.users.length === 0) box.innerHTML = '<div class="text-gray-400 text-sm">No users found.</div>';
+                
+                data.users.forEach(u => {
+                    box.innerHTML += `
+                        <div class="list-item">
+                            <div class="text-sm font-bold">${u.name} <span class="text-gray-400 font-normal">(@${u.username})</span></div>
+                            <button onclick="sendRequest(${u.id}, this)" class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-blue-700 transition">Add</button>
+                        </div>`;
+                });
+            } catch (e) {
+                console.error("Search Error:", e);
+                box.innerHTML = '<div class="text-center text-red-400 py-4 text-sm">Search failed. Check connection.</div>';
+            }
+        }
+
+        async function sendRequest(receiverId, btn) {
+            const originalText = btn.innerText;
+            btn.innerText = "Sending...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`/request.php`, {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ requester_id: USER_ID, receiver_id: receiverId })
+                });
+                const data = await res.json();
+
+                if (data.ok) {
+                    btn.innerText = "Request Sent";
+                    btn.classList.remove("bg-blue-600", "hover:bg-blue-700");
+                    btn.classList.add("bg-gray-400", "cursor-not-allowed");
+                    if (data.debug_link) console.log("📧 DEBUG Link:", data.debug_link);
+                } else {
+                    alert(data.error || "Failed to send request");
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                alert("Connection Error");
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function acceptRequest(id) {
+            await fetch(`/accept.php`, {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ friendship_id: id })
+            });
+            alert("Friend request accepted!");
+            loadFriendsAndRequests();
+        }
+
+        function initSocket() {
+            try {
+                socket = io(SOCKET_URL);
+                
+                socket.on("connect", () => {
+                    console.log("Socket Connected");
+                    document.getElementById('socket-status').classList.add('connected');
+                    document.getElementById('socket-status').title = "Connected";
+                    
+                    socket.emit("register", USER_ID);
+                    friendsData.forEach(f => socket.emit('watch_friend', f.id));
+                    startTracking();
+                });
+
+                socket.on("disconnect", () => {
+                    document.getElementById('socket-status').classList.remove('connected');
+                });
+
+                socket.on("friend_moved", (data) => {
+                    updateFriendMarker(data);
+                });
+            } catch(e) {
+                console.error("Socket Init Error. Is node server running?", e);
+            }
+        }
+
+        function startTracking() {
+            if(!navigator.geolocation) return;
+            navigator.geolocation.watchPosition((pos) => {
+                myLat = pos.coords.latitude;
+                myLng = pos.coords.longitude;
+                
+                // Update "Me" marker
+                if(myMarker) myMarker.setLatLng([myLat, myLng]);
+                else myMarker = L.marker([myLat, myLng]).addTo(map);
+
+                // Send to server
+                socket.emit("update_location", { lat: myLat, lng: myLng });
+            }, null, { enableHighAccuracy: true });
+        }
+
+        // DEBUG: Simulate movement to separate markers on same device
+        function simulateMovement() {
+            if(!socket) return alert("Socket not connected");
+            // Add random offset (approx 50-100 meters)
+            const offsetLat = (Math.random() - 0.5) * 0.002;
+            const offsetLng = (Math.random() - 0.5) * 0.002;
+            
+            const fakeLat = myLat + offsetLat;
+            const fakeLng = myLng + offsetLng;
+            
+            console.log("Simulating move to:", fakeLat, fakeLng);
+            socket.emit("update_location", { lat: fakeLat, lng: fakeLng });
+            
+            // Move my marker too just to show it happened
+            if(myMarker) myMarker.setLatLng([fakeLat, fakeLng]).bindPopup("Simulated Location").openPopup();
+        }
+
+        function updateFriendMarker(data) {
+            const friend = friendsData.find(f => f.id == data.userId);
+            if(!friend) return;
+
+            const statusEl = document.getElementById(`status-${friend.id}`);
+            if(statusEl) {
+                statusEl.innerText = "Online";
+                statusEl.className = "text-xs text-blue-600 font-bold animate-pulse";
+            }
+
+            if(markers[data.userId]) {
+                markers[data.userId].setLatLng([data.lat, data.lng]);
+            } else {
+                const icon = L.divIcon({
+                    className: 'friend-marker',
+                    html: `<div class="avatar">${friend.name.charAt(0)}</div><div class="label">${friend.name}</div>`,
+                    iconSize: [40, 60], iconAnchor: [20, 60]
+                });
+                markers[data.userId] = L.marker([data.lat, data.lng], { icon }).addTo(map);
+            }
+        }
+
+        function focusFriend(id) {
+            if(markers[id]) map.flyTo(markers[id].getLatLng(), 16);
+            else alert("Friend location not yet received. They might be offline.");
+        }
+
+        async function resetFriendships() {
+            if(!confirm("⚠️ RESET WARNING\n\nDelete ALL friends?")) return;
+            await fetch(`/reset.php`);
+            alert("Reset complete.");
+            loadFriendsAndRequests();
+        }
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Friend Map</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    
+    <style>
+        body { margin: 0; overflow: hidden; background: #f3f4f6; font-family: 'Segoe UI', sans-serif; }
+        #map { height: 100vh; width: 100%; z-index: 1; }
+        
+        .sidebar {
+            position: absolute; top: 20px; left: 20px; bottom: 20px; width: 380px;
+            background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            z-index: 1000; display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        .tab-btn { flex: 1; padding: 15px; text-align: center; font-weight: bold; color: #9ca3af; cursor: pointer; border-bottom: 2px solid transparent; }
+        .tab-btn.active { color: #2563eb; border-bottom-color: #2563eb; background: #eff6ff; }
+        
+        .list-item { padding: 12px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; justify-content: space-between; }
+        .list-item:last-child { border: none; }
+        
+        .friend-marker { text-align: center; }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 8px rgba(0,0,0,0.3); background: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; margin: 0 auto; font-size: 18px; }
+        .label { background: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; margin-top: 4px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1); color: #1e293b; }
+
+        /* Connection Status Indicator */
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #ccc; display: inline-block; margin-right: 5px; }
+        .status-dot.connected { background: #22c55e; box-shadow: 0 0 5px #22c55e; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="p-4 border-b border-gray-100 flex justify-between items-center">
+            <h1 class="text-xl font-black text-gray-800 flex items-center">
+                <span id="socket-status" class="status-dot" title="Disconnected"></span> Friend Map
+            </h1>
+            <div class="flex gap-3 items-center">
+                <button onclick="resetFriendships()" class="text-[10px] uppercase font-bold text-red-400 hover:text-red-600 border border-red-200 px-2 py-1 rounded">Reset DB</button>
+                <a href="dashboard.html" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-times"></i></a>
+            </div>
+        </div>
+        
+        <div class="flex border-b border-gray-100">
+            <div class="tab-btn active" onclick="switchTab('friends')">Friends</div>
+            <div class="tab-btn" onclick="switchTab('add')">Add Friend</div>
+            <div class="tab-btn" onclick="switchTab('requests')">Requests</div>
+        </div>
+
+        <div id="tab-friends" class="flex-1 overflow-y-auto p-2">
+            <div id="friends-list" class="space-y-1">
+                <div class="text-center text-gray-400 py-4 text-sm">Loading friends...</div>
+            </div>
+            <!-- Debug Tool for Localhost Testing -->
+            <div class="p-4 mt-auto border-t border-gray-100 bg-gray-50">
+                <button onclick="simulateMovement()" class="w-full bg-white border border-gray-300 text-gray-600 font-bold py-2 rounded-lg text-xs hover:bg-gray-100">
+                    <i class="fa-solid fa-person-walking"></i> Simulate Move (Test)
+                </button>
+                <p class="text-[10px] text-gray-400 text-center mt-2">Click to separate markers if overlapping</p>
+            </div>
+        </div>
+
+        <div id="tab-add" class="flex-1 overflow-y-auto p-4 hidden">
+            <div class="flex gap-2 mb-4">
+                <input type="text" id="search-input" class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500" placeholder="Email or Username..." onkeypress="if(event.key === 'Enter') searchUsers()">
+                <button onclick="searchUsers()" class="bg-blue-600 text-white px-4 rounded-lg"><i class="fa-solid fa-search"></i></button>
+            </div>
+            <div id="search-results" class="space-y-2"></div>
+        </div>
+
+        <div id="tab-requests" class="flex-1 overflow-y-auto p-2 hidden">
+            <div id="requests-list" class="space-y-1">
+                <div class="text-center text-gray-400 py-4 text-sm">No pending requests.</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Use localhost to match login.js and ensure session consistency
+        const API_BASE = "http://localhost/WEBPROG_PROJ/BACKEND/API/FRIENDS";
+        const SOCKET_URL = "http://localhost:3000";
+        const USER_ID = localStorage.getItem("user_id");
+        
+        let map, socket;
+        let markers = {};
+        let myMarker = null;
+        let friendsData = [];
+        let myLat = 14.5995, myLng = 120.9842; // Default
+
+        document.addEventListener("DOMContentLoaded", () => {
+            if(!USER_ID) window.location.href = 'login.html';
+            
+            // Init Map
+            map = L.map('map', { zoomControl: false }).setView([myLat, myLng], 13);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
+            
+            // Add "Me" Marker (Blue Dot)
+            const meIcon = L.divIcon({
+                className: '',
+                html: '<div style="width: 16px; height: 16px; background: #2563eb; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.3);"></div>',
+                iconSize: [16, 16]
+            });
+            myMarker = L.marker([myLat, myLng], { icon: meIcon, zIndexOffset: 1000 }).addTo(map).bindPopup("You");
+
+            loadFriendsAndRequests();
+            initSocket();
+            
+            // Check for Email Invite Link
+            const urlParams = new URLSearchParams(window.location.search);
+            const inviteId = urlParams.get('accept_invite');
+            if (inviteId) {
+                acceptRequest(inviteId);
+                window.history.replaceState({}, document.title, window.location.pathname); // Clean URL
+            }
+        });
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('tab-friends').classList.add('hidden');
+            document.getElementById('tab-add').classList.add('hidden');
+            document.getElementById('tab-requests').classList.add('hidden');
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+        }
+
+        async function loadFriendsAndRequests() {
+            try {
+                console.log(`Fetching friends from: /list.php?user_id=`);
+                const res = await fetch(`/list.php?user_id=`);
+                const data = await res.json();
+                
+                // Render Friends
+                const fList = document.getElementById('friends-list');
+                fList.innerHTML = '';
+                friendsData = data.friends || [];
+                
+                if(friendsData.length === 0) fList.innerHTML = '<div class="text-center text-gray-400 py-4 text-sm">No friends yet. Add some!</div>';
+                
+                friendsData.forEach(f => {
+                    fList.innerHTML += `
+                        <div class="list-item hover:bg-gray-50 cursor-pointer" onclick="focusFriend(${f.id})">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-xs">${f.name.charAt(0)}</div>
+                                <div>
+                                    <div class="font-bold text-sm text-gray-800">${f.name}</div>
+                                    <div class="text-xs text-gray-400">@${f.username}</div>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-400 font-bold" id="status-${f.id}">Offline</div>
+                        </div>`;
+                    
+                    // Tell socket to watch this friend
+                    if(socket && socket.connected) socket.emit('watch_friend', f.id);
+                });
+
+                // Render Requests
+                const rList = document.getElementById('requests-list');
+                rList.innerHTML = '';
+                const reqs = data.requests || [];
+                
+                if(reqs.length === 0) rList.innerHTML = '<div class="text-center text-gray-400 py-4 text-sm">No pending requests.</div>';
+                
+                reqs.forEach(r => {
+                    rList.innerHTML += `
+                        <div class="list-item">
+                            <div class="font-bold text-sm text-gray-800">${r.name}</div>
+                            <button onclick="acceptRequest(${r.friendship_id})" class="bg-green-500 text-white px-3 py-1 rounded text-xs font-bold">Accept</button>
+                        </div>`;
+                });
+
+            } catch(e) { console.error("Load Friends Error:", e); }
+        }
+
+        async function searchUsers() {
+            const q = document.getElementById('search-input').value;
+            const box = document.getElementById('search-results');
+            box.innerHTML = '<div class="text-center text-gray-400 py-4 text-sm"><i class="fa-solid fa-circle-notch fa-spin"></i> Searching...</div>';
+            
+            try {
+                const res = await fetch(`/search.php`, {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ query: q, user_id: USER_ID })
+                });
+
+                const text = await res.text();
+                let data;
+                try { data = JSON.parse(text); } catch (e) { throw new Error("Server returned invalid JSON."); }
+
+                if (!res.ok) throw new Error("API Error: " + res.status);
+                
+                box.innerHTML = '';
+                if(data.users.length === 0) box.innerHTML = '<div class="text-gray-400 text-sm">No users found.</div>';
+                
+                data.users.forEach(u => {
+                    box.innerHTML += `
+                        <div class="list-item">
+                            <div class="text-sm font-bold">${u.name} <span class="text-gray-400 font-normal">(@${u.username})</span></div>
+                            <button onclick="sendRequest(${u.id}, this)" class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-blue-700 transition">Add</button>
+                        </div>`;
+                });
+            } catch (e) {
+                console.error("Search Error:", e);
+                box.innerHTML = '<div class="text-center text-red-400 py-4 text-sm">Search failed. Check connection.</div>';
+            }
+        }
+
+        async function sendRequest(receiverId, btn) {
+            const originalText = btn.innerText;
+            btn.innerText = "Sending...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`/request.php`, {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ requester_id: USER_ID, receiver_id: receiverId })
+                });
+                const data = await res.json();
+
+                if (data.ok) {
+                    btn.innerText = "Request Sent";
+                    btn.classList.remove("bg-blue-600", "hover:bg-blue-700");
+                    btn.classList.add("bg-gray-400", "cursor-not-allowed");
+                    if (data.debug_link) console.log("📧 DEBUG Link:", data.debug_link);
+                } else {
+                    alert(data.error || "Failed to send request");
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                alert("Connection Error");
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function acceptRequest(id) {
+            await fetch(`/accept.php`, {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ friendship_id: id })
+            });
+            alert("Friend request accepted!");
+            loadFriendsAndRequests();
+        }
+
+        function initSocket() {
+            try {
+                socket = io(SOCKET_URL);
+                
+                socket.on("connect", () => {
+                    console.log("Socket Connected");
+                    document.getElementById('socket-status').classList.add('connected');
+                    document.getElementById('socket-status').title = "Connected";
+                    
+                    socket.emit("register", USER_ID);
+                    friendsData.forEach(f => socket.emit('watch_friend', f.id));
+                    startTracking();
+                });
+
+                socket.on("disconnect", () => {
+                    document.getElementById('socket-status').classList.remove('connected');
+                });
+
+                socket.on("friend_moved", (data) => {
+                    updateFriendMarker(data);
+                });
+            } catch(e) {
+                console.error("Socket Init Error. Is node server running?", e);
+            }
+        }
+
+        function startTracking() {
+            if(!navigator.geolocation) return;
+            navigator.geolocation.watchPosition((pos) => {
+                myLat = pos.coords.latitude;
+                myLng = pos.coords.longitude;
+                
+                // Update "Me" marker
+                if(myMarker) myMarker.setLatLng([myLat, myLng]);
+                else myMarker = L.marker([myLat, myLng]).addTo(map);
+
+                // Send to server
+                socket.emit("update_location", { lat: myLat, lng: myLng });
+            }, null, { enableHighAccuracy: true });
+        }
+
+        // DEBUG: Simulate movement to separate markers on same device
+        function simulateMovement() {
+            if(!socket) return alert("Socket not connected");
+            // Add random offset (approx 50-100 meters)
+            const offsetLat = (Math.random() - 0.5) * 0.002;
+            const offsetLng = (Math.random() - 0.5) * 0.002;
+            
+            const fakeLat = myLat + offsetLat;
+            const fakeLng = myLng + offsetLng;
+            
+            console.log("Simulating move to:", fakeLat, fakeLng);
+            socket.emit("update_location", { lat: fakeLat, lng: fakeLng });
+            
+            // Move my marker too just to show it happened
+            if(myMarker) myMarker.setLatLng([fakeLat, fakeLng]).bindPopup("Simulated Location").openPopup();
+        }
+
+        function updateFriendMarker(data) {
+            const friend = friendsData.find(f => f.id == data.userId);
+            if(!friend) return;
+
+            const statusEl = document.getElementById(`status-${friend.id}`);
+            if(statusEl) {
+                statusEl.innerText = "Online";
+                statusEl.className = "text-xs text-blue-600 font-bold animate-pulse";
+            }
+
+            if(markers[data.userId]) {
+                markers[data.userId].setLatLng([data.lat, data.lng]);
+            } else {
+                const icon = L.divIcon({
+                    className: 'friend-marker',
+                    html: `<div class="avatar">${friend.name.charAt(0)}</div><div class="label">${friend.name}</div>`,
+                    iconSize: [40, 60], iconAnchor: [20, 60]
+                });
+                markers[data.userId] = L.marker([data.lat, data.lng], { icon }).addTo(map);
+            }
+        }
+
+        function focusFriend(id) {
+            if(markers[id]) map.flyTo(markers[id].getLatLng(), 16);
+            else alert("Friend location not yet received. They might be offline.");
+        }
+
+        async function resetFriendships() {
+            if(!confirm("⚠️ RESET WARNING\n\nDelete ALL friends?")) return;
+            await fetch(`/reset.php`);
+            alert("Reset complete.");
+            loadFriendsAndRequests();
+        }
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Friend Map</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    
+    <style>
+        body { margin: 0; overflow: hidden; background: #f3f4f6; font-family: 'Segoe UI', sans-serif; }
+        #map { height: 100vh; width: 100%; z-index: 1; }
+        
+        .sidebar {
+            position: absolute; top: 20px; left: 20px; bottom: 20px; width: 380px;
+            background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            z-index: 1000; display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        .tab-btn { flex: 1; padding: 15px; text-align: center; font-weight: bold; color: #9ca3af; cursor: pointer; border-bottom: 2px solid transparent; }
+        .tab-btn.active { color: #2563eb; border-bottom-color: #2563eb; background: #eff6ff; }
+        
+        .list-item { padding: 12px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; justify-content: space-between; }
+        .list-item:last-child { border: none; }
+        
+        .friend-marker { text-align: center; }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 8px rgba(0,0,0,0.3); background: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; margin: 0 auto; font-size: 18px; }
+        .label { background: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; margin-top: 4px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1); color: #1e293b; }
+
+        /* Connection Status Indicator */
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #ccc; display: inline-block; margin-right: 5px; }
+        .status-dot.connected { background: #22c55e; box-shadow: 0 0 5px #22c55e; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="p-4 border-b border-gray-100 flex justify-between items-center">
+            <h1 class="text-xl font-black text-gray-800 flex items-center">
+                <span id="socket-status" class="status-dot" title="Disconnected"></span> Friend Map
+            </h1>
+            <div class="flex gap-3 items-center">
+                <button onclick="resetFriendships()" class="text-[10px] uppercase font-bold text-red-400 hover:text-red-600 border border-red-200 px-2 py-1 rounded">Reset DB</button>
+                <a href="dashboard.html" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-times"></i></a>
+            </div>
+        </div>
+        
+        <div class="flex border-b border-gray-100">
+            <div class="tab-btn active" onclick="switchTab('friends')">Friends</div>
+            <div class="tab-btn" onclick="switchTab('add')">Add Friend</div>
+            <div class="tab-btn" onclick="switchTab('requests')">Requests</div>
+        </div>
+
+        <div id="tab-friends" class="flex-1 overflow-y-auto p-2">
+            <div id="friends-list" class="space-y-1">
+                <div class="text-center text-gray-400 py-4 text-sm">Loading friends...</div>
+            </div>
+            <!-- Debug Tool for Localhost Testing -->
+            <div class="p-4 mt-auto border-t border-gray-100 bg-gray-50">
+                <button onclick="simulateMovement()" class="w-full bg-white border border-gray-300 text-gray-600 font-bold py-2 rounded-lg text-xs hover:bg-gray-100">
+                    <i class="fa-solid fa-person-walking"></i> Simulate Move (Test)
+                </button>
+                <p class="text-[10px] text-gray-400 text-center mt-2">Click to separate markers if overlapping</p>
+            </div>
+        </div>
+
+        <div id="tab-add" class="flex-1 overflow-y-auto p-4 hidden">
+            <div class="flex gap-2 mb-4">
+                <input type="text" id="search-input" class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500" placeholder="Email or Username..." onkeypress="if(event.key === 'Enter') searchUsers()">
+                <button onclick="searchUsers()" class="bg-blue-600 text-white px-4 rounded-lg"><i class="fa-solid fa-search"></i></button>
+            </div>
+            <div id="search-results" class="space-y-2"></div>
+        </div>
+
+        <div id="tab-requests" class="flex-1 overflow-y-auto p-2 hidden">
+            <div id="requests-list" class="space-y-1">
+                <div class="text-center text-gray-400 py-4 text-sm">No pending requests.</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Use localhost to match login.js and ensure session consistency
+        const API_BASE = "http://localhost/WEBPROG_PROJ/BACKEND/API/FRIENDS";
+        const SOCKET_URL = "http://localhost:3000";
+        const USER_ID = localStorage.getItem("user_id");
+        
+        let map, socket;
+        let markers = {};
+        let myMarker = null;
+        let friendsData = [];
+        let myLat = 14.5995, myLng = 120.9842; // Default
+
+        document.addEventListener("DOMContentLoaded", () => {
+            if(!USER_ID) window.location.href = 'login.html';
+            
+            // Init Map
+            map = L.map('map', { zoomControl: false }).setView([myLat, myLng], 13);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
+            
+            // Add "Me" Marker (Blue Dot)
+            const meIcon = L.divIcon({
+                className: '',
+                html: '<div style="width: 16px; height: 16px; background: #2563eb; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.3);"></div>',
+                iconSize: [16, 16]
+            });
+            myMarker = L.marker([myLat, myLng], { icon: meIcon, zIndexOffset: 1000 }).addTo(map).bindPopup("You");
+
+            loadFriendsAndRequests();
+            initSocket();
+            
+            // Check for Email Invite Link
+            const urlParams = new URLSearchParams(window.location.search);
+            const inviteId = urlParams.get('accept_invite');
+            if (inviteId) {
+                acceptRequest(inviteId);
+                window.history.replaceState({}, document.title, window.location.pathname); // Clean URL
+            }
+        });
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('tab-friends').classList.add('hidden');
+            document.getElementById('tab-add').classList.add('hidden');
+            document.getElementById('tab-requests').classList.add('hidden');
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+        }
+
+        async function loadFriendsAndRequests() {
+            try {
+                console.log(`Fetching friends from: /list.php?user_id=`);
+                const res = await fetch(`/list.php?user_id=`);
+                const data = await res.json();
+                
+                // Render Friends
+                const fList = document.getElementById('friends-list');
+                fList.innerHTML = '';
+                friendsData = data.friends || [];
+                
+                if(friendsData.length === 0) fList.innerHTML = '<div class="text-center text-gray-400 py-4 text-sm">No friends yet. Add some!</div>';
+                
+                friendsData.forEach(f => {
+                    fList.innerHTML += `
+                        <div class="list-item hover:bg-gray-50 cursor-pointer" onclick="focusFriend(${f.id})">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-xs">${f.name.charAt(0)}</div>
+                                <div>
+                                    <div class="font-bold text-sm text-gray-800">${f.name}</div>
+                                    <div class="text-xs text-gray-400">@${f.username}</div>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-400 font-bold" id="status-${f.id}">Offline</div>
+                        </div>`;
+                    
+                    // Tell socket to watch this friend
+                    if(socket && socket.connected) socket.emit('watch_friend', f.id);
+                });
+
+                // Render Requests
+                const rList = document.getElementById('requests-list');
+                rList.innerHTML = '';
+                const reqs = data.requests || [];
+                
+                if(reqs.length === 0) rList.innerHTML = '<div class="text-center text-gray-400 py-4 text-sm">No pending requests.</div>';
+                
+                reqs.forEach(r => {
+                    rList.innerHTML += `
+                        <div class="list-item">
+                            <div class="font-bold text-sm text-gray-800">${r.name}</div>
+                            <button onclick="acceptRequest(${r.friendship_id})" class="bg-green-500 text-white px-3 py-1 rounded text-xs font-bold">Accept</button>
+                        </div>`;
+                });
+
+            } catch(e) { console.error("Load Friends Error:", e); }
+        }
+
+        async function searchUsers() {
+            const q = document.getElementById('search-input').value;
+            const box = document.getElementById('search-results');
+            box.innerHTML = '<div class="text-center text-gray-400 py-4 text-sm"><i class="fa-solid fa-circle-notch fa-spin"></i> Searching...</div>';
+            
+            try {
+                const res = await fetch(`/search.php`, {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ query: q, user_id: USER_ID })
+                });
+
+                const text = await res.text();
+                let data;
+                try { data = JSON.parse(text); } catch (e) { throw new Error("Server returned invalid JSON."); }
+
+                if (!res.ok) throw new Error("API Error: " + res.status);
+                
+                box.innerHTML = '';
+                if(data.users.length === 0) box.innerHTML = '<div class="text-gray-400 text-sm">No users found.</div>';
+                
+                data.users.forEach(u => {
+                    box.innerHTML += `
+                        <div class="list-item">
+                            <div class="text-sm font-bold">${u.name} <span class="text-gray-400 font-normal">(@${u.username})</span></div>
+                            <button onclick="sendRequest(${u.id}, this)" class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-blue-700 transition">Add</button>
+                        </div>`;
+                });
+            } catch (e) {
+                console.error("Search Error:", e);
+                box.innerHTML = '<div class="text-center text-red-400 py-4 text-sm">Search failed. Check connection.</div>';
+            }
+        }
+
+        async function sendRequest(receiverId, btn) {
+            const originalText = btn.innerText;
+            btn.innerText = "Sending...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`/request.php`, {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ requester_id: USER_ID, receiver_id: receiverId })
+                });
+                const data = await res.json();
+
+                if (data.ok) {
+                    btn.innerText = "Request Sent";
+                    btn.classList.remove("bg-blue-600", "hover:bg-blue-700");
+                    btn.classList.add("bg-gray-400", "cursor-not-allowed");
+                    if (data.debug_link) console.log("📧 DEBUG Link:", data.debug_link);
+                } else {
+                    alert(data.error || "Failed to send request");
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                alert("Connection Error");
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function acceptRequest(id) {
+            await fetch(`/accept.php`, {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ friendship_id: id })
+            });
+            alert("Friend request accepted!");
+            loadFriendsAndRequests();
+        }
+
+        function initSocket() {
+            try {
+                socket = io(SOCKET_URL);
+                
+                socket.on("connect", () => {
+                    console.log("Socket Connected");
+                    document.getElementById('socket-status').classList.add('connected');
+                    document.getElementById('socket-status').title = "Connected";
+                    
+                    socket.emit("register", USER_ID);
+                    friendsData.forEach(f => socket.emit('watch_friend', f.id));
+                    startTracking();
+                });
+
+                socket.on("disconnect", () => {
+                    document.getElementById('socket-status').classList.remove('connected');
+                });
+
+                socket.on("friend_moved", (data) => {
+                    updateFriendMarker(data);
+                });
+            } catch(e) {
+                console.error("Socket Init Error. Is node server running?", e);
+            }
+        }
+
+        function startTracking() {
+            if(!navigator.geolocation) return;
+            navigator.geolocation.watchPosition((pos) => {
+                myLat = pos.coords.latitude;
+                myLng = pos.coords.longitude;
+                
+                // Update "Me" marker
+                if(myMarker) myMarker.setLatLng([myLat, myLng]);
+                else myMarker = L.marker([myLat, myLng]).addTo(map);
+
+                // Send to server
+                socket.emit("update_location", { lat: myLat, lng: myLng });
+            }, null, { enableHighAccuracy: true });
+        }
+
+        // DEBUG: Simulate movement to separate markers on same device
+        function simulateMovement() {
+            if(!socket) return alert("Socket not connected");
+            // Add random offset (approx 50-100 meters)
+            const offsetLat = (Math.random() - 0.5) * 0.002;
+            const offsetLng = (Math.random() - 0.5) * 0.002;
+            
+            const fakeLat = myLat + offsetLat;
+            const fakeLng = myLng + offsetLng;
+            
+            console.log("Simulating move to:", fakeLat, fakeLng);
+            socket.emit("update_location", { lat: fakeLat, lng: fakeLng });
+            
+            // Move my marker too just to show it happened
+            if(myMarker) myMarker.setLatLng([fakeLat, fakeLng]).bindPopup("Simulated Location").openPopup();
+        }
+
+        function updateFriendMarker(data) {
+            const friend = friendsData.find(f => f.id == data.userId);
+            if(!friend) return;
+
+            const statusEl = document.getElementById(`status-${friend.id}`);
+            if(statusEl) {
+                statusEl.innerText = "Online";
+                statusEl.className = "text-xs text-blue-600 font-bold animate-pulse";
+            }
+
+            if(markers[data.userId]) {
+                markers[data.userId].setLatLng([data.lat, data.lng]);
+            } else {
+                const icon = L.divIcon({
+                    className: 'friend-marker',
+                    html: `<div class="avatar">${friend.name.charAt(0)}</div><div class="label">${friend.name}</div>`,
+                    iconSize: [40, 60], iconAnchor: [20, 60]
+                });
+                markers[data.userId] = L.marker([data.lat, data.lng], { icon }).addTo(map);
+            }
+        }
+
+        function focusFriend(id) {
+            if(markers[id]) map.flyTo(markers[id].getLatLng(), 16);
+            else alert("Friend location not yet received. They might be offline.");
+        }
+
+        async function resetFriendships() {
+            if(!confirm("⚠️ RESET WARNING\n\nDelete ALL friends?")) return;
+            await fetch(`/reset.php`);
+            alert("Reset complete.");
+            loadFriendsAndRequests();
+        }
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Friend Map</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    
+    <style>
+        body { margin: 0; overflow: hidden; background: #f3f4f6; font-family: 'Segoe UI', sans-serif; }
+        #map { height: 100vh; width: 100%; z-index: 1; }
+        
+        .sidebar {
+            position: absolute; top: 20px; left: 20px; bottom: 20px; width: 380px;
+            background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            z-index: 1000; display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        .tab-btn { flex: 1; padding: 15px; text-align: center; font-weight: bold; color: #9ca3af; cursor: pointer; border-bottom: 2px solid transparent; }
+        .tab-btn.active { color: #2563eb; border-bottom-color: #2563eb; background: #eff6ff; }
+        
+        .list-item { padding: 12px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; justify-content: space-between; }
+        .list-item:last-child { border: none; }
+        
+        .friend-marker { text-align: center; }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 8px rgba(0,0,0,0.3); background: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; margin: 0 auto; font-size: 18px; }
+        .label { background: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; margin-top: 4px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1); color: #1e293b; }
+
+        /* Connection Status Indicator */
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #ccc; display: inline-block; margin-right: 5px; }
+        .status-dot.connected { background: #22c55e; box-shadow: 0 0 5px #22c55e; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="p-4 border-b border-gray-100 flex justify-between items-center">
+            <h1 class="text-xl font-black text-gray-800 flex items-center">
+                <span id="socket-status" class="status-dot" title="Disconnected"></span> Friend Map
+            </h1>
+            <div class="flex gap-3 items-center">
+                <button onclick="resetFriendships()" class="text-[10px] uppercase font-bold text-red-400 hover:text-red-600 border border-red-200 px-2 py-1 rounded">Reset DB</button>
+                <a href="dashboard.html" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-times"></i></a>
+            </div>
+        </div>
+        
+        <div class="flex border-b border-gray-100">
+            <div class="tab-btn active" onclick="switchTab('friends')">Friends</div>
+            <div class="tab-btn" onclick="switchTab('add')">Add Friend</div>
+            <div class="tab-btn" onclick="switchTab('requests')">Requests</div>
+        </div>
+
+        <div id="tab-friends" class="flex-1 overflow-y-auto p-2">
+            <div id="friends-list" class="space-y-1">
+                <div class="text-center text-gray-400 py-4 text-sm">Loading friends...</div>
+            </div>
+            <!-- Debug Tool for Localhost Testing -->
+            <div class="p-4 mt-auto border-t border-gray-100 bg-gray-50">
+                <button onclick="simulateMovement()" class="w-full bg-white border border-gray-300 text-gray-600 font-bold py-2 rounded-lg text-xs hover:bg-gray-100">
+                    <i class="fa-solid fa-person-walking"></i> Simulate Move (Test)
+                </button>
+                <p class="text-[10px] text-gray-400 text-center mt-2">Click to separate markers if overlapping</p>
+            </div>
+        </div>
+
+        <div id="tab-add" class="flex-1 overflow-y-auto p-4 hidden">
+            <div class="flex gap-2 mb-4">
+                <input type="text" id="search-input" class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500" placeholder="Email or Username..." onkeypress="if(event.key === 'Enter') searchUsers()">
+                <button onclick="searchUsers()" class="bg-blue-600 text-white px-4 rounded-lg"><i class="fa-solid fa-search"></i></button>
+            </div>
+            <div id="search-results" class="space-y-2"></div>
+        </div>
+
+        <div id="tab-requests" class="flex-1 overflow-y-auto p-2 hidden">
+            <div id="requests-list" class="space-y-1">
+                <div class="text-center text-gray-400 py-4 text-sm">No pending requests.</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Use localhost to match login.js and ensure session consistency
+        const API_BASE = "http://localhost/WEBPROG_PROJ/BACKEND/API/FRIENDS";
+        const SOCKET_URL = "http://localhost:3000";
+        const USER_ID = localStorage.getItem("user_id");
+        
+        let map, socket;
+        let markers = {};
+        let myMarker = null;
+        let friendsData = [];
+        let myLat = 14.5995, myLng = 120.9842; // Default
+
+        document.addEventListener("DOMContentLoaded", () => {
+            if(!USER_ID) window.location.href = 'login.html';
+            
+            // Init Map
+            map = L.map('map', { zoomControl: false }).setView([myLat, myLng], 13);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
+            
+            // Add "Me" Marker (Blue Dot)
+            const meIcon = L.divIcon({
+                className: '',
+                html: '<div style="width: 16px; height: 16px; background: #2563eb; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.3);"></div>',
+                iconSize: [16, 16]
+            });
+            myMarker = L.marker([myLat, myLng], { icon: meIcon, zIndexOffset: 1000 }).addTo(map).bindPopup("You");
+
+            loadFriendsAndRequests();
+            initSocket();
+            
+            // Check for Email Invite Link
+            const urlParams = new URLSearchParams(window.location.search);
+            const inviteId = urlParams.get('accept_invite');
+            if (inviteId) {
+                acceptRequest(inviteId);
+                window.history.replaceState({}, document.title, window.location.pathname); // Clean URL
+            }
+        });
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('tab-friends').classList.add('hidden');
+            document.getElementById('tab-add').classList.add('hidden');
+            document.getElementById('tab-requests').classList.add('hidden');
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+        }
+
+        async function loadFriendsAndRequests() {
+            try {
+                console.log(`Fetching friends from: /list.php?user_id=`);
+                const res = await fetch(`/list.php?user_id=`);
+                const data = await res.json();
+                
+                // Render Friends
+                const fList = document.getElementById('friends-list');
+                fList.innerHTML = '';
+                friendsData = data.friends || [];
+                
+                if(friendsData.length === 0) fList.innerHTML = '<div class="text-center text-gray-400 py-4 text-sm">No friends yet. Add some!</div>';
+                
+                friendsData.forEach(f => {
+                    fList.innerHTML += `
+                        <div class="list-item hover:bg-gray-50 cursor-pointer" onclick="focusFriend(${f.id})">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-xs">${f.name.charAt(0)}</div>
+                                <div>
+                                    <div class="font-bold text-sm text-gray-800">${f.name}</div>
+                                    <div class="text-xs text-gray-400">@${f.username}</div>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-400 font-bold" id="status-${f.id}">Offline</div>
+                        </div>`;
+                    
+                    // Tell socket to watch this friend
+                    if(socket && socket.connected) socket.emit('watch_friend', f.id);
+                });
+
+                // Render Requests
+                const rList = document.getElementById('requests-list');
+                rList.innerHTML = '';
+                const reqs = data.requests || [];
+                
+                if(reqs.length === 0) rList.innerHTML = '<div class="text-center text-gray-400 py-4 text-sm">No pending requests.</div>';
+                
+                reqs.forEach(r => {
+                    rList.innerHTML += `
+                        <div class="list-item">
+                            <div class="font-bold text-sm text-gray-800">${r.name}</div>
+                            <button onclick="acceptRequest(${r.friendship_id})" class="bg-green-500 text-white px-3 py-1 rounded text-xs font-bold">Accept</button>
+                        </div>`;
+                });
+
+            } catch(e) { console.error("Load Friends Error:", e); }
+        }
+
+        async function searchUsers() {
+            const q = document.getElementById('search-input').value;
+            const box = document.getElementById('search-results');
+            box.innerHTML = '<div class="text-center text-gray-400 py-4 text-sm"><i class="fa-solid fa-circle-notch fa-spin"></i> Searching...</div>';
+            
+            try {
+                const res = await fetch(`/search.php`, {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ query: q, user_id: USER_ID })
+                });
+
+                const text = await res.text();
+                let data;
+                try { data = JSON.parse(text); } catch (e) { throw new Error("Server returned invalid JSON."); }
+
+                if (!res.ok) throw new Error("API Error: " + res.status);
+                
+                box.innerHTML = '';
+                if(data.users.length === 0) box.innerHTML = '<div class="text-gray-400 text-sm">No users found.</div>';
+                
+                data.users.forEach(u => {
+                    box.innerHTML += `
+                        <div class="list-item">
+                            <div class="text-sm font-bold">${u.name} <span class="text-gray-400 font-normal">(@${u.username})</span></div>
+                            <button onclick="sendRequest(${u.id}, this)" class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-blue-700 transition">Add</button>
+                        </div>`;
+                });
+            } catch (e) {
+                console.error("Search Error:", e);
+                box.innerHTML = '<div class="text-center text-red-400 py-4 text-sm">Search failed. Check connection.</div>';
+            }
+        }
+
+        async function sendRequest(receiverId, btn) {
+            const originalText = btn.innerText;
+            btn.innerText = "Sending...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`/request.php`, {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ requester_id: USER_ID, receiver_id: receiverId })
+                });
+                const data = await res.json();
+
+                if (data.ok) {
+                    btn.innerText = "Request Sent";
+                    btn.classList.remove("bg-blue-600", "hover:bg-blue-700");
+                    btn.classList.add("bg-gray-400", "cursor-not-allowed");
+                    if (data.debug_link) console.log("📧 DEBUG Link:", data.debug_link);
+                } else {
+                    alert(data.error || "Failed to send request");
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                alert("Connection Error");
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function acceptRequest(id) {
+            await fetch(`/accept.php`, {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ friendship_id: id })
+            });
+            alert("Friend request accepted!");
+            loadFriendsAndRequests();
+        }
+
+        function initSocket() {
+            try {
+                socket = io(SOCKET_URL);
+                
+                socket.on("connect", () => {
+                    console.log("Socket Connected");
+                    document.getElementById('socket-status').classList.add('connected');
+                    document.getElementById('socket-status').title = "Connected";
+                    
+                    socket.emit("register", USER_ID);
+                    friendsData.forEach(f => socket.emit('watch_friend', f.id));
+                    startTracking();
+                });
+
+                socket.on("disconnect", () => {
+                    document.getElementById('socket-status').classList.remove('connected');
+                });
+
+                socket.on("friend_moved", (data) => {
+                    updateFriendMarker(data);
+                });
+            } catch(e) {
+                console.error("Socket Init Error. Is node server running?", e);
+            }
+        }
+
+        function startTracking() {
+            if(!navigator.geolocation) return;
+            navigator.geolocation.watchPosition((pos) => {
+                myLat = pos.coords.latitude;
+                myLng = pos.coords.longitude;
+                
+                // Update "Me" marker
+                if(myMarker) myMarker.setLatLng([myLat, myLng]);
+                else myMarker = L.marker([myLat, myLng]).addTo(map);
+
+                // Send to server
+                socket.emit("update_location", { lat: myLat, lng: myLng });
+            }, null, { enableHighAccuracy: true });
+        }
+
+        // DEBUG: Simulate movement to separate markers on same device
+        function simulateMovement() {
+            if(!socket) return alert("Socket not connected");
+            // Add random offset (approx 50-100 meters)
+            const offsetLat = (Math.random() - 0.5) * 0.002;
+            const offsetLng = (Math.random() - 0.5) * 0.002;
+            
+            const fakeLat = myLat + offsetLat;
+            const fakeLng = myLng + offsetLng;
+            
+            console.log("Simulating move to:", fakeLat, fakeLng);
+            socket.emit("update_location", { lat: fakeLat, lng: fakeLng });
+            
+            // Move my marker too just to show it happened
+            if(myMarker) myMarker.setLatLng([fakeLat, fakeLng]).bindPopup("Simulated Location").openPopup();
+        }
+
+        function updateFriendMarker(data) {
+            const friend = friendsData.find(f => f.id == data.userId);
+            if(!friend) return;
+
+            const statusEl = document.getElementById(`status-${friend.id}`);
+            if(statusEl) {
+                statusEl.innerText = "Online";
+                statusEl.className = "text-xs text-blue-600 font-bold animate-pulse";
+            }
+
+            if(markers[data.userId]) {
+                markers[data.userId].setLatLng([data.lat, data.lng]);
+            } else {
+                const icon = L.divIcon({
+                    className: 'friend-marker',
+                    html: `<div class="avatar">${friend.name.charAt(0)}</div><div class="label">${friend.name}</div>`,
+                    iconSize: [40, 60], iconAnchor: [20, 60]
+                });
+                markers[data.userId] = L.marker([data.lat, data.lng], { icon }).addTo(map);
+            }
+        }
+
+        function focusFriend(id) {
+            if(markers[id]) map.flyTo(markers[id].getLatLng(), 16);
+            else alert("Friend location not yet received. They might be offline.");
+        }
+
+        async function resetFriendships() {
+            if(!confirm("⚠️ RESET WARNING\n\nDelete ALL friends?")) return;
+            await fetch(`/reset.php`);
+            alert("Reset complete.");
+            loadFriendsAndRequests();
+        }
+    </script>
+</body>
+</html>
+    <script>
+        // Check dark mode preference immediately
+        if (localStorage.getItem('pref_dark') === 'true') {
+            document.documentElement.classList.add('dark');
+        }
+        tailwind.config = { darkMode: 'class' };
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
@@ -14,7 +1756,7 @@
         .toast.show { transform: translate(-50%, 20px); opacity: 1; }
     </style>
 </head>
-<body class="bg-white overflow-hidden">
+<body class="bg-white dark:bg-slate-900 overflow-hidden transition-colors duration-300">
     <div id="successMessage" class="toast fixed top-0 left-1/2 bg-slate-900 text-white px-8 py-4 rounded-2xl shadow-2xl z-[1000] font-bold"></div>
 
     <div class="flex h-screen">
@@ -40,18 +1782,18 @@
                 
                 <div id="loginForm" class="space-y-10">
                     <div>
-                        <h1 class="text-5xl font-black text-slate-900 tracking-tighter">Sign In</h1>
+                        <h1 class="text-5xl font-black text-slate-900 dark:text-white tracking-tighter">Sign In</h1>
                         <p class="text-slate-400 mt-3 text-lg font-medium">Access your EnerGo dashboard.</p>
                     </div>
 
                     <form id="loginFormElement" class="space-y-6">
                         <div class="space-y-2">
                             <label class="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em]">Email Address</label>
-                            <input type="email" id="loginEmail" class="w-full px-6 py-5 bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl outline-none transition-all duration-300" placeholder="your@email.com" required>
+                            <input type="email" id="loginEmail" class="w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 dark:text-white border-2 border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-slate-700 rounded-2xl outline-none transition-all duration-300" placeholder="your@email.com" required>
                         </div>
                         <div class="space-y-2">
                             <label class="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em]">Password</label>
-                            <input type="password" id="loginPassword" class="w-full px-6 py-5 bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl outline-none transition-all duration-300" placeholder="••••••••" required>
+                            <input type="password" id="loginPassword" class="w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 dark:text-white border-2 border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-slate-700 rounded-2xl outline-none transition-all duration-300" placeholder="••••••••" required>
                         </div>
                         <button type="submit" class="w-full py-5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-2xl shadow-blue-200 transition-all transform active:scale-[0.98]">Enter Dashboard</button>
                         <div class="text-right"><button type="button" onclick="showForgot()" class="text-sm font-bold text-slate-400 hover:text-blue-600">Forgot Password?</button></div>
@@ -61,40 +1803,40 @@
 
                 <div id="signupForm" class="hidden space-y-8">
                     <div>
-                        <h1 class="text-4xl font-black text-slate-900 tracking-tighter">Create Account</h1>
+                        <h1 class="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">Create Account</h1>
                         <p class="text-slate-400 mt-2 font-medium">Join the green revolution.</p>
                     </div>
 
                     <form id="signupFormElement" class="space-y-4">
                         <div class="space-y-1">
                             <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest">User Handle</label>
-                            <input type="text" id="signupUserCustom" class="w-full px-6 py-4 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all" placeholder="@username" required>
+                            <input type="text" id="signupUserCustom" class="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 dark:text-white border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all" placeholder="@username" required>
                         </div>
                         
                         <div class="flex gap-4">
                             <div class="w-1/2 space-y-1">
                                 <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest">First Name</label>
-                                <input type="text" id="signupFirstName" class="w-full px-6 py-4 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all" placeholder="Alexa" required>
+                                <input type="text" id="signupFirstName" class="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 dark:text-white border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all" placeholder="Alexa" required>
                             </div>
                             <div class="w-1/2 space-y-1">
                                 <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Last Name</label>
-                                <input type="text" id="signupLastName" class="w-full px-6 py-4 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all" placeholder="Baldueza" required>
+                                <input type="text" id="signupLastName" class="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 dark:text-white border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all" placeholder="Baldueza" required>
                             </div>
                         </div>
 
                         <div class="space-y-1">
                             <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Email</label>
-                            <input type="email" id="signupEmail" class="w-full px-6 py-4 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all" required>
+                            <input type="email" id="signupEmail" class="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 dark:text-white border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all" required>
                         </div>
 
                         <div class="flex gap-4">
                             <div class="w-1/2 space-y-1">
                                 <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Password</label>
-                                <input type="password" id="signupPassword" class="w-full px-6 py-4 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all" required>
+                                <input type="password" id="signupPassword" class="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 dark:text-white border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all" required>
                             </div>
                             <div class="w-1/2 space-y-1">
                                 <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Confirm</label>
-                                <input type="password" id="confirmPassword" class="w-full px-6 py-4 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all" required>
+                                <input type="password" id="confirmPassword" class="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 dark:text-white border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all" required>
                             </div>
                         </div>
 
@@ -106,7 +1848,7 @@
                 <!-- OTP VERIFICATION FORM -->
                 <div id="otpForm" class="hidden space-y-8">
                     <div>
-                        <h1 class="text-4xl font-black text-slate-900 tracking-tighter">Verification</h1>
+                        <h1 class="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">Verification</h1>
                         <p class="text-slate-400 mt-2 font-medium">Enter the 6-digit code sent to <span id="otpEmailDisplay" class="text-slate-900 font-bold">your email</span>.</p>
                     </div>
 
@@ -114,7 +1856,7 @@
                         <input type="hidden" id="otpUserId">
                         <input type="hidden" id="otpPurpose">
                         <div class="space-y-2">
-                            <input type="text" id="otpInput" class="w-full px-6 py-5 bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl outline-none text-center text-3xl font-black tracking-widest transition-all" placeholder="000000" maxlength="6" required>
+                            <input type="text" id="otpInput" class="w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 dark:text-white border-2 border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-slate-700 rounded-2xl outline-none text-center text-3xl font-black tracking-widest transition-all" placeholder="000000" maxlength="6" required>
                         </div>
                         <button type="submit" class="w-full py-5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-2xl shadow-xl transition-all transform active:scale-[0.98]">Verify Code</button>
                     </form>
@@ -124,7 +1866,7 @@
                 <!-- FORGOT PASSWORD FLOW -->
                 <div id="forgotForm" class="hidden space-y-8">
                     <div>
-                        <h1 class="text-4xl font-black text-slate-900 tracking-tighter">Recovery</h1>
+                        <h1 class="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">Recovery</h1>
                         <p class="text-slate-400 mt-2 font-medium">Reset your password securely.</p>
                     </div>
 
@@ -132,7 +1874,7 @@
                     <form id="forgotStep1" onsubmit="handleForgotRequest(event)" class="space-y-6">
                         <div class="space-y-2">
                             <label class="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em]">Email Address</label>
-                            <input type="email" id="forgotEmail" class="w-full px-6 py-5 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none" placeholder="your@email.com" required>
+                            <input type="email" id="forgotEmail" class="w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 dark:text-white border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none" placeholder="your@email.com" required>
                         </div>
                         <button type="submit" class="w-full py-5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-xl">Send Reset Code</button>
                     </form>
@@ -141,7 +1883,7 @@
                     <form id="forgotStep2" onsubmit="handleForgotVerify(event)" class="hidden space-y-6">
                         <div class="space-y-2">
                             <label class="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em]">Verification Code</label>
-                            <input type="text" id="forgotOtp" class="w-full px-6 py-5 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none text-center text-2xl font-bold tracking-widest" placeholder="000000" maxlength="6" required>
+                            <input type="text" id="forgotOtp" class="w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 dark:text-white border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none text-center text-2xl font-bold tracking-widest" placeholder="000000" maxlength="6" required>
                         </div>
                         <button type="submit" class="w-full py-5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-2xl shadow-xl">Verify Code</button>
                     </form>
@@ -151,11 +1893,11 @@
                         <input type="hidden" id="resetToken">
                         <div class="space-y-2">
                             <label class="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em]">New Password</label>
-                            <input type="password" id="newPass" class="w-full px-6 py-5 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none" required>
+                            <input type="password" id="newPass" class="w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 dark:text-white border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none" required>
                         </div>
                         <div class="space-y-2">
                             <label class="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em]">Confirm Password</label>
-                            <input type="password" id="confirmNewPass" class="w-full px-6 py-5 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none" required>
+                            <input type="password" id="confirmNewPass" class="w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 dark:text-white border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none" required>
                         </div>
                         <button type="submit" class="w-full py-5 bg-slate-900 hover:bg-black text-white font-bold rounded-2xl shadow-xl">Update Password</button>
                     </form>

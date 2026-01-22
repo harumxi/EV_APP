@@ -130,6 +130,11 @@
         const FALLBACK_IMG = "https://placehold.co/600x400/EEE/31343C?text=EV+Image";
         const USER_ID = localStorage.getItem("user_id");
         let searchTimeout;
+        
+        // UNIT PREFERENCES
+        const PREF_UNIT = localStorage.getItem('pref_units') || 'KM';
+        const DIST_FACTOR = PREF_UNIT === 'MILES' ? 0.621371 : 1;
+        const DIST_LABEL = PREF_UNIT === 'MILES' ? 'mi' : 'km';
 
         document.addEventListener("DOMContentLoaded", () => {
             if(!localStorage.getItem("user_id")) window.location.href = "login.html";
@@ -167,7 +172,7 @@
                                     <img src="${car.image}" onerror="this.src='${FALLBACK_IMG}'" class="w-12 h-12 rounded-lg object-cover bg-gray-200">
                                     <div>
                                         <div class="font-bold text-gray-900 dark:text-white">${car.brand} ${car.model}</div>
-                                        <div class="text-xs text-gray-500">${car.year} • ${car.range_km} km</div>
+                                        <div class="text-xs text-gray-500">${car.year} • ${Math.round(car.range_km * DIST_FACTOR)} ${DIST_LABEL}</div>
                                     </div>
                                 </div>
                                 <div class="text-blue-600 font-bold text-sm">+ Add</div>
@@ -283,9 +288,14 @@
             document.getElementById('modal-brand').innerText = car.brand;
             document.getElementById('modal-model').innerText = car.model;
             document.getElementById('modal-year').innerText = car.year;
-            document.getElementById('modal-range').innerText = car.range_km;
+            
+            document.getElementById('modal-range').innerText = Math.round(car.range_km * DIST_FACTOR);
+            document.getElementById('modal-range').nextElementSibling.innerText = DIST_LABEL;
+            
             document.getElementById('modal-batt').innerText = car.battery_kwh;
-            document.getElementById('modal-real').innerText = car.real_world_range_km || Math.round(car.range_km * 0.85);
+            document.getElementById('modal-real').innerText = Math.round((car.real_world_range_km || car.range_km * 0.85) * DIST_FACTOR);
+            document.getElementById('modal-real').nextElementSibling.innerText = DIST_LABEL;
+            
             document.getElementById('modal-plug').innerText = car.plug_type || 'Type 2';
             document.getElementById('btn-activate').onclick = () => { setActiveCar(car); closeModal(); };
             document.getElementById('spec-modal').classList.remove('hidden');

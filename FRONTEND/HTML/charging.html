@@ -155,6 +155,11 @@
         let animationFrameId = null;
         let cachedStations = [];
         let processedStationsList = []; // New Global Array to hold processed data
+        
+        // UNIT PREFERENCES
+        const PREF_UNIT = localStorage.getItem('pref_units') || 'KM';
+        const DIST_FACTOR = PREF_UNIT === 'MILES' ? 0.621371 : 1;
+        const DIST_LABEL = PREF_UNIT === 'MILES' ? 'mi' : 'km';
 
         const userIcon = L.divIcon({ html: '<div style="width:16px; height:16px; background:#3b82f6; border:3px solid white; border-radius:50%; box-shadow:0 0 10px rgba(0,0,0,0.5);"></div>', className: '' });
         const chargerIcon = L.divIcon({ html: '<div style="font-size:32px; filter:drop-shadow(0 4px 6px rgba(0,0,0,0.4)); cursor: pointer;">⚡</div>', className: '', iconSize: [30, 40], iconAnchor: [15, 40] });
@@ -222,7 +227,7 @@
 
         function renderStationList(stations) {
             const safeRange = calculateSafeRange(currentBattery);
-            document.getElementById('current-range-display').innerText = safeRange.toFixed(1) + " km";
+            document.getElementById('current-range-display').innerText = (safeRange * DIST_FACTOR).toFixed(1) + " " + DIST_LABEL;
 
             const container = document.getElementById('content-area');
             
@@ -276,7 +281,7 @@
                                 </div>
                             </div>
                             <div class="text-right">
-                                <div class="font-black text-lg text-gray-700">${st.distance.toFixed(1)} km</div>
+                                <div class="font-black text-lg text-gray-700">${(st.distance * DIST_FACTOR).toFixed(1)} ${DIST_LABEL}</div>
                                 ${st.reachable 
                                     ? `<span class="text-green-600 text-xs font-bold">REACHABLE</span>` 
                                     : `<span class="text-red-400 text-xs font-bold">TOO FAR</span>`}
@@ -298,7 +303,7 @@
                 html = `<div class="text-center p-6 bg-red-50 rounded-xl border border-red-100">
                             <i class="fa-solid fa-battery-empty text-3xl text-red-500 mb-2"></i>
                             <h3 class="font-bold text-red-800">Critical Low Battery</h3>
-                            <p class="text-sm text-red-600 mt-1">No stations within ${safeRange.toFixed(1)} km.</p>
+                            <p class="text-sm text-red-600 mt-1">No stations within ${(safeRange * DIST_FACTOR).toFixed(1)} ${DIST_LABEL}.</p>
                         </div>` + html;
             }
 
@@ -326,7 +331,7 @@
                                 <h2 class="text-xl font-black text-gray-900">${station.name}</h2>
                                 <div class="text-sm text-yellow-600 font-bold mt-1"><i class="fa-solid fa-star"></i> ${station.rating} Recommended</div>
                             </div>
-                            <div class="text-2xl font-black text-blue-600">${station.distance.toFixed(1)} km</div>
+                            <div class="text-2xl font-black text-blue-600">${(station.distance * DIST_FACTOR).toFixed(1)} ${DIST_LABEL}</div>
                         </div>
                     </div>
                     
@@ -373,6 +378,17 @@
 
         function arriveAtStation() {
             cancelAnimationFrame(animationFrameId);
+            
+            if (selectedStation && carMarker) {
+                const destLat = selectedStation.location.latitude;
+                const destLng = selectedStation.location.longitude;
+                carMarker.setLatLng([destLat, destLng]);
+                map.panTo([destLat, destLng]);
+            }
+
+            // Save the emergency trip to history
+            saveEmergencyTrip();
+
             document.getElementById('nav-status').style.display = 'none';
             document.getElementById('content-area').innerHTML = `
                 <div class="flex flex-col h-full">
@@ -388,6 +404,33 @@
                     <div id="error-msg" class="text-center text-sm font-bold text-red-500 mb-4 hidden">Charge to at least 70%.</div>
                     <button onclick="finishCharging()" class="w-full bg-gray-900 text-white py-4 rounded-xl font-bold text-xl hover:bg-gray-800 transition">Finish Charging</button>
                 </div>`;
+        }
+
+        async function saveEmergencyTrip() {
+            if (!selectedStation) return;
+            const userId = localStorage.getItem("user_id");
+            if (!userId) return;
+
+            const dist = selectedStation.distance;
+            // Calculate estimated drained % based on car specs
+            const efficiency = CAR_SPECS.efficiency || 160; // Wh/km
+            const capacity = CAR_SPECS.capacity || 60; // kWh
+            const drainedKwh = dist * (efficiency / 1000);
+            const drainedPct = (drainedKwh / capacity) * 100;
+
+            try {
+                await fetch('http://localhost/WEBPROG_PROJ/BACKEND/API/BATTERY/logs.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        distance_km: dist.toFixed(2),
+                        battery_drained: drainedPct.toFixed(1),
+                        origin: "Emergency Location",
+                        destination: selectedStation.name
+                    })
+                });
+            } catch (e) { console.error("Error saving emergency log", e); }
         }
 
         function finishCharging() {

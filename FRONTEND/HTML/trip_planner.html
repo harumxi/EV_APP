@@ -9,6 +9,12 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+      if (localStorage.getItem('pref_dark') === 'true') {
+          document.documentElement.classList.add('dark');
+      }
+      tailwind.config = { darkMode: 'class' };
+  </script>
 
   <style>
     body { margin:0; height:100vh; overflow:hidden; background:#f8fafc; font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -92,6 +98,21 @@
         pointer-events: none; display: flex; align-items: center; gap: 8px;
     }
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* DARK MODE OVERRIDES */
+    html.dark body { background: #0f172a; color: #f8fafc; }
+    html.dark .sidebar { background: rgba(30, 41, 59, 0.95); border-color: #334155; }
+    html.dark .text-slate-900, html.dark .text-slate-800 { color: white; }
+    html.dark .text-slate-500, html.dark .text-slate-400 { color: #94a3b8; }
+    html.dark .bg-slate-100 { background-color: #334155; color: white; }
+    html.dark .route-card { background: #1e293b; border-color: #334155; color: white; }
+    html.dark .route-card:hover { border-color: #3b82f6; }
+    html.dark .styled-input { background: #334155; border-color: #475569; color: white; }
+    html.dark .styled-input:focus { background: #1e293b; }
+    html.dark .active-car-badge { background: #1e293b; border-color: #334155; color: white; }
+    html.dark .suggestBox { background: #1e293b; border-color: #334155; }
+    html.dark .suggestItem { border-color: #334155; color: white; }
+    html.dark .suggestItem:hover { background: #334155; }
   </style>
 </head>
 
@@ -199,6 +220,11 @@
   let myLat = 14.5995, myLng = 120.9842; 
   let hasUserLocation = false;
   let carSafeRange = 300; 
+  
+  // UNIT PREFERENCES
+  const PREF_UNIT = localStorage.getItem('pref_units') || 'KM';
+  const DIST_FACTOR = PREF_UNIT === 'MILES' ? 0.621371 : 1;
+  const DIST_LABEL = PREF_UNIT === 'MILES' ? 'mi' : 'km';
 
   document.addEventListener("DOMContentLoaded", () => {
      if(!localStorage.getItem("user_id")) window.location.href = "login.html";
@@ -240,8 +266,8 @@
 
   function updateRangeDisplay() {
       const batt = document.getElementById('battery').value;
-      const currentRange = Math.round(carSafeRange * (batt / 100));
-      document.getElementById('range-est').innerText = `Est: ${currentRange} km`;
+      const currentRange = Math.round(carSafeRange * (batt / 100) * DIST_FACTOR);
+      document.getElementById('range-est').innerText = `Est: ${currentRange} ${DIST_LABEL}`;
   }
 
   navigator.geolocation.getCurrentPosition(
@@ -291,8 +317,19 @@
       const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`);
       const data = await res.json(); const c = data.current_weather;
       let icon = "☀️"; if(c.weathercode > 3) icon = "☁️"; if(c.weathercode > 50) icon = "🌧️";
+      
+      let desc = "Clear Sky";
+      if(c.weathercode > 0) desc = "Mainly Clear";
+      if(c.weathercode > 2) desc = "Overcast";
+      if(c.weathercode > 40) desc = "Foggy";
+      if(c.weathercode > 50) desc = "Drizzle";
+      if(c.weathercode > 60) desc = "Rainy";
+      if(c.weathercode > 80) desc = "Showers";
+      if(c.weathercode > 90) desc = "Thunderstorm";
+
       document.getElementById("weatherTemp").innerText = Math.round(c.temperature) + "°";
       document.getElementById("weatherIcon").innerText = icon;
+      document.getElementById("weatherDesc").innerText = desc;
       document.getElementById("weatherLoc").innerHTML = `<i class="fa-solid fa-location-dot"></i> ` + (label || "Current Loc");
     } catch(e) { document.getElementById("weatherDesc").innerText = "Offline"; }
   }
@@ -354,7 +391,7 @@
            const p = r.properties; const g = r.geometry;
            const addressParts = [ p.name, p.street, p.district, p.suburb, p.city || p.town || p.municipality, p.county ];
            const fullLabel = [...new Set(addressParts.filter(Boolean))].join(", ");
-           const distLabel = r._distance < 1 ? Math.round(r._distance * 1000) + " m" : r._distance.toFixed(1) + " km";
+           const distLabel = (r._distance * DIST_FACTOR).toFixed(1) + " " + DIST_LABEL;
            const div = document.createElement("div");
            div.className = "suggestItem flex justify-between items-center"; 
            div.innerHTML = `<div style="flex:1; overflow:hidden;"><div class="font-bold text-slate-800 text-sm truncate">${p.name || fullLabel.split(",")[0]}</div><div class="text-xs text-slate-500 truncate">${fullLabel}</div></div><div class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-md ml-2 whitespace-nowrap">${distLabel}</div>`;
@@ -393,7 +430,7 @@
            </div>
            <div class="flex justify-between items-end">
                <div>
-                   <div class="font-black text-lg text-slate-800">${r.distance_km} km</div>
+                   <div class="font-black text-lg text-slate-800">${(r.distance_km * DIST_FACTOR).toFixed(1)} ${DIST_LABEL}</div>
                    <div class="text-xs font-bold text-slate-500"><i class="fa-regular fa-clock"></i> ${r.duration_min} min</div>
                </div>
                <div class="text-xs font-bold text-red-500 bg-red-50 px-2 py-1 rounded-lg">-${r.est_usage}%</div>
@@ -445,6 +482,10 @@
 
   function startNavigation(){ 
       if (checkBatteryGate()) return;
+      
+      const activeCar = JSON.parse(localStorage.getItem('active_car') || "null");
+      if (!activeCar) return alert("Please select an active vehicle from your Garage to proceed.");
+
       if (!selectedRouteObject) return alert("Select a route first.");
       localStorage.setItem("activeTrip", JSON.stringify(selectedRouteObject));
       window.location.href = "test_navigation.html"; 

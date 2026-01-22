@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 // =======================================================
 // 1. CONFIGURATION & SETUP
 // =======================================================
@@ -27,14 +26,28 @@ document.addEventListener('DOMContentLoaded', () => {
         return; // Stop execution if input is missing
     }
 
+    // Sync: Load saved battery level from Dashboard
+    const savedBatt = localStorage.getItem('user_battery_level');
+    if (savedBatt) batteryInput.value = savedBatt;
+
     // B. CHECK LOCK STATE IMMEDIATELY
     // If locked from before, block access immediately
     if (enforceBatteryLock(batteryInput)) return; 
 
     // C. SETUP EVENT LISTENERS
     batteryInput.addEventListener('input', () => {
+        localStorage.setItem('user_battery_level', batteryInput.value);
         updateBatteryStats(batteryInput);
         monitorBatteryStatus(batteryInput);
+    });
+
+    // Listen for changes from other tabs (Dashboard)
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'user_battery_level') {
+            batteryInput.value = e.newValue;
+            updateBatteryStats(batteryInput);
+            monitorBatteryStatus(batteryInput);
+        }
     });
 
     // D. INITIALIZE TOOLS
@@ -369,5 +382,3 @@ function useMyLocation() {
         document.getElementById('from-loc').value = `${pos.coords.latitude}, ${pos.coords.longitude}`;
     });
 }
-=======
->>>>>>> 6ccadb508b5398d94dd890fcfa1fe69cbdc9d091

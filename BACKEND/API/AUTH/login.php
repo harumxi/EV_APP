@@ -1,21 +1,14 @@
 <?php
 /* ===========================
-   BACKEND/api/AUTH/login.php
+   BACKEND/API/AUTH/login.php
    =========================== */
-
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
-header("Content-Type: application/json; charset=UTF-8");
+header("Content-Type: application/json");
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(204);
-    exit;
-}
-
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['ok' => false, 'error' => 'Method not allowed']);
+    http_response_code(200);
     exit;
 }
 
@@ -25,52 +18,47 @@ $input = json_decode(file_get_contents('php://input'), true) ?? [];
 $email = trim($input['email'] ?? '');
 $password = $input['password'] ?? '';
 
-if ($email === '' || $password === '') {
+if (empty($email) || empty($password)) {
     http_response_code(400);
-    echo json_encode(['ok' => false, 'error' => 'Email and password required']);
+    echo json_encode(['ok' => false, 'error' => 'Email and password are required']);
     exit;
 }
 
 try {
     $db = Database::conn();
-
-    // ✅ FIXED: Added 'name' to the SELECT query
-    $stmt = $db->prepare("SELECT id, username, name, email, password_hash, is_verified FROM users WHERE email = ? LIMIT 1");
+    
+    // Fetch user
+    $stmt = $db->prepare("SELECT id, username, name, email, password_hash, is_verified FROM users WHERE email = ?");
     $stmt->execute([$email]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
+    // Verify Password
     if (!$user || !password_verify($password, $user['password_hash'])) {
-        http_response_code(401);
+        http_response_code(401); // Unauthorized
         echo json_encode(['ok' => false, 'error' => 'Invalid email or password']);
         exit;
     }
 
-    // 🚀 FAST LOGIN FIX: Check verification but DO NOT send email here.
-    // Return a flag so Frontend triggers the email asynchronously.
+    // Check Verification
     if ($user['is_verified'] == 0) {
-        http_response_code(200); // 200 OK because credentials are valid
+        // Return specific flag for frontend to trigger OTP flow
         echo json_encode([
-            'ok' => true,
+            'ok' => false,
             'require_verification' => true,
             'user_id' => $user['id'],
-            'email' => $user['email']
+            'email' => $user['email'],
+            'error' => 'Account not verified'
         ]);
         exit;
     }
 
-    http_response_code(200);
-    echo json_encode([
-        'ok' => true,
-        'message' => 'Login successful',
-        'user' => [
-            'id' => (int)$user['id'],
-            'username' => $user['username'], // @venven
-            'name' => $user['name'],         // Alexa Baldueza
-            'email' => $user['email']        // email address
-        ]
-    ]);
+    // Success
+    unset($user['password_hash']); // Security: Remove hash
+    
+    echo json_encode(['ok' => true, 'user' => $user]);
 
-} catch (Throwable $e) {
+} catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['ok' => false, 'error' => 'Server Error']);
+    echo json_encode(['ok' => false, 'error' => 'Database connection error']);
 }
+?>

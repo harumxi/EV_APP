@@ -105,6 +105,11 @@
         let map, carMarker, routePolyline;
         let animationFrameId;
         
+        // UNIT PREFERENCES
+        const PREF_UNIT = localStorage.getItem('pref_units') || 'KM';
+        const DIST_FACTOR = PREF_UNIT === 'MILES' ? 0.621371 : 1;
+        const DIST_LABEL = PREF_UNIT === 'MILES' ? 'mi' : 'km';
+        
         const carIcon = L.divIcon({ 
             html: '<div style="font-size:40px; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.3));">🚗</div>', 
             className: 'car-marker', iconSize: [40, 40], iconAnchor: [20, 20] 
@@ -160,7 +165,7 @@
 
                 // 1. POPULATE TRIP SUMMARY (The Feature You Wanted)
                 document.getElementById('dest-label').innerText = trip.destLabel || "Selected Destination";
-                document.getElementById('dist-display').innerText = route.distance_km + " km";
+                document.getElementById('dist-display').innerText = (route.distance_km * DIST_FACTOR).toFixed(1) + " " + DIST_LABEL;
                 document.getElementById('eta-display').innerText = route.duration_min + " min";
                 
                 // Color code battery status
@@ -198,8 +203,9 @@
             let i = 0;
             const speed = 1; // Animation speed
             
-            function move() {
+            async function move() {
                 if (i >= pathCoords.length) {
+                    await saveTripLog(); // Save automatically on arrival
                     alert("You have arrived! 🏁");
                     window.location.href = "trip_planner.html";
                     return;
@@ -215,45 +221,48 @@
             move();
         }
 
+        async function saveTripLog() {
+            try {
+                const tripDataRaw = localStorage.getItem('activeTrip');
+                if (tripDataRaw) {
+                    const trip = JSON.parse(tripDataRaw);
+                    
+                    // Update Dashboard Battery based on trip result
+                    if (trip.route && trip.route.end_battery !== undefined) {
+                        localStorage.setItem('user_battery_level', trip.route.end_battery);
+                    }
+
+                    const userId = localStorage.getItem("user_id");
+                    
+                    if (!userId) return; // Skip if not logged in
+
+                    const res = await fetch('http://localhost/WEBPROG_PROJ/BACKEND/API/BATTERY/logs.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_id: userId,
+                            distance_km: trip.route.distance_km,
+                            battery_drained: trip.route.est_usage,
+                            origin: trip.origin || "Unknown",
+                            destination: trip.destination || trip.destLabel || "Unknown"
+                        })
+                    });
+
+                    if (!res.ok) {
+                        console.error("Failed to save trip:", await res.text());
+                    } else {
+                        console.log("Trip saved successfully");
+                    }
+                }
+            } catch(e) { 
+                console.error("Failed to save trip log", e);
+            }
+        }
+
         async function endTrip() {
             if(confirm("End current navigation?")) {
                 // SAVE TRIP TO HISTORY
-                try {
-                    const tripDataRaw = localStorage.getItem('activeTrip');
-                    if (tripDataRaw) {
-                        const trip = JSON.parse(tripDataRaw);
-                        const userId = localStorage.getItem("user_id");
-                        
-                        if (!userId) {
-                            alert("⚠️ Warning: You are not logged in. Trip will not be saved.");
-                            window.location.href = "login.html";
-                            return;
-                        }
-
-                        const res = await fetch('http://localhost/WEBPROG_PROJ/BACKEND/API/BATTERY/logs.php', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                user_id: userId,
-                                distance_km: trip.route.distance_km,
-                                battery_drained: trip.route.est_usage,
-                                origin: trip.origin || "Unknown",
-                                destination: trip.destination || trip.destLabel || "Unknown"
-                            })
-                        });
-
-                        if (!res.ok) {
-                            const errText = await res.text();
-                            console.error("Failed to save trip:", errText);
-                            alert("❌ Error saving trip history: " + errText);
-                        } else {
-                            console.log("Trip saved successfully");
-                        }
-                    }
-                } catch(e) { 
-                    console.error("Failed to save trip log", e);
-                    alert("❌ Network Error: Could not save trip.");
-                }
+                await saveTripLog();
                 
                 window.location.href = "trip_planner.html";
             }

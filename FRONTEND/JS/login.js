@@ -107,6 +107,9 @@ document.getElementById("loginFormElement")?.addEventListener("submit", async fu
     e.preventDefault();
     clearErrors();
 
+    const btn = e.target.querySelector("button[type='submit']");
+    setLoading(btn, true, "Signing In...");
+
     const email = document.getElementById("loginEmail")?.value.trim();
     const password = document.getElementById("loginPassword")?.value;
 
@@ -120,6 +123,7 @@ document.getElementById("loginFormElement")?.addEventListener("submit", async fu
         const data = await res.json().catch(() => null);
 
         if (!res.ok || !data || data.ok !== true) {
+            setLoading(btn, false);
             // Handle specific "require_verification" case from login.php
             if (data && data.require_verification) {
                 tempUserId = data.user_id;
@@ -142,10 +146,12 @@ document.getElementById("loginFormElement")?.addEventListener("submit", async fu
             localStorage.setItem("full_display_name", data.user.name);
             localStorage.setItem("user_email", data.user.email);
             
-            // FIX: Redirect to Dashboard
-            window.location.href = "dashboard.html";
+            // FIX: Redirect to Dashboard with feedback
+            showSuccess("Login Successful!");
+            setTimeout(() => window.location.href = "dashboard.html", 500);
         }
     } catch (err) {
+        setLoading(btn, false);
         showSuccess("Server connection error. Check XAMPP.");
     }
 });
@@ -155,6 +161,9 @@ document.getElementById("signupFormElement")?.addEventListener("submit", async f
     e.preventDefault();
     clearErrors();
 
+    const btn = e.target.querySelector("button[type='submit']");
+    setLoading(btn, true, "Creating Account...");
+
     const username = document.getElementById("signupUserCustom")?.value.trim();
     const firstName = document.getElementById("signupFirstName")?.value.trim();
     const lastName = document.getElementById("signupLastName")?.value.trim();
@@ -163,6 +172,7 @@ document.getElementById("signupFormElement")?.addEventListener("submit", async f
     const confirmPassword = document.getElementById("confirmPassword")?.value;
 
     if (password !== confirmPassword) {
+        setLoading(btn, false);
         showSuccess("Passwords do not match.");
         return;
     }
@@ -175,21 +185,23 @@ document.getElementById("signupFormElement")?.addEventListener("submit", async f
         });
 
         const data = await res.json().catch(() => null);
+        setLoading(btn, false);
 
         if (!res.ok || !data || data.ok !== true) {
             showSuccess(data?.error || "Signup failed");
             return;
         }
 
-        // FIX: Redirect to Login instead of showing OTP immediately
+        // FIX: Go straight to OTP instead of Login
         if (data.require_verification) {
-            showSuccess("Account created successfully! Please sign in.");
-            showLogin(); 
+            showSuccess("Verification code sent to email.");
+            showOTP(data.temp_user_id, 'register', data.email);
         } else {
             showSuccess("Account created! Please login.");
             showLogin();
         }
     } catch (err) {
+        setLoading(btn, false);
         showSuccess("Server connection error.");
     }
 });
@@ -197,6 +209,10 @@ document.getElementById("signupFormElement")?.addEventListener("submit", async f
 // ===== OTP FORM SUBMIT HANDLER =====
 document.getElementById("otpFormElement")?.addEventListener("submit", async function (e) {
     e.preventDefault();
+    
+    const btn = e.target.querySelector("button[type='submit']");
+    setLoading(btn, true, "Verifying...");
+
     const userId = document.getElementById("otpUserId").value;
     const purpose = document.getElementById("otpPurpose").value;
     const otp = document.getElementById("otpInput").value.trim();
@@ -221,11 +237,13 @@ document.getElementById("otpFormElement")?.addEventListener("submit", async func
             localStorage.setItem("user_email", data.user.email);
             
             // FIX: Redirect to Dashboard
-            window.location.href = "dashboard.html";
+            setTimeout(() => window.location.href = "dashboard.html", 500);
         } else {
+            setLoading(btn, false);
             showSuccess(data.error || "Invalid Code");
         }
     } catch (e) {
+        setLoading(btn, false);
         showSuccess("Verification Error");
     }
 });
@@ -303,4 +321,18 @@ function switchForgotStep(step) {
     if(step === 1) document.getElementById("forgotStep1").classList.remove("hidden");
     if(step === 2) document.getElementById("forgotStep2").classList.remove("hidden");
     if(step === 3) document.getElementById("forgotStep3").classList.remove("hidden");
+}
+
+// ===== UI HELPER: BUTTON LOADING STATE =====
+function setLoading(btn, isLoading, text) {
+    if (isLoading) {
+        btn.dataset.originalText = btn.innerText;
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> ${text}`;
+        btn.classList.add("opacity-75", "cursor-not-allowed");
+    } else {
+        btn.disabled = false;
+        btn.innerText = btn.dataset.originalText || "Submit";
+        btn.classList.remove("opacity-75", "cursor-not-allowed");
+    }
 }
