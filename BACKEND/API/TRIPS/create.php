@@ -1,54 +1,59 @@
 <?php
-// 1. Dependencies - Match your CORE folder naming exactly
+// DISABLE DEBUGGING OUTPUT SO WE ONLY GET CLEAN JSON
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
+
+// START OUTPUT BUFFERING
+ob_start();
+
+// CORS Headers
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
+header("Content-Type: application/json");
+
+// Handle Preflight
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    ob_end_clean();
+    http_response_code(200);
+    exit;
+}
+
 require_once __DIR__ . '/../../CORE/Database.php';
-require_once __DIR__ . '/../../CORE/Response.php';
 
-// 2. Only allow POST method
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    Response::error('Only POST method allowed', 405);
+function jsonErrorHandler($errno, $errstr, $errfile, $errline) {
+    if (ob_get_length()) ob_clean();
+    echo json_encode(['ok' => false, 'error' => "PHP Error: $errstr"]);
+    exit;
 }
-
-// 3. Read and Validate JSON Input
-$input = json_decode(file_get_contents('php://input'), true);
-
-if (!$input) {
-    Response::error('Invalid JSON body', 400);
-}
-
-// Check for required fields for the Trip Planner UI Flow
-if (
-    !isset($input['user_id']) ||
-    !isset($input['origin']['lat']) || !isset($input['origin']['lng']) ||
-    !isset($input['destination']['lat']) || !isset($input['destination']['lng'])
-) {
-    Response::error('Required: user_id, origin[lat,lng], destination[lat,lng]', 400);
-}
-
-// 4. Sanitize Inputs
-$userId   = (int)$input['user_id'];
-$origLat  = (float)$input['origin']['lat'];
-$origLng  = (float)$input['origin']['lng'];
-$destLat  = (float)$input['destination']['lat'];
-$destLng  = (float)$input['destination']['lng'];
+set_error_handler("jsonErrorHandler");
 
 try {
-    $db = Database::conn();
+    // 1. Config
+    $configFile = __DIR__ . '/../../CONFIG/maps.php';
+    if (!file_exists($configFile)) throw new Exception("Config file missing");
+    $mapsCfg = require $configFile;
 
-    // 5. WORKFLOW STEP: Ensure user has an Active EV (Required First Step)
-    // This is critical to get the vehicle specs needed for forecasting later.
-    $evCheck = $db->prepare("SELECT garage_id FROM user_garage WHERE user_id = ? AND is_active = 1 LIMIT 1");
-    $evCheck->execute([$userId]);
-    if (!$evCheck->fetch()) {
-        Response::error('Required First Step: No active EV selected in your Garage.', 400);
+    // 2. Input
+    $input = json_decode(file_get_contents('php://input'), true);
+    if (!isset($input['user_id'], $input['origin'], $input['destination'])) {
+        throw new Exception("Missing required fields");
     }
 
-    // 6. MAPS API INTEGRATION: Fetch Route Data from OpenRouteService
-    // Note: ORS expects [longitude, latitude] format[cite: 5].
-    $apiKey = 'YOUR_ORS_API_KEY'; 
-    $url = "https://api.openrouteservice.org/v2/directions/driving-car";
+    $db = Database::conn();
 
+    // 3. Active Car Check
+    $ev = $db->prepare("SELECT garage_id FROM user_garage WHERE user_id = ? AND is_active = 1 LIMIT 1");
+    $ev->execute([(int)$input['user_id']]);
+    if (!$ev->fetch()) throw new Exception("No active EV found. Check garage.");
+
+    // 4. CALL MAP API
+    $url = "https://api.openrouteservice.org/v2/directions/driving-car";
+    
     $body = json_encode([
-        "coordinates" => [[$origLng, $origLat], [$destLng, $destLat]],
+        "coordinates" => [
+            [(float)$input['origin']['lng'], (float)$input['origin']['lat']], 
+            [(float)$input['destination']['lng'], (float)$input['destination']['lat']]
+        ],
         "units" => "km"
     ]);
 
@@ -58,31 +63,40 @@ try {
     curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         'Content-Type: application/json',
-        'Authorization: ' . $apiKey
+        'Authorization: ' . $mapsCfg['ors']['api_key']
     ]);
 
-    $apiResponse = curl_exec($ch);
-    $routeData = json_decode($apiResponse, true);
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    // Validate API Response
-    if (!isset($routeData['features'][0]['properties']['summary'])) {
-        Response::error('OpenRouteService Error: Could not calculate route.', 500);
+    $mapData = json_decode($response, true);
+    ob_end_clean(); // Clear buffer
+
+    // 5. PARSE RESPONSE (Updated for your specific JSON format)
+    if ($httpCode === 200 && isset($mapData['routes'][0])) {
+        $route = $mapData['routes'][0];
+        $summary = $route['summary'];
+        
+        echo json_encode([
+            'ok' => true,
+            'message' => 'Trip calculated successfully',
+            'data' => [
+                'distance_km' => $summary['distance'], // 14.61 km
+                'duration_min' => round($summary['duration'] / 60, 1), // ~24.8 min
+                'encoded_polyline' => $route['geometry'] // "anbxAivlaVQ..." (This draws the map line)
+            ]
+        ]);
+    } else {
+        echo json_encode([
+            'ok' => false, 
+            'error' => 'Map Provider Error',
+            'details' => $mapData['error'] ?? 'Unknown error from ORS'
+        ]);
     }
 
-    $summary = $routeData['features'][0]['properties']['summary'];
-    $distance = $summary['distance']; // in km
-    $duration = round($summary['duration'] / 60); // convert seconds to minutes
-
-    // 7. RETURN DATA: Send results back for the Battery Forecasting Engine
-    // Since reporting is removed, we do not need to save this to a 'trips' table 
-    // unless you want to keep a history of past trips for the user profile.
-    Response::ok([
-        'message' => 'Route calculated successfully',
-        'distance_km' => $distance,
-        'duration_mins' => $duration
-    ]);
-
 } catch (Exception $e) {
-    Response::error('Server Error: ' . $e->getMessage(), 500);
+    if (ob_get_length()) ob_clean();
+    echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
 }
+?>

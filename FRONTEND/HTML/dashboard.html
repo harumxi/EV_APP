@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - EcoTrack</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        if (localStorage.getItem('pref_dark') === 'true') {
+            document.documentElement.classList.add('dark');
+        }
+        tailwind.config = { darkMode: 'class' };
+    </script>
+
+    <style>
+        body { background: #f3f4f6; font-family: 'Segoe UI', sans-serif; }
+        
+        .sidebar {
+            width: 260px; background: white; height: 100vh; position: fixed;
+            border-right: 1px solid #e5e7eb; display: flex; flex-direction: column;
+            padding: 20px; z-index: 50;
+        }
+        
+        .nav-item {
+            padding: 12px 16px; border-radius: 12px; color: #4b5563; font-weight: 600;
+            display: flex; align-items: center; gap: 12px; transition: 0.2s; cursor: pointer;
+            margin-bottom: 5px; text-decoration: none;
+        }
+        .nav-item:hover { background: #f3f4f6; color: #111827; }
+        .nav-item.active { background: #eff6ff; color: #2563eb; }
+
+        .main-content { margin-left: 260px; padding: 40px; }
+
+        .stat-card {
+            background: white; border-radius: 20px; padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid #e5e7eb;
+            page-break-inside: avoid; /* Prevents cutting in half on PDF */
+        }
+
+        .history-row { transition: 0.2s; border-bottom: 1px solid #f3f4f6; position: relative; }
+        .history-row:hover { background: #f9fafb; }
+
+        /* Report Paper Look for PDF */
+        #printable-area { background: #f3f4f6; }
+
+        /* ACTION MENU STYLES */
+        .action-btn {
+            width: 32px; height: 32px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: #9ca3af; transition: 0.2s; cursor: pointer;
+        }
+        .action-btn:hover { background: #e5e7eb; color: #111827; }
+
+        .menu-dropdown {
+            position: absolute; right: 45px; top: 15px;
+            background: white; border: 1px solid #e5e7eb;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border-radius: 12px; z-index: 50; width: 140px;
+            display: none; overflow: hidden;
+        }
+        .menu-dropdown.show { display: block; animation: fadeIn 0.2s; }
+        
+        .menu-item {
+            padding: 10px 14px; font-size: 13px; color: #ef4444; font-weight: 600;
+            cursor: pointer; display: flex; align-items: center; gap: 8px;
+            transition: 0.2s;
+        }
+        .menu-item:hover { background: #fef2f2; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* DARK MODE OVERRIDES */
+        html.dark body { background: #0f172a; color: #f8fafc; }
+        html.dark .sidebar { background: #1e293b; border-color: #334155; }
+        html.dark .nav-item { color: #94a3b8; }
+        html.dark .nav-item:hover { background: #334155; color: white; }
+        html.dark .nav-item.active { background: #334155; color: #38bdf8; }
+        html.dark .stat-card, html.dark .bg-white { background: #1e293b; border-color: #334155; color: white; }
+        html.dark .text-gray-900, html.dark .text-gray-800 { color: white; }
+        html.dark .text-gray-500, html.dark .text-gray-400 { color: #94a3b8; }
+        html.dark .history-row:hover { background: #334155; }
+        html.dark #printable-area { background: #0f172a; }
+        html.dark .bg-blue-50 { background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.2); }
+        html.dark .bg-gray-50 { background-color: #334155; color: #e2e8f0; }
+        html.dark .text-gray-700, html.dark .text-gray-600 { color: #cbd5e1; }
+        html.dark input { background-color: #0f172a; border-color: #334155; color: white; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="flex items-center gap-3 mb-10 px-2">
+            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
+                <i class="fa-solid fa-bolt"></i>
+            </div>
+            <h1 class="text-xl font-black text-gray-800 tracking-tight">EcoTrack</h1>
+        </div>
+
+        <nav>
+            <a href="dashboard.html" class="nav-item active"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+            <a href="garage.html" class="nav-item"><i class="fa-solid fa-warehouse"></i> My Garage</a>
+            <a href="trip_planner.html" class="nav-item"><i class="fa-solid fa-map-location-dot"></i> Trip Planner</a>
+            <a href="hubs.html" class="nav-item"><i class="fa-solid fa-charging-station"></i> Charging Hubs</a>
+            <a href="friends_map.html" class="nav-item"><i class="fa-solid fa-users-viewfinder"></i> Friend Map</a>
+            <a href="profile.html" class="nav-item"><i class="fa-solid fa-user-gear"></i> Profile</a>
+        </nav>
+        
+        <div class="mt-auto">
+            <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 cursor-pointer hover:bg-blue-100 transition" onclick="window.location.href='garage.html'">
+                <div class="text-xs font-bold text-blue-600 uppercase mb-1 flex justify-between">
+                    Active Car <i class="fa-solid fa-pen text-blue-400"></i>
+                </div>
+                <div class="font-black text-gray-800" id="sidebar-car-name">--</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content" id="printable-area">
+        
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h2 class="text-3xl font-black text-gray-900">Dashboard</h2>
+                <p class="text-gray-500">Overview of your environmental impact and trips.</p>
+            </div>
+        </div>
+
+        <!-- BATTERY SYNC CARD -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-8 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-xl">
+                    <i class="fa-solid fa-car-battery"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-gray-900">Current Battery Level</h3>
+                    <p class="text-xs text-gray-500">Syncs automatically with Trip Planner</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4 w-full md:w-auto">
+                <div class="relative">
+                    <input type="number" id="dash-batt-input" min="1" max="100" class="w-28 pl-3 pr-8 py-2 border-2 border-gray-200 rounded-xl font-black text-gray-800 focus:border-green-500 outline-none text-center">
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">%</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-6 mb-8">
+            <div class="stat-card border-l-4 border-l-green-500">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                        <i class="fa-solid fa-leaf"></i>
+                    </div>
+                    <span class="text-xs font-bold bg-green-100 text-green-700 px-2 py-1 rounded-full">Lifetime</span>
+                </div>
+                <div class="text-3xl font-black text-gray-900" id="total-co2">0 kg</div>
+                <div class="text-sm font-bold text-gray-400 uppercase">CO₂ Emissions Saved</div>
+                <p class="text-xs text-gray-400 mt-2">Vs. Standard Gasoline Vehicle.</p>
+            </div>
+
+            <div class="stat-card border-l-4 border-l-blue-500">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                        <i class="fa-solid fa-bolt"></i>
+                    </div>
+                    <span class="text-xs font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-full">Total</span>
+                </div>
+                <div class="text-3xl font-black text-gray-900" id="total-energy">0 kWh</div>
+                <div class="text-sm font-bold text-gray-400 uppercase">Total Energy Used</div>
+                <p class="text-xs text-gray-400 mt-2">Calculated from efficiency data.</p>
+            </div>
+
+            <div class="stat-card border-l-4 border-l-purple-500">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
+                        <i class="fa-solid fa-route"></i>
+                    </div>
+                    <span class="text-xs font-bold bg-purple-100 text-purple-700 px-2 py-1 rounded-full">Optimized</span>
+                </div>
+                <div class="text-3xl font-black text-gray-900" id="total-time">0 hrs</div>
+                <div class="text-sm font-bold text-gray-400 uppercase">Time Saved</div>
+                <p class="text-xs text-gray-400 mt-2">Via Smart Route Optimization.</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="stat-card">
+                <h3 class="font-bold text-gray-800 dark:text-white mb-4">Carbon Savings (kg)</h3>
+                <div class="relative h-64 w-full">
+                    <canvas id="co2Chart"></canvas>
+                </div>
+            </div>
+            <div class="stat-card">
+                <h3 class="font-bold text-gray-800 dark:text-white mb-4">Energy Efficiency (Wh/km)</h3>
+                <div class="relative h-64 w-full">
+                    <canvas id="effChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card p-0 overflow-visible">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                <h3 class="font-bold text-lg text-gray-900">Recent Trip History</h3>
+                <a href="history.html" class="text-gray-400 hover:text-blue-600 transition" title="View Detailed History">
+                    <i class="fa-solid fa-arrow-right text-xl"></i>
+                </a>
+            </div>
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-50 text-gray-500 text-xs uppercase font-bold">
+                        <th class="p-4">Date</th>
+                        <th class="p-4">Route</th>
+                        <th class="p-4">Distance</th>
+                        <th class="p-4">Battery Used</th>
+                        <th class="p-4 text-green-600">CO₂ Saved</th>
+                        <th class="p-4 text-right" id="action-header">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="history-body" class="text-sm text-gray-700">
+                    </tbody>
+            </table>
+        </div>
+        
+        <div class="mt-8 text-center text-gray-400 text-xs pb-10">
+            Generated by EcoTrack EV System • <span id="report-date"></span>
+        </div>
+
+        <!-- SOS BUTTON -->
+        <button onclick="triggerSOS()" class="fixed bottom-8 right-8 bg-red-600 hover:bg-red-700 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-black text-lg z-50 border-4 border-red-400 transition transform hover:scale-105" title="TRIGGER SOS">
+            <i class="fa-solid fa-bell animate-bounce"></i> <span>SOS ALERT</span>
+        </button>
+
+    </div>
+
+    <script>
+        // AUTH GUARD
+        if(!localStorage.getItem("user_id")) window.location.href = "login.html";
+
+        // FIX: Use absolute path for reliability
+        const API_BASE = "http://localhost/WEBPROG_PROJ/BACKEND/API";
+        let trips = [];
+        let socket;
+        
+        // UNIT PREFERENCES
+        const PREF_UNIT = localStorage.getItem('pref_units') || 'KM';
+        const IS_MILES = PREF_UNIT === 'MILES';
+        const DIST_FACTOR = IS_MILES ? 0.621371 : 1;
+        const DIST_LABEL = IS_MILES ? 'mi' : 'km';
+
+        document.addEventListener("DOMContentLoaded", () => {
+            loadActiveCar();
+            initBatterySync();
+            fetchTripHistory();
+            document.getElementById('report-date').innerText = new Date().toLocaleString();
+
+            // Init Socket for SOS
+            try {
+                socket = io("http://localhost:3000");
+                socket.on("connect", () => socket.emit("register", localStorage.getItem("user_id")));
+            } catch(e) { console.error("Socket error", e); }
+
+            // Click outside to close menus
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.action-wrapper')) {
+                    document.querySelectorAll('.menu-dropdown').forEach(d => d.classList.remove('show'));
+                }
+            });
+        });
+
+        function initBatterySync() {
+            const input = document.getElementById('dash-batt-input');
+            
+            // Load saved value
+            const savedBatt = localStorage.getItem('user_battery_level') || 80;
+            input.value = savedBatt;
+
+            // Sync functions
+            const updateVal = (val) => {
+                input.value = val;
+                localStorage.setItem('user_battery_level', val);
+            };
+
+            input.addEventListener('input', (e) => updateVal(e.target.value));
+
+            // Listen for changes from other tabs (Trip Planner)
+            window.addEventListener('storage', (e) => {
+                if (e.key === 'user_battery_level') {
+                    input.value = e.newValue;
+                }
+            });
+        }
+
+        async function fetchTripHistory() {
+            const userId = localStorage.getItem("user_id");
+            try {
+                const res = await fetch(`${API_BASE}/BATTERY/logs.php?user_id=${userId}`);
+                const data = await res.json();
+                
+                if(data.ok && data.logs) {
+                    trips = data.logs.map(log => ({
+                        id: log.id,
+                        rawDate: new Date(log.created_at),
+                        date: new Date(log.created_at).toLocaleDateString() + ' ' + new Date(log.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                        from: log.origin || 'Unknown',
+                        to: log.destination || 'Unknown',
+                        dist: parseFloat(log.distance_km),
+                        drained: parseFloat(log.battery_drained || 0)
+                    }));
+                    updateDashboard();
+                }
+            } catch(e) { console.error("Failed to fetch trips", e); }
+        }
+
+        function loadActiveCar() {
+            const activeCar = JSON.parse(localStorage.getItem('active_car') || "null");
+            if(activeCar) {
+                document.getElementById('sidebar-car-name').innerText = `${activeCar.brand} ${activeCar.model}`;
+            } else {
+                document.getElementById('sidebar-car-name').innerText = "No Car Selected";
+            }
+        }
+
+        // --- CORE UPDATE FUNCTION ---
+        function updateDashboard() {
+            calculateStats();
+            renderTable();
+            renderCharts();
+        }
+
+        function calculateStats() {
+            let totalDist = 0;
+            let totalSavings = 0;
+            let totalEnergy = 0;
+
+            trips.forEach(trip => {
+                totalDist += trip.dist;
+                totalSavings += (trip.dist * 0.192); // kg CO2
+                totalEnergy += (trip.dist * 0.16); // kWh (Assuming 160Wh/km avg)
+            });
+
+            const totalHoursDriven = (totalDist / 30);
+            const timeSaved = totalHoursDriven * 0.15; 
+
+            document.getElementById('total-co2').innerText = totalSavings.toFixed(1) + " kg";
+            document.getElementById('total-energy').innerText = totalEnergy.toFixed(1) + " kWh";
+            document.getElementById('total-time').innerText = timeSaved.toFixed(1) + " hrs";
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('history-body');
+            tbody.innerHTML = '';
+
+            // Sort by date descending and take top 5
+            const recentTrips = [...trips].sort((a, b) => b.rawDate - a.rawDate).slice(0, 5);
+            
+            if(recentTrips.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400">No trip history available.</td></tr>`;
+                return;
+            }
+
+            recentTrips.forEach(trip => {
+                const savings = (trip.dist * 0.192).toFixed(2);
+                
+                // ADDING THE ACTION MENU
+                const tr = document.createElement('tr');
+                tr.className = "history-row";
+                tr.innerHTML = `
+                    <td class="p-4 font-bold text-gray-600 whitespace-nowrap">${trip.date}</td>
+                    <td class="p-4">
+                        <div class="font-bold text-gray-800">${trip.to}</div>
+                        <div class="text-xs text-gray-400">from ${trip.from}</div>
+                    </td>
+                    <td class="p-4 font-mono">${(trip.dist * DIST_FACTOR).toFixed(1)} ${DIST_LABEL}</td>
+                    <td class="p-4"><span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">-${trip.drained}%</span></td>
+                    <td class="p-4 font-bold text-green-600">+${savings} kg</td>
+                    <td class="p-4 text-right relative action-wrapper action-col">
+                        <div class="action-btn ml-auto" onclick="toggleMenu(${trip.id})">
+                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                        </div>
+                        <div id="menu-${trip.id}" class="menu-dropdown text-left">
+                            <div class="menu-item" onclick="deleteTrip(${trip.id})">
+                                <i class="fa-solid fa-trash"></i> Delete
+                            </div>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function toggleMenu(id) {
+            // Close all other open menus first
+            document.querySelectorAll('.menu-dropdown').forEach(d => {
+                if(d.id !== `menu-${id}`) d.classList.remove('show');
+            });
+            const menu = document.getElementById(`menu-${id}`);
+            menu.classList.toggle('show');
+        }
+
+        function deleteTrip(id) {
+            if(confirm("Delete this trip?")) {
+                trips = trips.filter(t => t.id !== id);
+                updateDashboard();
+            }
+        }
+
+        // --- SOS FUNCTIONALITY ---
+        async function triggerSOS() {
+            if (!confirm("🚨 ARE YOU SURE? \n\nThis will send your current location to all emergency contacts.")) return;
+
+            if (!navigator.geolocation) return alert("GPS not supported.");
+
+            const btn = document.querySelector('.fixed.bottom-8');
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                try {
+                    // Get list of contacts
+                    const userId = localStorage.getItem("user_id");
+                    let contacts = JSON.parse(localStorage.getItem(`emergency_contacts_${userId}`) || "[]");
+                    // Fallback for backward compatibility
+                    const single = localStorage.getItem('emergency_contact');
+                    if (contacts.length === 0 && single) contacts.push(single);
+                    
+                    if (contacts.length === 0) {
+                        btn.innerHTML = '<i class="fa-solid fa-bell"></i>';
+                        return alert("No emergency contacts saved. Please go to Profile to add one.");
+                    }
+
+                    // 1. Send to API (Email)
+                    const res = await fetch(`${API_BASE}/SOS/trigger.php`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_id: localStorage.getItem("user_id"),
+                            contact_emails: contacts,
+                            contact_email: contacts[0], // Legacy support for older backend
+                            lat: pos.coords.latitude,
+                            lng: pos.coords.longitude
+                        })
+                    });
+
+                    // 2. Emit to Socket (Friend Map)
+                    if(socket && socket.connected) {
+                        socket.emit("sos_signal", {
+                            name: localStorage.getItem("user_name") || "User",
+                            lat: pos.coords.latitude,
+                            lng: pos.coords.longitude
+                        });
+                    }
+                    const data = await res.json();
+                    alert(data.ok ? "✅ " + data.message : "❌ " + data.error);
+                } catch (e) { alert("Connection Error"); }
+                finally { btn.innerHTML = '<i class="fa-solid fa-bell"></i>'; }
+            }, () => { alert("GPS Access Denied. Cannot send location."); btn.innerHTML = '<i class="fa-solid fa-bell"></i>'; });
+        }
+
+        function renderCharts() {
+            // 1. Group Data by Day
+            const dailyStats = {};
+            
+            // Sort trips by date (Oldest to Newest)
+            const sortedTrips = [...trips].sort((a, b) => a.rawDate - b.rawDate);
+
+            sortedTrips.forEach(t => {
+                const day = t.rawDate.toLocaleDateString(undefined, { weekday: 'short' }); // e.g. "Mon"
+                if (!dailyStats[day]) dailyStats[day] = { co2: 0, dist: 0, energy: 0 };
+                
+                // CO2 Savings: 192g per km (Standard ICE comparison)
+                dailyStats[day].co2 += (t.dist * 0.192);
+                dailyStats[day].dist += t.dist;
+                
+                // Energy Calculation (kWh)
+                // If we have battery % drained, use it with avg 60kWh capacity. Else fallback to 160Wh/km.
+                const energyKwh = (t.drained > 0) ? (t.drained / 100) * 60 : (t.dist * 0.16);
+                dailyStats[day].energy += energyKwh;
+            });
+
+            // 2. Prepare Arrays (Last 7 Days)
+            const labels = Object.keys(dailyStats).slice(-7);
+            const co2Data = labels.map(d => dailyStats[d].co2.toFixed(1));
+            const effData = labels.map(d => {
+                const s = dailyStats[d];
+                // Efficiency (Wh/km) = (Total Energy kWh * 1000) / Total Dist km
+                return s.dist > 0 ? ((s.energy * 1000) / s.dist).toFixed(0) : 0;
+            });
+
+            // Chart Options (Dark Mode Aware)
+            const isDark = document.documentElement.classList.contains('dark');
+            const textColor = isDark ? '#94a3b8' : '#64748b';
+            const gridColor = isDark ? '#334155' : '#e2e8f0';
+            const commonOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor } },
+                    x: { grid: { display: false }, ticks: { color: textColor } }
+                },
+                plugins: { legend: { display: false } }
+            };
+
+            // 3. Render CO2 Chart
+            if (window.chartCO2 instanceof Chart) window.chartCO2.destroy();
+            const ctx1 = document.getElementById('co2Chart').getContext('2d');
+            window.chartCO2 = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'CO₂ Saved (kg)',
+                        data: co2Data, 
+                        borderColor: '#22c55e',
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#22c55e'
+                    }]
+                },
+                options: commonOptions
+            });
+
+            // 4. Render Efficiency Chart
+            if (window.chartEff instanceof Chart) window.chartEff.destroy();
+            const ctx2 = document.getElementById('effChart').getContext('2d');
+            window.chartEff = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: labels.length ? labels : ['No Data'],
+                    datasets: [{
+                        label: 'Efficiency (Wh/km)',
+                        data: effData.length ? effData : [0],
+                        borderColor: '#3b82f6',
+                        tension: 0.4,
+                        fill: true,
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)'
+                    }]
+                },
+                options: { responsive: true, scales: { y: { beginAtZero: false } }, plugins: { legend: { display: false } } }
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Navigation</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; overflow: hidden; background: #f3f4f6; }
+        #map { height: 100vh; width: 100%; z-index: 0; }
+        
+        /* --- TRIP SUMMARY HUD (Restored Style) --- */
+        .trip-summary-card {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            width: 90%; max-width: 420px;
+            background: rgba(255, 255, 255, 0.95); /* Solid White */
+            backdrop-filter: blur(8px);
+            border-radius: 20px; padding: 18px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            z-index: 1000;
+            border: 1px solid white;
+            transition: all 0.3s ease;
+        }
+
+        .summary-grid {
+            display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
+            margin-top: 12px; padding-top: 12px;
+            border-top: 1px solid #f3f4f6;
+        }
+
+        .stat-item { text-align: center; }
+        .stat-label { font-size: 10px; font-weight: 800; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; }
+        .stat-val { font-size: 16px; font-black: 900; font-weight: 800; color: #1f2937; }
+
+        /* Bottom Controls */
+        .controls {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 15px; z-index: 1000;
+        }
+
+        .btn-control {
+            width: 56px; height: 56px; border-radius: 50%;
+            background: white; color: #1f2937;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            cursor: pointer; transition: all 0.2s; border: 1px solid #f3f4f6;
+        }
+        .btn-control:hover { transform: scale(1.1); box-shadow: 0 12px 25px rgba(0,0,0,0.2); }
+        .btn-red { background: #ef4444; color: white; border: none; }
+        .btn-red:hover { background: #dc2626; }
+
+        /* Markers */
+        .car-marker { transition: all 0.1s linear; }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+
+    <div class="trip-summary-card">
+        <div class="flex items-center gap-3">
+            <div class="bg-blue-600 text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-lg">
+                <i class="fa-solid fa-location-dot text-lg"></i>
+            </div>
+            <div class="flex-1 overflow-hidden">
+                <div class="text-xs font-bold text-gray-400 uppercase tracking-wider">Navigating To</div>
+                <h1 class="text-lg font-black text-gray-900 truncate" id="dest-label">Loading Route...</h1>
+            </div>
+        </div>
+
+        <div class="summary-grid">
+            <div class="stat-item">
+                <div class="stat-label"><i class="fa-regular fa-clock"></i> ETA</div>
+                <div class="stat-val text-blue-600" id="eta-display">-- min</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label"><i class="fa-solid fa-route"></i> Dist</div>
+                <div class="stat-val" id="dist-display">-- km</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label"><i class="fa-solid fa-bolt"></i> Batt</div>
+                <div class="stat-val text-green-600" id="batt-display">--%</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="btn-control" onclick="toggleMapLayer()" title="Switch Map View">
+            <i class="fa-solid fa-layer-group"></i>
+        </div>
+        <div class="btn-control btn-red" onclick="endTrip()" title="End Trip">
+            <i class="fa-solid fa-xmark"></i>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/@mapbox/polyline@1.2.0/src/polyline.js"></script>
+
+    <script>
+        // --- 1. CONFIGURATION ---
+        let map, carMarker, routePolyline;
+        let animationFrameId;
+        
+        // UNIT PREFERENCES
+        const PREF_UNIT = localStorage.getItem('pref_units') || 'KM';
+        const DIST_FACTOR = PREF_UNIT === 'MILES' ? 0.621371 : 1;
+        const DIST_LABEL = PREF_UNIT === 'MILES' ? 'mi' : 'km';
+        
+        const carIcon = L.divIcon({ 
+            html: '<div style="font-size:40px; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.3));">🚗</div>', 
+            className: 'car-marker', iconSize: [40, 40], iconAnchor: [20, 20] 
+        });
+
+        const destIcon = L.divIcon({
+            html: '<div style="font-size:32px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));">🏁</div>',
+            className: '', iconSize: [30, 30], iconAnchor: [5, 30]
+        });
+
+        // --- 2. INIT ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            loadTripData();
+        });
+
+        function initMap() {
+            const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
+            const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+            
+            map = L.map('map', { zoomControl: false, layers: [osm] }).setView([14.5995, 120.9842], 15);
+            
+            // Store layers
+            map.layers = { osm, satellite };
+            map.currentLayer = 'osm';
+        }
+
+        function toggleMapLayer() {
+            if (map.currentLayer === 'osm') {
+                map.removeLayer(map.layers.osm);
+                map.addLayer(map.layers.satellite);
+                map.currentLayer = 'satellite';
+            } else {
+                map.removeLayer(map.layers.satellite);
+                map.addLayer(map.layers.osm);
+                map.currentLayer = 'osm';
+            }
+        }
+
+        // --- 3. LOAD & ANIMATE ---
+        function loadTripData() {
+            try {
+                // Get data from Trip Planner
+                const tripDataRaw = localStorage.getItem('activeTrip');
+                if (!tripDataRaw) {
+                    alert("No active trip found.");
+                    window.location.href = "trip_planner.html";
+                    return;
+                }
+
+                const trip = JSON.parse(tripDataRaw);
+                const route = trip.route;
+
+                // 1. POPULATE TRIP SUMMARY (The Feature You Wanted)
+                document.getElementById('dest-label').innerText = trip.destination || trip.destLabel || "Selected Destination";
+                document.getElementById('dist-display').innerText = (route.distance_km * DIST_FACTOR).toFixed(1) + " " + DIST_LABEL;
+                document.getElementById('eta-display').innerText = route.duration_min + " min";
+                
+                // Color code battery status
+                const endBatt = route.end_battery;
+                const battEl = document.getElementById('batt-display');
+                battEl.innerText = endBatt + "%";
+                if(endBatt < 20) battEl.className = "stat-val text-red-600";
+                else battEl.className = "stat-val text-green-600";
+
+                // 2. DRAW MAP
+                const coords = polyline.decode(route.geometry);
+                
+                routePolyline = L.polyline(coords, {
+                    color: '#3b82f6', weight: 8, opacity: 0.8, lineCap: 'round'
+                }).addTo(map);
+
+                map.fitBounds(routePolyline.getBounds(), { padding: [80, 80] });
+
+                const endPoint = coords[coords.length - 1];
+                L.marker(endPoint, {icon: destIcon}).addTo(map);
+
+                // 3. START CAR
+                animateCar(coords);
+
+            } catch (e) {
+                console.error("Error:", e);
+                alert("Error loading route.");
+            }
+        }
+
+        function animateCar(pathCoords) {
+            if(carMarker) map.removeLayer(carMarker);
+            carMarker = L.marker(pathCoords[0], {icon: carIcon}).addTo(map);
+            
+            let i = 0;
+            const speed = 1; // Animation speed
+            
+            async function move() {
+                if (i >= pathCoords.length) {
+                    await saveTripLog(); // Save automatically on arrival
+                    alert("You have arrived! 🏁");
+                    window.location.href = "trip_planner.html";
+                    return;
+                }
+                
+                const newPos = pathCoords[i];
+                carMarker.setLatLng(newPos);
+                map.panTo(newPos, { animate: true, duration: 0.1 }); // Smooth follow
+
+                i += speed;
+                animationFrameId = requestAnimationFrame(move);
+            }
+            move();
+        }
+
+        async function saveTripLog() {
+            try {
+                const tripDataRaw = localStorage.getItem('activeTrip');
+                if (tripDataRaw) {
+                    const trip = JSON.parse(tripDataRaw);
+                    
+                    // Update Dashboard Battery based on trip result
+                    if (trip.route && trip.route.end_battery !== undefined) {
+                        localStorage.setItem('user_battery_level', trip.route.end_battery);
+                    }
+
+                    const userId = localStorage.getItem("user_id");
+                    
+                    if (!userId) return; // Skip if not logged in
+
+                    const res = await fetch('http://localhost/WEBPROG_PROJ/BACKEND/API/BATTERY/logs.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_id: userId,
+                            distance_km: trip.route.distance_km,
+                            battery_drained: trip.route.est_usage,
+                            origin: trip.origin || "Unknown",
+                            destination: trip.destination || trip.destLabel || "Unknown"
+                        })
+                    });
+
+                    if (!res.ok) {
+                        console.error("Failed to save trip:", await res.text());
+                    } else {
+                        console.log("Trip saved successfully");
+                    }
+                }
+            } catch(e) { 
+                console.error("Failed to save trip log", e);
+            }
+        }
+
+        async function endTrip() {
+            if(confirm("End current navigation?")) {
+                // SAVE TRIP TO HISTORY
+                await saveTripLog();
+                
+                window.location.href = "trip_planner.html";
+            }
+        }
+    </script>
+</body>
+</html>
