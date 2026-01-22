@@ -75,7 +75,6 @@ function showSuccess(message) {
     successMsg.hideTimeout = setTimeout(() => successMsg.classList.remove("show"), 3000);
 }
 
-// FIX: Ensure API path is correct (Uppercase API)
 const API_BASE = "http://localhost/WEBPROG_PROJ/BACKEND/API/AUTH";
 let tempUserId = null;
 let tempEmail = null;
@@ -151,6 +150,7 @@ document.getElementById("loginFormElement")?.addEventListener("submit", async fu
             setTimeout(() => window.location.href = "dashboard.html", 500);
         }
     } catch (err) {
+        console.error("LOGIN ERROR:", err);
         setLoading(btn, false);
         showSuccess("Server connection error. Check XAMPP.");
     }
