@@ -27,7 +27,10 @@ try {
             $otp = AuthHelper::generateOTP();
             AuthHelper::storeOTP($db, $user['id'], 'reset_password', $otp);
             
+<<<<<<< Updated upstream
             // Send Email (This might block slightly, but it's acceptable for Forgot Password flow)
+=======
+>>>>>>> Stashed changes
             if (!AuthHelper::sendEmail($email, "Reset Password", "Your reset code is: $otp")) {
                 http_response_code(500);
                 echo json_encode(['ok' => false, 'error' => 'Failed to send email. Check server logs.']);
@@ -36,7 +39,10 @@ try {
         }
     }
 
+<<<<<<< Updated upstream
     // Always return success to prevent email enumeration
+=======
+>>>>>>> Stashed changes
     echo json_encode(['ok' => true, 'message' => 'If that email exists, we sent a code.']);
 } catch (Exception $e) {
     http_response_code(500);

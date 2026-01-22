@@ -30,7 +30,7 @@ try {
             exit;
         }
 
-        $stmt = $db->prepare("SELECT user_id, username, email, pref_dark, pref_units FROM users WHERE user_id = ?");
+        $stmt = $db->prepare("SELECT id, username, email, pref_dark, pref_units FROM users WHERE id = ?");
         $stmt->execute([$user_id]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -42,7 +42,7 @@ try {
         echo json_encode([
             'ok' => true,
             'user' => [
-                'id' => (int)$user['user_id'],
+                'id' => (int)$user['id'],
                 'name' => $user['username'],
                 'email' => $user['email'],
                 'pref_dark' => (bool)$user['pref_dark'],
@@ -61,7 +61,7 @@ try {
             exit;
         }
 
-        $stmt = $db->prepare("UPDATE users SET pref_dark = ?, pref_units = ? WHERE user_id = ?");
+        $stmt = $db->prepare("UPDATE users SET pref_dark = ?, pref_units = ? WHERE id = ?");
         $stmt->execute([
             $input['pref_dark'] ? 1 : 0,
             $input['pref_units'],

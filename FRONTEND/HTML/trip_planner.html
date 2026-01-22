@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+ =<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Trip Planner</title>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -113,43 +112,11 @@
     html.dark .suggestBox { background: #1e293b; border-color: #334155; }
     html.dark .suggestItem { border-color: #334155; color: white; }
     html.dark .suggestItem:hover { background: #334155; }
-  </style>
-</head>
-
-<body>
-<div id="map"></div>
-<div id="toast"><i class="fa-solid fa-circle-info text-blue-400"></i> <span id="toast-msg">Notification</span></div>
-
-<div class="sidebar">
-  <div class="scroll">
-    
-    <!-- Header -->
-    <div class="flex items-center justify-between gap-3 mb-6">
-      <div>
-        <div class="text-2xl font-black text-slate-900 tracking-tight">Trip Planner</div>
-        <div class="text-xs text-slate-500 font-bold mt-0.5">Smart EV Routing</div>
-      </div>
-      <a href="dashboard.html" class="w-10 h-10 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl flex items-center justify-center transition" title="Back to Dashboard">
-        <i class="fa-solid fa-house"></i>
-      </a>
-    </div>
-
-    <!-- Active Car -->
-    <div id="active-car-display" class="active-car-badge w-full mb-6" onclick="window.location.href='garage.html'">
-        <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center"><i class="fa-solid fa-car"></i></div>
-        <span id="car-name" class="flex-1 truncate">Loading Car...</span>
-        <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
-    </div>
-
-    <!-- Weather -->
-    <div class="weatherBox">
-      <div>
+  </style>-i
+  <div class="weatherBox">
         <div class="text-[10px] font-black uppercase tracking-widest text-blue-200 mb-1">Current Weather</div>
-        <div class="flex items-end gap-2 mt-1">
-          <div class="text-4xl font-black tracking-tighter" id="weatherTemp">--°</div>
-          <div class="text-sm font-bold opacity-90 mb-1" id="weatherDesc">Loading…</div>
-        </div>
-        <div class="text-xs font-bold opacity-80 mt-2 flex items-center gap-1" id="weatherLoc"><i class="fa-solid fa-location-dot"></i> Locating…</div>
+     
+ <      <div class="text-xs font-bold opacity-80 mt-2 flex items-center gap-1" id="weatherLoc"><i class="fa-solid fa-location-dot"></i> Locating…</div>
       </div>
       <div class="text-5xl opacity-90 drop-shadow-sm" id="weatherIcon">⛅</div>
     </div>

@@ -9,11 +9,15 @@ use PHPMailer\PHPMailer\SMTP;
 use PHPMailer\PHPMailer\Exception;
 
 // Load Composer's autoloader
+<<<<<<< Updated upstream
 if (file_exists(__DIR__ . '/../../vendor/autoload.php')) {
     require_once __DIR__ . '/../../vendor/autoload.php';
 } elseif (file_exists(__DIR__ . '/../../../vendor/autoload.php')) {
     require_once __DIR__ . '/../../../vendor/autoload.php';
 }
+=======
+require_once __DIR__ . '/../../vendor/autoload.php';
+>>>>>>> Stashed changes
 
 class AuthHelper {
     
@@ -92,12 +96,15 @@ class AuthHelper {
         // 2. Get a Google App Password (https://myaccount.google.com/apppasswords)
         // 3. Uncomment the lines below and fill in your details.
         
+<<<<<<< Updated upstream
         // Check if PHPMailer is available
         if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
             error_log("PHPMailer class not found. Email simulation only.");
             return true; // Return true so registration succeeds via debug file
         }
 
+=======
+>>>>>>> Stashed changes
         try {
             $mail = new PHPMailer(true);
             // Uncomment the next line to see detailed error messages in your XAMPP logs if email fails
@@ -118,7 +125,11 @@ class AuthHelper {
             
             // SENDER SETTINGS (This is the account SENDING the email)
             $mail->Username = 'energo.noreply@gmail.com'; 
+<<<<<<< Updated upstream
             $mail->Password = 'ohoeuyvoixgsqpor'; // Your App Password (No spaces)
+=======
+            $mail->Password = 'ljtnxczhqeanwkdq'; // Your App Password (No spaces)
+>>>>>>> Stashed changes
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
             $mail->Port = 587;
             $mail->setFrom('energo.noreply@gmail.com', 'EnerGo');
@@ -128,6 +139,7 @@ class AuthHelper {
             $mail->isHTML(true);
             $mail->Subject = $subject;
             
+<<<<<<< Updated upstream
             // Check if this is an OTP email or a generic notification
             if (stripos($subject, 'Verification') !== false || stripos($subject, 'Reset') !== false) {
                 // OTP TEMPLATE
@@ -147,14 +159,32 @@ class AuthHelper {
                 $mail->Body = "<div style='font-family: sans-serif; padding: 20px; color: #333;'>$body</div>";
                 $mail->AltBody = strip_tags($body);
             }
+=======
+            // Create a nice HTML Email Template
+            $otpCode = preg_replace('/[^0-9]/', '', $body); // Extract just the numbers
+            $mail->Body = "
+                <div style='font-family: sans-serif; padding: 20px; background: #f3f4f6; text-align: center;'>
+                    <div style='background: white; padding: 30px; border-radius: 15px; max-width: 400px; margin: 0 auto; box-shadow: 0 4px 10px rgba(0,0,0,0.05);'>
+                        <h2 style='color: #1e293b; margin-top: 0;'>Energo Verification</h2>
+                        <p style='color: #64748b; font-size: 14px;'>Your Energo verification code is:</p>
+                        <div style='font-size: 36px; font-weight: 900; color: #2563eb; letter-spacing: 4px; margin: 20px 0;'>$otpCode</div>
+                        <p style='color: #94a3b8; font-size: 12px;'>This code expires in 10 minutes.</p>
+                    </div>
+                </div>";
+            $mail->AltBody = "Your Energo verification code is: $otpCode\nThis code expires in 10 minutes.";
+>>>>>>> Stashed changes
             
             $mail->send();
             return true;
         } catch (Exception $e) {
             error_log("Mail Error: " . $mail->ErrorInfo);
+<<<<<<< Updated upstream
             file_put_contents($debugFile, date('Y-m-d H:i:s') . " - MAIL ERROR: " . $mail->ErrorInfo . PHP_EOL, FILE_APPEND);
             // Return true to allow flow to continue using the debug file (Simulation Fallback)
             return true;
+=======
+            return false;
+>>>>>>> Stashed changes
         }
     }
 }

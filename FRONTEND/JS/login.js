@@ -21,18 +21,65 @@ function showSignup() {
 function showLogin() {
     const loginForm = document.getElementById("loginForm");
     const signupForm = document.getElementById("signupForm");
+<<<<<<< Updated upstream
     document.getElementById("otpForm").classList.add("hidden");
     const forgotForm = document.getElementById("forgotForm");
     
     if(forgotForm) forgotForm.classList.add("hidden");
     
+=======
+    
+    // 1. Ensure all other forms are hidden
+    document.getElementById("forgotForm")?.classList.add("hidden");
+    document.getElementById("otpForm")?.classList.add("hidden");
+    document.getElementById("resetOtpForm")?.classList.add("hidden");
+    document.getElementById("newPasswordForm")?.classList.add("hidden");
+
+>>>>>>> Stashed changes
     clearErrors();
-    signupForm.classList.add("slide-out-left");
-    setTimeout(() => {
-        signupForm.classList.add("hidden");
+    
+    // 2. Only animate Signup out if it's actually visible
+    if (!signupForm.classList.contains("hidden")) {
+        signupForm.classList.add("slide-out-left");
+        setTimeout(() => {
+            signupForm.classList.add("hidden");
+            signupForm.classList.remove("slide-out-left"); // Cleanup animation class
+            loginForm.classList.remove("hidden");
+            loginForm.classList.add("slide-in-right");
+            setTimeout(() => loginForm.classList.remove("slide-in-right"), 300);
+        }, 300);
+    } else {
+        // 3. Direct switch (e.g., from Forgot Password)
         loginForm.classList.remove("hidden");
         loginForm.classList.add("slide-in-right");
-    }, 300);
+        setTimeout(() => loginForm.classList.remove("slide-in-right"), 300);
+    }
+}
+
+function showOTP(userId, purpose, email = "") {
+    document.getElementById("loginForm").classList.add("hidden");
+    document.getElementById("signupForm").classList.add("hidden");
+    document.getElementById("otpForm").classList.remove("hidden");
+    
+    document.getElementById("otpUserId").value = userId;
+    document.getElementById("otpPurpose").value = purpose;
+    
+    if (email) {
+        // Spec: Show masked email (ex: j***@gmail.com)
+        const [name, domain] = email.split('@');
+        const masked = name.length > 2 ? name[0] + '***' + name[name.length - 1] + '@' + domain : email;
+        document.getElementById("otpEmailDisplay").innerText = masked;
+    }
+    startOtpTimer(); // Start the timer when OTP screen shows
+}
+
+function showForgot() {
+    document.getElementById("loginForm").classList.add("hidden");
+    document.getElementById("signupForm").classList.add("hidden");
+    document.getElementById("otpForm").classList.add("hidden");
+    document.getElementById("resetOtpForm")?.classList.add("hidden");
+    document.getElementById("newPasswordForm")?.classList.add("hidden");
+    document.getElementById("forgotForm").classList.remove("hidden");
 }
 
 function showForgot() {
@@ -76,6 +123,7 @@ function showSuccess(message) {
 }
 
 const API_BASE = "http://localhost/WEBPROG_PROJ/BACKEND/API/AUTH";
+<<<<<<< Updated upstream
 let tempUserId = null;
 let tempEmail = null;
 
@@ -100,14 +148,23 @@ async function sendOtpAsync(userId, purpose) {
         console.error("OTP Send Error", e);
     }
 }
+=======
+>>>>>>> Stashed changes
 
 // ===== LOGIN HANDLER =====
 document.getElementById("loginFormElement")?.addEventListener("submit", async function (e) {
     e.preventDefault();
     clearErrors();
 
+<<<<<<< Updated upstream
     const btn = e.target.querySelector("button[type='submit']");
     setLoading(btn, true, "Signing In...");
+=======
+    const btn = document.querySelector("#loginFormElement button[type='submit']");
+    const originalText = btn.innerText;
+    btn.disabled = true;
+    btn.innerText = "Signing In...";
+>>>>>>> Stashed changes
 
     const email = document.getElementById("loginEmail")?.value.trim();
     const password = document.getElementById("loginPassword")?.value;
@@ -138,6 +195,7 @@ document.getElementById("loginFormElement")?.addEventListener("submit", async fu
             return;
         }
 
+<<<<<<< Updated upstream
         // ✅ LOGIN SUCCESS
         if (data.ok) {
             localStorage.setItem("user_id", data.user.id);
@@ -152,7 +210,39 @@ document.getElementById("loginFormElement")?.addEventListener("submit", async fu
     } catch (err) {
         console.error("LOGIN ERROR:", err);
         setLoading(btn, false);
+=======
+        // 0. CHECK IF VERIFICATION IS REQUIRED (For unverified logins)
+        if (data.require_verification) {
+            showSuccess(data.message);
+            showOTP(data.temp_user_id, 'register', email);
+            return;
+        }
+
+        // 1. CHECK IF MFA IS REQUIRED
+        if (data.mfa_required) {
+            showSuccess("MFA Code sent to email.");
+            showOTP(data.temp_user_id, 'login_mfa', email);
+            return;
+        }
+
+        // 2. NORMAL LOGIN SUCCESS (Fallback)
+        if (data.ok) {
+            // Save Token & User Object (Required for Garage/Profile)
+            if (data.token) localStorage.setItem("auth_token", data.token);
+            localStorage.setItem("currentUser", JSON.stringify(data.user));
+
+            // Legacy items for Profile.js
+            localStorage.setItem("user_name", data.user.username);
+            localStorage.setItem("full_display_name", data.user.name);
+            localStorage.setItem("user_email", data.user.email);
+            window.location.href = "garage.html";
+        }
+    } catch (err) {
+>>>>>>> Stashed changes
         showSuccess("Server connection error. Check XAMPP.");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = originalText;
     }
 });
 
@@ -161,8 +251,15 @@ document.getElementById("signupFormElement")?.addEventListener("submit", async f
     e.preventDefault();
     clearErrors();
 
+<<<<<<< Updated upstream
     const btn = e.target.querySelector("button[type='submit']");
     setLoading(btn, true, "Creating Account...");
+=======
+    const btn = document.querySelector("#signupFormElement button[type='submit']");
+    const originalText = btn.innerText;
+    btn.disabled = true;
+    btn.innerText = "Creating Account...";
+>>>>>>> Stashed changes
 
     const username = document.getElementById("signupUserCustom")?.value.trim();
     const firstName = document.getElementById("signupFirstName")?.value.trim();
@@ -174,6 +271,8 @@ document.getElementById("signupFormElement")?.addEventListener("submit", async f
     if (password !== confirmPassword) {
         setLoading(btn, false);
         showSuccess("Passwords do not match.");
+        btn.disabled = false;
+        btn.innerText = originalText;
         return;
     }
 
@@ -192,6 +291,7 @@ document.getElementById("signupFormElement")?.addEventListener("submit", async f
             return;
         }
 
+<<<<<<< Updated upstream
         // FIX: Go straight to OTP instead of Login
         if (data.require_verification) {
             showSuccess("Verification code sent to email.");
@@ -200,12 +300,27 @@ document.getElementById("signupFormElement")?.addEventListener("submit", async f
             showSuccess("Account created! Please login.");
             showLogin();
         }
+=======
+        // CHECK IF VERIFICATION IS REQUIRED
+        if (data.require_verification) {
+            showSuccess("Verification code sent!");
+            showOTP(data.temp_data.user_id, 'register', email);
+        } else {
+            showSuccess("Account created! Please login.");
+            setTimeout(() => showLogin(), 1500); 
+        }
+
+>>>>>>> Stashed changes
     } catch (err) {
         setLoading(btn, false);
         showSuccess("Server connection error.");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = originalText;
     }
 });
 
+<<<<<<< Updated upstream
 // ===== OTP FORM SUBMIT HANDLER =====
 document.getElementById("otpFormElement")?.addEventListener("submit", async function (e) {
     e.preventDefault();
@@ -216,6 +331,19 @@ document.getElementById("otpFormElement")?.addEventListener("submit", async func
     const userId = document.getElementById("otpUserId").value;
     const purpose = document.getElementById("otpPurpose").value;
     const otp = document.getElementById("otpInput").value.trim();
+=======
+// ===== OTP HANDLER =====
+document.getElementById("otpFormElement")?.addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const userId = document.getElementById("otpUserId").value;
+    const purpose = document.getElementById("otpPurpose").value;
+    const otp = document.getElementById("otpInput").value.trim(); // FIX: Remove spaces
+
+    const btn = document.querySelector("#otpFormElement button[type='submit']");
+    const originalText = btn.innerText;
+    btn.disabled = true;
+    btn.innerText = "Verifying...";
+>>>>>>> Stashed changes
 
     const endpoint = purpose === 'register' ? 'verify_registration.php' : 'verify_mfa.php';
 
@@ -223,6 +351,7 @@ document.getElementById("otpFormElement")?.addEventListener("submit", async func
         const res = await fetch(`${API_BASE}/${endpoint}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+<<<<<<< Updated upstream
             body: JSON.stringify({ user_id: userId, otp: otp })
         });
 
@@ -255,12 +384,109 @@ async function handleForgotRequest(e) {
     const btn = e.target.querySelector("button");
     btn.disabled = true; btn.innerText = "Sending...";
 
+=======
+            body: JSON.stringify({ user_id: userId, otp: otp }),
+        });
+        const data = await res.json();
+
+        if (data.ok) {
+            // Both Register and Login MFA now return a token for auto-login
+            if (purpose === 'register' || purpose === 'login_mfa') {
+                // Save Session Data
+                if (data.token) localStorage.setItem("auth_token", data.token);
+                localStorage.setItem("currentUser", JSON.stringify(data.user));
+                
+                // Legacy items
+                localStorage.setItem("user_name", data.user.username);
+                localStorage.setItem("full_display_name", data.user.name);
+                localStorage.setItem("user_email", data.user.email);
+                window.location.href = "garage.html";
+            }
+        } else { showSuccess(data.error || "Invalid Code"); }
+    } catch (e) { showSuccess("Verification Error"); } 
+    finally {
+        btn.disabled = false;
+        btn.innerText = originalText;
+    }
+});
+
+// ===== OTP TIMER & RESEND LOGIC =====
+function startOtpTimer() {
+    const display = document.getElementById("otpTimerDisplay");
+    const resendBtn = document.getElementById("resendOtpBtn");
+    
+    // 1. Expiry Timer (10 Minutes)
+    let duration = 600; // 10 minutes in seconds
+    
+    // Clear existing intervals if any
+    if (window.otpInterval) clearInterval(window.otpInterval);
+    
+    window.otpInterval = setInterval(() => {
+        const m = Math.floor(duration / 60).toString().padStart(2, '0');
+        const s = (duration % 60).toString().padStart(2, '0');
+        if(display) display.innerText = `Expires in ${m}:${s}`;
+        
+        if (--duration < 0) {
+            clearInterval(window.otpInterval);
+            if(display) display.innerText = "Code Expired";
+        }
+    }, 1000);
+
+    // 2. Resend Cooldown (60 Seconds)
+    let cooldown = 60;
+    if(resendBtn) {
+        resendBtn.disabled = true;
+        resendBtn.innerText = `Resend in ${cooldown}s`;
+        resendBtn.classList.add("opacity-50");
+    }
+    
+    if (window.resendInterval) clearInterval(window.resendInterval);
+
+    window.resendInterval = setInterval(() => {
+        cooldown--;
+        if(resendBtn) resendBtn.innerText = `Resend in ${cooldown}s`;
+        
+        if (cooldown <= 0) {
+            clearInterval(window.resendInterval);
+            if(resendBtn) {
+                resendBtn.disabled = false;
+                resendBtn.innerText = "Resend Code";
+                resendBtn.classList.remove("opacity-50");
+            }
+        }
+    }, 1000);
+}
+
+async function resendOTP() {
+    const userId = document.getElementById("otpUserId").value;
+    const purpose = document.getElementById("otpPurpose").value;
+    
+    try {
+        const res = await fetch(`${API_BASE}/resend_otp.php`, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id: userId, purpose: purpose })
+        });
+        const data = await res.json();
+        if(data.ok) { showSuccess(data.message); startOtpTimer(); } 
+        else { showSuccess(data.error); }
+    } catch(e) { showSuccess("Connection Error"); }
+}
+
+// ===== FORGOT PASSWORD HANDLERS =====
+
+// 1. Send Reset Code
+document.getElementById("forgotFormElement")?.addEventListener("submit", async function(e) {
+    e.preventDefault();
+    const email = document.getElementById("forgotEmail").value;
+    
+>>>>>>> Stashed changes
     try {
         const res = await fetch(`${API_BASE}/forgot_password.php`, {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email })
         });
         const data = await res.json();
+<<<<<<< Updated upstream
         
         if(data.ok) {
             tempEmail = email;
@@ -298,15 +524,57 @@ async function handleNewPassword(e) {
     const token = document.getElementById("resetToken").value;
 
     if(newPass !== confirmPass) return showSuccess("Passwords do not match");
+=======
+        if(data.ok) {
+            showSuccess(data.message);
+            document.getElementById("forgotForm").classList.add("hidden");
+            document.getElementById("resetOtpForm").classList.remove("hidden");
+            document.getElementById("resetEmailHidden").value = email;
+        } else { showSuccess(data.error); }
+    } catch(err) { showSuccess("Connection Error"); }
+});
+
+// 2. Verify Reset Code
+document.getElementById("resetOtpFormElement")?.addEventListener("submit", async function(e) {
+    e.preventDefault();
+    const email = document.getElementById("resetEmailHidden").value;
+    const otp = document.getElementById("resetOtpInput").value;
+
+    try {
+        const res = await fetch(`${API_BASE}/verify_reset_otp.php`, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, otp })
+        });
+        const data = await res.json();
+        if(data.ok) {
+            document.getElementById("resetTokenHidden").value = data.reset_token;
+            document.getElementById("resetOtpForm").classList.add("hidden");
+            document.getElementById("newPasswordForm").classList.remove("hidden");
+        } else { showSuccess(data.error || "Invalid Code"); }
+    } catch(err) { showSuccess("Connection Error"); }
+});
+
+// 3. Set New Password
+document.getElementById("newPasswordFormElement")?.addEventListener("submit", async function(e) {
+    e.preventDefault();
+    const email = document.getElementById("resetEmailHidden").value;
+    const token = document.getElementById("resetTokenHidden").value;
+    const newPass = document.getElementById("newPasswordInput").value;
+>>>>>>> Stashed changes
 
     try {
         const res = await fetch(`${API_BASE}/reset_password.php`, {
             method: "POST", headers: { "Content-Type": "application/json" },
+<<<<<<< Updated upstream
             body: JSON.stringify({ email: tempEmail, reset_token: token, new_password: newPass })
+=======
+            body: JSON.stringify({ email, reset_token: token, new_password: newPass })
+>>>>>>> Stashed changes
         });
         const data = await res.json();
         if(data.ok) {
             showSuccess("Password updated! Please login.");
+<<<<<<< Updated upstream
             setTimeout(() => showLogin(), 2000);
         } else {
             showSuccess(data.error || "Update failed");
@@ -336,3 +604,9 @@ function setLoading(btn, isLoading, text) {
         btn.classList.remove("opacity-75", "cursor-not-allowed");
     }
 }
+=======
+            showLogin();
+        } else { showSuccess(data.error); }
+    } catch(err) { showSuccess("Connection Error"); }
+});
+>>>>>>> Stashed changes

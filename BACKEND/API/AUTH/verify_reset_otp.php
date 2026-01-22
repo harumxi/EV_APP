@@ -37,7 +37,11 @@ try {
         $expires = date('Y-m-d H:i:s', strtotime('+5 minutes'));
         $tokenHash = password_hash($resetToken, PASSWORD_DEFAULT);
         
+<<<<<<< Updated upstream
         // Store as a special OTP entry or separate table. Reusing auth_otps for simplicity:
+=======
+        // Store as a special OTP entry
+>>>>>>> Stashed changes
         $stmt = $db->prepare("INSERT INTO auth_otps (user_id, purpose, otp_hash, expires_at) VALUES (?, 'reset_token', ?, ?)");
         $stmt->execute([$user['id'], $tokenHash, $expires]);
 
