@@ -164,7 +164,7 @@
                 const route = trip.route;
 
                 // 1. POPULATE TRIP SUMMARY (The Feature You Wanted)
-                document.getElementById('dest-label').innerText = trip.destLabel || "Selected Destination";
+                document.getElementById('dest-label').innerText = trip.destination || trip.destLabel || "Selected Destination";
                 document.getElementById('dist-display').innerText = (route.distance_km * DIST_FACTOR).toFixed(1) + " " + DIST_LABEL;
                 document.getElementById('eta-display').innerText = route.duration_min + " min";
                 

@@ -418,7 +418,8 @@
             navigator.geolocation.getCurrentPosition(async (pos) => {
                 try {
                     // Get list of contacts
-                    let contacts = JSON.parse(localStorage.getItem('emergency_contacts') || "[]");
+                    const userId = localStorage.getItem("user_id");
+                    let contacts = JSON.parse(localStorage.getItem(`emergency_contacts_${userId}`) || "[]");
                     // Fallback for backward compatibility
                     const single = localStorage.getItem('emergency_contact');
                     if (contacts.length === 0 && single) contacts.push(single);

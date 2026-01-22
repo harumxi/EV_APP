@@ -238,27 +238,27 @@
         }
 
         function logout() {
-            // Preserve preferences before clearing session
-            const isDark = localStorage.getItem('pref_dark');
-            const units = localStorage.getItem('pref_units');
-            
-            localStorage.clear();
-            
-            // Restore preferences
-            if (isDark) localStorage.setItem('pref_dark', isDark);
-            if (units) localStorage.setItem('pref_units', units);
+            // Remove only session-specific keys, keep preferences and contacts
+            const keysToRemove = [
+                'user_id', 'user_name', 'full_display_name', 'user_email',
+                'active_car', 'ev_max_range', 'ev_capacity', 'ev_efficiency',
+                'activeTrip', 'nav_destination', 'forceCharging', 'ev_lock_status',
+                'ev_charging_mode', 'ev_target_charger', 'last_known_battery', 'user_battery_level'
+            ];
+            keysToRemove.forEach(k => localStorage.removeItem(k));
             
             window.location.href = "login.html";
         }
 
         // --- CONTACT LIST MANAGEMENT ---
         function getContacts() {
-            let contacts = JSON.parse(localStorage.getItem('emergency_contacts') || "[]");
+            const userId = localStorage.getItem('user_id');
+            let contacts = JSON.parse(localStorage.getItem(`emergency_contacts_${userId}`) || "[]");
             // Migration: Check for old single contact
             const oldSingle = localStorage.getItem('emergency_contact');
             if (oldSingle && !contacts.includes(oldSingle)) {
                 contacts.push(oldSingle);
-                localStorage.setItem('emergency_contacts', JSON.stringify(contacts));
+                localStorage.setItem(`emergency_contacts_${userId}`, JSON.stringify(contacts));
                 localStorage.removeItem('emergency_contact'); // Cleanup
             }
             return contacts;
@@ -282,7 +282,8 @@
         function removeContact(email) {
             if(!confirm(`Remove ${email} from emergency contacts?`)) return;
             const contacts = getContacts().filter(c => c !== email);
-            localStorage.setItem('emergency_contacts', JSON.stringify(contacts));
+            const userId = localStorage.getItem('user_id');
+            localStorage.setItem(`emergency_contacts_${userId}`, JSON.stringify(contacts));
             loadContacts();
         }
 
@@ -300,7 +301,8 @@
                 const contacts = getContacts();
                 if (!contacts.includes(email)) {
                     contacts.push(email);
-                    localStorage.setItem('emergency_contacts', JSON.stringify(contacts));
+                    const userId = localStorage.getItem('user_id');
+                    localStorage.setItem(`emergency_contacts_${userId}`, JSON.stringify(contacts));
                 }
 
                 // 2. Send Invite Email via Backend
