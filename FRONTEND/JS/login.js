@@ -2,11 +2,16 @@
     FRONTEND/JS/login.js
    =========================== */
 
-console.log("LOGIN.JS LOADED (FIXED FLOW)");
-
 const API_BASE = "http://localhost/WEBPROG_PROJ/BACKEND/API/AUTH";
 let tempUserId = null;
 let tempEmail = null;
+
+// AUTO-REDIRECT: If user is already logged in, go to dashboard
+document.addEventListener("DOMContentLoaded", () => {
+    if (localStorage.getItem("user_id")) {
+        window.location.href = "dashboard.html";
+    }
+});
 
 // ===== UI TOGGLE FUNCTIONS =====
 function showSignup() {
@@ -224,7 +229,6 @@ document.getElementById("otpFormElement")?.addEventListener("submit", async func
         const data = await res.json();
 
         if (data.ok) {
-/* c:\Users\Stephanie\Documents\GitHub\WEBPROG_PROJ\FRONTEND\JS\login.js */
             if (purpose === 'register') {
                 showSuccess("Account verified! Please login.");
                 showLogin();
