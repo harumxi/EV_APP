@@ -1,0 +1,232 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #000;
+  color: #fff;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: "Montserrat", sans-serif;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+}
+
+/* INTRO SCREEN */
+#intro-screen {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.6) 100%), url("../IMAGES/darkbg.png") no-repeat center center;
+  background-size: cover;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  /* ✅ This ensures space for the fixed bottom hint */
+  padding: 50px 40px;
+
+  cursor: pointer;
+  transition: opacity 0.8s ease, transform 1s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+/* BRAND */
+.brand-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.brand-name {
+  font-family: "Michroma", sans-serif;
+  font-size: 2.1rem;
+  letter-spacing: 12px;
+  text-transform: uppercase;
+  text-shadow: 0 4px 10px rgba(0, 0, 0, 0.9), 0 0 30px rgba(255, 255, 255, 0.25);
+}
+
+.logo-placeholder {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: rgba(255,255,255,0.4);
+}
+
+/* CAR STAGE */
+.model-stage {
+  width: 100%;
+  max-width: 1400px;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  /* ✅ prevents the car block from pushing the bottom content away */
+  flex: 0 auto;
+  min-height: 240px;
+
+  /* ✅ move car higher */
+  margin: auto;
+  position: relative;
+}
+
+/* Ground Shadow */
+.model-stage::after {
+  content: "";
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 85%;
+  height: 30px;
+  background: radial-gradient(ellipse at center, rgba(0,0,0,0.8) 0%, transparent 70%);
+  z-index: -1;
+  filter: blur(8px);
+  animation: shadow-pulse 7s ease-in-out infinite;
+}
+
+/* HERO CAR (no border/frame) */
+.car-placeholder {
+  width: 100%;
+
+  /* ✅ responsive height so it fits on short screens */
+  height: min(650px, 60vh);
+
+  background-image: url("../IMAGES/nobgcar.png");
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: contain;
+
+  border: none;
+  box-shadow: none;
+  background-color: transparent;
+
+  animation: float 7s ease-in-out infinite;
+
+  /* For positioning and clipping reflections */
+  position: relative;
+  overflow: hidden;
+
+  /* ✅ Mask reflections to car shape */
+  -webkit-mask-image: url("../IMAGES/nobgcar.png");
+  mask-image: url("../IMAGES/nobgcar.png");
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center center;
+  mask-position: center center;
+}
+
+/* Ambient Reflections (Cliffs/Road) */
+.car-placeholder::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    170deg,
+    rgba(10, 10, 15, 0.5) 20%, /* Dark cliff reflection */
+    rgba(180, 180, 180, 0.15) 48%, /* Wet road highlight */
+    rgba(180, 180, 180, 0.15) 52%,
+    rgba(10, 10, 15, 0.5) 80%
+  );
+  mix-blend-mode: overlay;
+  opacity: 0.6;
+  animation: ambient-reflection 15s ease-in-out infinite alternate;
+}
+
+/* Lightning Flash Reflection */
+.car-placeholder::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 40% 30%,
+    rgba(200, 220, 255, 0.7) 0%,
+    transparent 50%
+  );
+  mix-blend-mode: color-dodge;
+  opacity: 0;
+  /* Stuttering flash effect */
+  animation: lightning-flash 6s ease-out infinite;
+  animation-delay: 1.5s;
+}
+
+/* SHADOW ANIMATION */
+@keyframes shadow-pulse {
+  0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.8; }
+  50% { transform: translateX(-50%) scale(0.8); opacity: 0.4; }
+}
+
+/* FLOAT */
+@keyframes float {
+  0%, 100% { transform: translateY(0) scale(1.35); }
+  50% { transform: translateY(-18px) scale(1.35); }
+}
+
+/* REFLECTION ANIMATIONS */
+@keyframes ambient-reflection {
+  from { transform: translateX(-8%); }
+  to { transform: translateX(8%); }
+}
+
+@keyframes lightning-flash {
+  0%, 90%, 100% { opacity: 0; transform: scale(1) skewX(-20deg); }
+  91% { opacity: 0.9; transform: scale(1.2) skewX(-20deg); }
+  92% { opacity: 0.2; transform: scale(1) skewX(-20deg); }
+  93% { opacity: 1; transform: scale(1.1) skewX(-20deg); }
+  94% { opacity: 0.1; transform: scale(1) skewX(-20deg); }
+}
+
+/* INFO */
+.info-section {
+  text-align: center;
+  max-width: 420px;
+}
+
+.description {
+  font-family: "Michroma", sans-serif;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #e0e0e0;
+  font-weight: 700;
+  line-height: 1.6;
+  margin-top: 15px;
+}
+
+/* ✅ ALWAYS VISIBLE (even on compressed screens) */
+.touch-hint {
+  position: static;
+  transform: none;
+  margin-top: 25px;
+
+  font-family: "Michroma", sans-serif;
+  font-size: 0.6rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  font-weight: 700;
+
+  color: rgba(255, 255, 255, 0.4);
+  opacity: 1;
+
+  /* subtle premium feel */
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+/* EXIT */
+.fade-out-up {
+  opacity: 0;
+  transform: translateY(-80px) scale(0.97);
+  pointer-events: none;
+}
