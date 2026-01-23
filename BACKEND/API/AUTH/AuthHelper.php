@@ -86,76 +86,49 @@ class AuthHelper {
         // Also log to XAMPP error log
         error_log(" [EMAIL SIMULATION] To: $to | Subject: $subject | Body: $body ");
 
-        // 2. REAL GMAIL SENDING (Optional - Requires PHPMailer)
-        // To use this:
-        // 1. Install PHPMailer via Composer or download it.
-        // 2. Get a Google App Password (https://myaccount.google.com/apppasswords)
-        // 3. Uncomment the lines below and fill in your details.
+        // 2. REAL SMTP SENDING via CONFIG/mail.php
+        $mailConfig = __DIR__ . '/../../CONFIG/mail.php';
         
-        // Check if PHPMailer is available
-        if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
-            error_log("PHPMailer class not found. Email simulation only.");
-            return true; // Return true so registration succeeds via debug file
-        }
+        if (file_exists($mailConfig)) {
+            require_once $mailConfig;
 
-        try {
-            $mail = new PHPMailer(true);
-            // Uncomment the next line to see detailed error messages in your XAMPP logs if email fails
-            $mail->SMTPDebug = 2; $mail->Debugoutput = 'error_log'; // Enabled for debugging
+            try {
+                $mail = getMailer(); // Defined in CONFIG/mail.php
+                $mail->addAddress($to);
+                $mail->isHTML(true);
+                $mail->Subject = $subject;
 
-            $mail->isSMTP();
-            $mail->Host = 'smtp.gmail.com';
-            $mail->SMTPAuth = true;
-            
-            // FIX: Bypass SSL certificate checks for Localhost/XAMPP
-            $mail->SMTPOptions = array(
-                'ssl' => array(
-                    'verify_peer' => false,
-                    'verify_peer_name' => false,
-                    'allow_self_signed' => true
-                )
-            );
-            
-            // SENDER SETTINGS (This is the account SENDING the email)
-            $mail->Username = 'energo.noreply@gmail.com'; 
-            $mail->Password = 'ohoeuyvoixgsqpor'; // Your App Password (No spaces)
-            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port = 587;
-            $mail->setFrom('energo.noreply@gmail.com', 'EnerGo');
-            
-            // RECIPIENT (This sends to the user's input email)
-            $mail->addAddress($to);
-            $mail->isHTML(true);
-            $mail->Subject = $subject;
-            
-            // Check if this is an OTP email or a generic notification
-            if (stripos($subject, 'Verification') !== false || stripos($subject, 'Reset') !== false) {
-                // OTP TEMPLATE
-                $otpCode = preg_replace('/[^0-9]/', '', $body); // Extract just the numbers
-                $mail->Body = "
-                    <div style='font-family: sans-serif; padding: 20px; background: #f3f4f6; text-align: center;'>
-                        <div style='background: white; padding: 30px; border-radius: 15px; max-width: 400px; margin: 0 auto; box-shadow: 0 4px 10px rgba(0,0,0,0.05);'>
-                            <h2 style='color: #1e293b; margin-top: 0;'>Energo Security</h2>
-                            <p style='color: #64748b; font-size: 14px;'>Your code is:</p>
-                            <div style='font-size: 36px; font-weight: 900; color: #2563eb; letter-spacing: 4px; margin: 20px 0;'>$otpCode</div>
-                            <p style='color: #94a3b8; font-size: 12px;'>Expires in 10 minutes.</p>
-                        </div>
-                    </div>";
-                $mail->AltBody = "Your code is: $otpCode";
-            } else {
-                // GENERIC TEMPLATE (For Friend Requests, SOS, etc.)
-                $mail->Body = "<div style='font-family: sans-serif; padding: 20px; color: #333;'>$body</div>";
-                $mail->AltBody = strip_tags($body);
+                // Check if this is an OTP email or a generic notification
+                if (stripos($subject, 'Verification') !== false || stripos($subject, 'Reset') !== false) {
+                    // OTP TEMPLATE
+                    $otpCode = preg_replace('/[^0-9]/', '', $body); // Extract just the numbers
+                    $mail->Body = "
+                        <div style='font-family: sans-serif; padding: 20px; background: #f3f4f6; text-align: center;'>
+                            <div style='background: white; padding: 30px; border-radius: 15px; max-width: 400px; margin: 0 auto; box-shadow: 0 4px 10px rgba(0,0,0,0.05);'>
+                                <h2 style='color: #1e293b; margin-top: 0;'>Energo Security</h2>
+                                <p style='color: #64748b; font-size: 14px;'>Your code is:</p>
+                                <div style='font-size: 36px; font-weight: 900; color: #2563eb; letter-spacing: 4px; margin: 20px 0;'>$otpCode</div>
+                                <p style='color: #94a3b8; font-size: 12px;'>Expires in 10 minutes.</p>
+                            </div>
+                        </div>";
+                    $mail->AltBody = "Your code is: $otpCode";
+                } else {
+                    // GENERIC TEMPLATE (For Friend Requests, SOS, etc.)
+                    $mail->Body = "<div style='font-family: sans-serif; padding: 20px; color: #333;'>$body</div>";
+                    $mail->AltBody = strip_tags($body);
+                }
+                
+                $mail->send();
+                return true;
+            } catch (Exception $e) {
+                error_log("Mail Error: " . $mail->ErrorInfo);
+                file_put_contents($debugFile, date('Y-m-d H:i:s') . " - MAIL ERROR: " . $mail->ErrorInfo . PHP_EOL, FILE_APPEND);
+                // Return true to allow flow to continue using the debug file (Simulation Fallback)
+                return true;
             }
-            
-            $mail->send();
-            return true;
-        } catch (Exception $e) {
-            error_log("Mail Error: " . $mail->ErrorInfo);
-            file_put_contents($debugFile, date('Y-m-d H:i:s') . " - MAIL ERROR: " . $mail->ErrorInfo . PHP_EOL, FILE_APPEND);
-            // Return true to allow flow to continue using the debug file (Simulation Fallback)
-            return true;
         }
+        
+        return true;
     }
 }
 ?>

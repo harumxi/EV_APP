@@ -15,16 +15,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-// 2. DATABASE FIX: Looking for Database.php in the CORE folder
+// 3. INCLUDE DEPENDENCIES
 require_once __DIR__ . '/../../CORE/Database.php';
 require_once __DIR__ . '/AuthHelper.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
-
-// 3. CAPTURE DATA
+// 4. CAPTURE DATA
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
 
 $fName = trim($input['firstName'] ?? '');
@@ -36,7 +31,7 @@ $email = trim($input['email'] ?? '');
 $password = $input['password'] ?? '';
 $confirmPass = $input['confirmPassword'] ?? '';
 
-// 4. VALIDATION
+// 5. VALIDATION
 if (empty($customUsername) || empty($fullName) || empty($email) || empty($password)) {
     http_response_code(400);
     echo json_encode(['ok' => false, 'error' => 'All fields are required.']);
@@ -95,6 +90,7 @@ try {
     $otp = AuthHelper::generateOTP();
     AuthHelper::storeOTP($db, $userId, 'register', $otp);
     
+    // Send Email via AuthHelper (which now uses SMTP from .env)
     if (!AuthHelper::sendEmail($email, "Energo Account Verification Code", "Your Energo verification code is: $otp")) {
         $db->rollBack();
         http_response_code(500);

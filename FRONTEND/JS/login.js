@@ -4,7 +4,7 @@
 
 console.log("LOGIN.JS LOADED (FIXED FLOW)");
 
-const API_BASE = "../../BACKEND/API/AUTH";
+const API_BASE = "http://localhost/WEBPROG_PROJ/BACKEND/API/AUTH";
 let tempUserId = null;
 let tempEmail = null;
 
@@ -156,8 +156,7 @@ document.getElementById("loginFormElement")?.addEventListener("submit", async fu
             showSuccess(data.error || "Invalid Credentials");
         }
     } catch (err) {
-        console.error("Login Error:", err);
-        showSuccess(`Connection Failed: ${err.message}`);
+        showSuccess("Server connection error.");
     } finally {
         setLoading(btn, false);
     }
@@ -190,14 +189,14 @@ document.getElementById("signupFormElement")?.addEventListener("submit", async f
             body: JSON.stringify(payload),
         });
         const data = await res.json();
+
         if (data.ok && data.require_verification) {
             showOTP(data.temp_user_id, 'register', data.email);
         } else {
             showSuccess(data.error || "Signup failed");
         }
     } catch (err) {
-        console.error("Signup Error:", err);
-        showSuccess(`Connection Failed: ${err.message}`);
+        showSuccess("Connection error.");
     } finally {
         setLoading(btn, false);
     }
@@ -223,6 +222,7 @@ document.getElementById("otpFormElement")?.addEventListener("submit", async func
             body: JSON.stringify(payload)
         });
         const data = await res.json();
+
         if (data.ok) {
 /* c:\Users\Stephanie\Documents\GitHub\WEBPROG_PROJ\FRONTEND\JS\login.js */
             if (purpose === 'register') {
@@ -255,8 +255,7 @@ document.getElementById("otpFormElement")?.addEventListener("submit", async func
             showSuccess(data.error || "Invalid Code");
         }
     } catch (e) {
-        console.error("OTP Error:", e);
-        showSuccess(`Verification Failed: ${e.message}`);
+        showSuccess("Verification Error");
     } finally {
         setLoading(btn, false);
     }
@@ -275,16 +274,14 @@ async function handleForgotRequest(e) {
             body: JSON.stringify({ email })
         });
         const data = await res.json();
+
         if(data.ok) {
             tempEmail = email;
             switchForgotStep(2);
         } else {
             showSuccess(data.error || "Error");
         }
-    } catch(err) { 
-        console.error("Forgot Password Error:", err);
-        showSuccess("Connection Error"); 
-    }
+    } catch(err) { showSuccess("Error"); }
     finally { setLoading(btn, false); }
 }
 

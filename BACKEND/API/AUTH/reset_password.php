@@ -18,6 +18,12 @@ $email = trim($input['email'] ?? '');
 $resetToken = $input['reset_token'] ?? '';
 $newPassword = $input['new_password'] ?? '';
 
+if (empty($email) || empty($resetToken) || empty($newPassword)) {
+    http_response_code(400);
+    echo json_encode(['ok' => false, 'error' => 'Missing required fields.']);
+    exit;
+}
+
 try {
     $db = Database::conn();
     $stmt = $db->prepare("SELECT id FROM users WHERE email = ?");
@@ -41,8 +47,12 @@ try {
     $stmt = $db->prepare("UPDATE users SET password_hash = ? WHERE id = ?");
     $stmt->execute([$newHash, $user['id']]);
 
+    // Send confirmation email
+    AuthHelper::sendEmail($email, "Security Alert", "Your password was just changed.");
+
     echo json_encode(['ok' => true, 'message' => 'Password updated successfully.']);
-} catch (Exception $e) {
+} catch (Throwable $e) {
+    http_response_code(500);
     echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
 }
 ?>
