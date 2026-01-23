@@ -1,7 +1,7 @@
 // =======================================================
 // 1. CONFIGURATION & SETUP
 // =======================================================
-const API_BASE = 'http://localhost/WEBPROG_PROJ/BACKEND/api';
+const API_BASE = 'http://localhost/WEBPROG_PROJ/BACKEND/API';
 let map, userMarker, destMarker, routeLayers = [];
 let selectedRoute = null;
 

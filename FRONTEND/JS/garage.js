@@ -5,7 +5,7 @@ if (!currentUser || !currentUser.id) {
 }
 
 const USER_ID = currentUser.id;
-const API_URL = "http://localhost/WEBPROG_PROJ/BACKEND/api/GARAGE";
+const API_URL = "http://localhost/WEBPROG_PROJ/BACKEND/API/GARAGE";
 
 // ===== ELEMENTS =====
 const addCarBtn = document.getElementById("addCarBtn");

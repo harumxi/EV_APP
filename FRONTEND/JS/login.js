@@ -4,7 +4,7 @@
 
 console.log("LOGIN.JS LOADED (FIXED FLOW)");
 
-const API_BASE = "http://localhost/WEBPROG_PROJ/BACKEND/API/AUTH";
+const API_BASE = "../../BACKEND/API/AUTH";
 let tempUserId = null;
 let tempEmail = null;
 
@@ -156,7 +156,8 @@ document.getElementById("loginFormElement")?.addEventListener("submit", async fu
             showSuccess(data.error || "Invalid Credentials");
         }
     } catch (err) {
-        showSuccess("Server connection error.");
+        console.error("Login Error:", err);
+        showSuccess(`Connection Failed: ${err.message}`);
     } finally {
         setLoading(btn, false);
     }
@@ -195,7 +196,8 @@ document.getElementById("signupFormElement")?.addEventListener("submit", async f
             showSuccess(data.error || "Signup failed");
         }
     } catch (err) {
-        showSuccess("Connection error.");
+        console.error("Signup Error:", err);
+        showSuccess(`Connection Failed: ${err.message}`);
     } finally {
         setLoading(btn, false);
     }
@@ -253,7 +255,8 @@ document.getElementById("otpFormElement")?.addEventListener("submit", async func
             showSuccess(data.error || "Invalid Code");
         }
     } catch (e) {
-        showSuccess("Verification Error");
+        console.error("OTP Error:", e);
+        showSuccess(`Verification Failed: ${e.message}`);
     } finally {
         setLoading(btn, false);
     }
@@ -278,7 +281,10 @@ async function handleForgotRequest(e) {
         } else {
             showSuccess(data.error || "Error");
         }
-    } catch(err) { showSuccess("Error"); }
+    } catch(err) { 
+        console.error("Forgot Password Error:", err);
+        showSuccess("Connection Error"); 
+    }
     finally { setLoading(btn, false); }
 }
 
