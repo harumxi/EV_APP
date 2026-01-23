@@ -23,15 +23,13 @@ try {
         ug.nickname,
         ug.is_active,
         v.variant_id,
-        v.variant_name,
+        v.year as variant_name,
         v.battery_capacity_kwh,
         v.efficiency_wh_per_km,
-        m.model_name,
-        b.brand_name
+        v.model as model_name,
+        v.make as brand_name
       FROM user_garage ug
       JOIN ev_variants v ON v.variant_id = ug.variant_id
-      JOIN ev_models m ON m.model_id = v.model_id
-      JOIN ev_brands b ON b.brand_id = m.brand_id
       WHERE ug.user_id = ?
       ORDER BY ug.is_active DESC, ug.garage_id DESC
     ";

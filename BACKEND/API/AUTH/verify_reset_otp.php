@@ -36,20 +36,18 @@ try {
         $resetToken = bin2hex(random_bytes(16));
         $expires = date('Y-m-d H:i:s', strtotime('+5 minutes'));
         $tokenHash = password_hash($resetToken, PASSWORD_DEFAULT);
+        $now = date('Y-m-d H:i:s');
         
-<<<<<<< Updated upstream
-        // Store as a special OTP entry or separate table. Reusing auth_otps for simplicity:
-=======
         // Store as a special OTP entry
->>>>>>> Stashed changes
-        $stmt = $db->prepare("INSERT INTO auth_otps (user_id, purpose, otp_hash, expires_at) VALUES (?, 'reset_token', ?, ?)");
-        $stmt->execute([$user['id'], $tokenHash, $expires]);
+        $stmt = $db->prepare("INSERT INTO auth_otps (user_id, purpose, otp_hash, expires_at, created_at) VALUES (?, 'reset_token', ?, ?, ?)");
+        $stmt->execute([$user['id'], $tokenHash, $expires, $now]);
 
         echo json_encode(['ok' => true, 'reset_token' => $resetToken]);
     } else {
         echo json_encode($result);
     }
-} catch (Exception $e) {
+} catch (Throwable $e) {
+    http_response_code(500);
     echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
 }
 ?>

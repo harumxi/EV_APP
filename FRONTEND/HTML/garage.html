@@ -175,12 +175,10 @@
                                         <div class="text-xs text-gray-500">${car.year} • ${Math.round(car.range_km * DIST_FACTOR)} ${DIST_LABEL}</div>
                                     </div>
                                 </div>
-                                <div class="text-blue-600 font-bold text-sm">+ Add</div>
+                                <div class="text-blue-600 font-bold text-sm add-btn-text">+ Add</div>
                             `;
-                            div.onclick = () => {
-                                addToGarage(car);
-                                dropdown.classList.add('hidden');
-                                document.getElementById('car-search').value = '';
+                            div.onclick = (e) => {
+                                addCarWithFeedback(car, div.querySelector('.add-btn-text'));
                             };
                             dropdown.appendChild(div);
                         });
@@ -192,6 +190,28 @@
                     dropdown.innerHTML = '<div class="p-4 text-red-500 text-center">Connection Error.</div>';
                 }
             }, 300);
+        }
+
+        async function addCarWithFeedback(car, textElement) {
+            if(textElement.dataset.adding) return;
+            textElement.dataset.adding = "true";
+            const originalText = textElement.innerText;
+            textElement.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+            
+            const success = await addToGarage(car);
+            
+            if(success) {
+                textElement.innerHTML = '<i class="fa-solid fa-check"></i> Added';
+                textElement.classList.remove('text-blue-600');
+                textElement.classList.add('text-green-600');
+                setTimeout(() => {
+                    document.getElementById('search-results').classList.add('hidden');
+                    document.getElementById('car-search').value = '';
+                }, 1000);
+            } else {
+                textElement.innerText = originalText;
+                delete textElement.dataset.adding;
+            }
         }
 
         async function addToGarage(car) {
@@ -215,12 +235,15 @@
                 
                 if (json.ok) {
                     renderGarage();
+                    return true;
                 } else {
                     alert(json.error || "Failed to add car");
+                    return false;
                 }
             } catch (e) {
                 console.error(e);
                 alert("Connection Error");
+                return false;
             }
         }
 

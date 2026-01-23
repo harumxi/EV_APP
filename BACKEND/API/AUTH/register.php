@@ -17,17 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 // 2. DATABASE FIX: Looking for Database.php in the CORE folder
 require_once __DIR__ . '/../../CORE/Database.php';
-<<<<<<< Updated upstream
-require_once __DIR__ . '/AuthHelper.php'; // Required for OTP
-
-// Set header to JSON so the browser understands the response
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
-header('Content-Type: application/json');
-=======
 require_once __DIR__ . '/AuthHelper.php';
->>>>>>> Stashed changes
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -39,11 +29,7 @@ $input = json_decode(file_get_contents('php://input'), true) ?? [];
 
 $fName = trim($input['firstName'] ?? '');
 $lName = trim($input['lastName'] ?? '');
-<<<<<<< Updated upstream
 $fullName = trim("$fName $lName");
-=======
-$fullName = trim("$fName $lName"); // This merges them into one string
->>>>>>> Stashed changes
 
 $customUsername = trim($input['username'] ?? '');
 $email = trim($input['email'] ?? '');
@@ -65,7 +51,6 @@ if ($password !== $confirmPass) {
 
 try {
     $db = Database::conn();
-<<<<<<< Updated upstream
     $db->beginTransaction(); // Start Transaction
 
     // 1. Check if user exists (Verified or Unverified)
@@ -76,15 +61,6 @@ try {
     $userId = 0;
     $hashed = password_hash($password, PASSWORD_DEFAULT);
 
-=======
-    $db->beginTransaction();
-
-    // 1. Check if user exists (Verified or Unverified)
-    $stmt = $db->prepare("SELECT id, is_verified FROM users WHERE email = ? OR username = ?");
-    $stmt->execute([$email, $customUsername]);
-    $existingUser = $stmt->fetch(PDO::FETCH_ASSOC);
-
->>>>>>> Stashed changes
     if ($existingUser) {
         if ($existingUser['is_verified'] == 1) {
             // Account exists and is verified -> Conflict
@@ -94,7 +70,6 @@ try {
             exit;
         } else {
             // Account exists but is UNVERIFIED -> Overwrite/Update it (Retry Registration)
-<<<<<<< Updated upstream
             $userId = $existingUser['id'];
             
             // Check Rate Limit before updating to prevent spamming OTPs
@@ -104,52 +79,22 @@ try {
                 exit;
             }
 
-=======
-            
-            // FIX: Check if we recently sent an OTP to prevent double-sending/invalidation
-            if (!AuthHelper::canSendOTP($db, $existingUser['id'], 'register')) {
-                $db->rollBack();
-                echo json_encode([
-                    'ok' => true,
-                    'require_verification' => true,
-                    'message' => 'Verification code already sent. Please check your email.',
-                    'temp_data' => [
-                        'user_id' => $existingUser['id'],
-                        'email' => $email
-                    ]
-                ]);
-                exit;
-            }
-
-            $userId = $existingUser['id'];
-            $hashed = password_hash($password, PASSWORD_DEFAULT);
->>>>>>> Stashed changes
             $db->prepare("UPDATE users SET username = ?, name = ?, password_hash = ?, email = ?, updated_at = NOW() WHERE id = ?")
                ->execute([$customUsername, $fullName, $hashed, $email, $userId]);
         }
     } else {
         // New User -> Insert
-<<<<<<< Updated upstream
         $sql = "INSERT INTO users (username, name, email, password_hash, is_verified, created_at, updated_at) 
                 VALUES (?, ?, ?, ?, 0, NOW(), NOW())";
         $stmt = $db->prepare($sql);
         $stmt->execute([$customUsername, $fullName, $email, $hashed]);
-=======
-        $hashed = password_hash($password, PASSWORD_DEFAULT);
-        $db->prepare("INSERT INTO users (username, name, email, password_hash, is_verified, created_at, updated_at) VALUES (?, ?, ?, ?, 0, NOW(), NOW())")
-           ->execute([$customUsername, $fullName, $email, $hashed]);
->>>>>>> Stashed changes
         $userId = $db->lastInsertId();
     }
 
     // 2. Generate and Send OTP
     $otp = AuthHelper::generateOTP();
     AuthHelper::storeOTP($db, $userId, 'register', $otp);
-<<<<<<< Updated upstream
     
-=======
-    // Spec: Subject: Energo Account Verification Code
->>>>>>> Stashed changes
     if (!AuthHelper::sendEmail($email, "Energo Account Verification Code", "Your Energo verification code is: $otp")) {
         $db->rollBack();
         http_response_code(500);
@@ -162,7 +107,6 @@ try {
     echo json_encode([
         'ok' => true,
         'require_verification' => true,
-<<<<<<< Updated upstream
         'message' => 'Verification code sent to email.',
         'temp_user_id' => $userId,
         'email' => $email
@@ -172,21 +116,3 @@ try {
     http_response_code(500);
     echo json_encode(['ok' => false, 'error' => 'Database error: ' . $e->getMessage()]);
 }
-=======
-        'message' => 'Account created. Please verify your email.',
-        'temp_data' => [
-            'user_id' => $userId,
-            'email' => $email
-        ]
-    ]);
-} catch (Throwable $e) {
-    // Check for duplicate entry error (code 1062 for MySQL)
-    if ($e instanceof PDOException && $e->errorInfo[1] == 1062) {
-        http_response_code(409); // 409 Conflict
-        echo json_encode(['ok' => false, 'error' => 'An account with this email or username already exists.']);
-    } else {
-        http_response_code(500);
-        echo json_encode(['ok' => false, 'error' => 'A server error occurred. Please try again later.']);
-    }
-}
->>>>>>> Stashed changes

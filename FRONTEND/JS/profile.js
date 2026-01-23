@@ -1,6 +1,13 @@
 document.addEventListener("DOMContentLoaded", () => {
     // 1. Retrieve the fresh data saved during login
-    const fullName = localStorage.getItem("full_display_name");
+    let fullName = localStorage.getItem("full_display_name");
+    const firstName = localStorage.getItem("first_name");
+    const lastName = localStorage.getItem("last_name");
+
+    if (firstName || lastName) {
+        fullName = `${firstName || ''} ${lastName || ''}`.trim();
+    }
+
     const userEmail = localStorage.getItem("user_email");
     const username = localStorage.getItem("user_name");
 
@@ -11,9 +18,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const handleDisplay = document.getElementById('username-handle');  // The @username handle
 
     // 3. Populate the UI - this fixes the "undefined" text
-    if (fullName) {
+    if (fullName && fullName !== "User" && fullName !== "undefined") {
         if (nameHeader) nameHeader.innerText = fullName;
         if (fullNameInput) fullNameInput.value = fullName;
+    } else if (username) {
+        if (nameHeader) nameHeader.innerText = `@${username}`;
     }
     
     if (userEmail && userEmail !== "undefined") {

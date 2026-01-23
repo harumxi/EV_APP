@@ -1,117 +1,125 @@
 <?php
-/* ===========================
-   BACKEND/API/TRIPS/calculate.php
-   =========================== */
-
 header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
+header("Access-Control-Allow-Headers: Content-Type");
+header("Content-Type: application/json");
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') exit(0);
 
 require_once __DIR__ . '/../../CORE/Database.php';
 
-$input = json_decode(file_get_contents("php://input"), true);
-$userId = $input['user_id'] ?? 1;
-$origin = $input['origin'] ?? '';
-$destination = $input['destination'] ?? '';
-$batteryPercent = $input['battery_percent'] ?? 100;
+// Load API Keys
+$apiKeys = require __DIR__ . '/../../CONFIG/api_keys.php';
+$orsKey = $apiKeys['ors']['api_key'];
 
-if (!$origin || !$destination) {
-    echo json_encode(['ok' => false, 'error' => 'Origin and Destination required']);
+$input = json_decode(file_get_contents('php://input'), true) ?? [];
+$userId = $input['user_id'] ?? 0;
+$origin = $input['origin'] ?? null;
+$dest = $input['destination'] ?? null;
+$battery = $input['battery_percent'] ?? 100;
+
+if (!$userId || !$origin || !$dest) {
+    http_response_code(400);
+    echo json_encode(['ok' => false, 'error' => 'Missing parameters']);
     exit;
 }
 
 try {
     $db = Database::conn();
 
-    // 1. GET CAR SPECS (Active Car)
+    // 1. Get Active Car
     $stmt = $db->prepare("
-        SELECT v.efficiency_wh_per_km, v.battery_capacity_kwh, v.model_name 
-        FROM user_garage g 
-        JOIN ev_variants v ON g.variant_id = v.variant_id 
-        WHERE g.user_id = ? AND g.is_active = 1 
+        SELECT v.make, v.model, v.battery_capacity_kwh, v.efficiency_wh_per_km 
+        FROM user_garage ug 
+        JOIN ev_variants v ON ug.variant_id = v.variant_id 
+        WHERE ug.user_id = ? AND ug.is_active = 1 
         LIMIT 1
     ");
     $stmt->execute([$userId]);
     $car = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // Fallback if no car selected
     if (!$car) {
-        $car = ['efficiency_wh_per_km' => 160, 'battery_capacity_kwh' => 60, 'model_name' => 'Generic EV'];
+        // Default car if none active
+        $car = ['make' => 'Generic', 'model' => 'EV', 'battery_capacity_kwh' => 60, 'efficiency_wh_per_km' => 160];
     }
 
-    // 2. GEOCODING (Using Nominatim - Free)
-    $originCoords = geocode($origin);
-    $destCoords = geocode($destination);
+    // 2. Calculate Route (Using OpenRouteService)
+    $lat1 = $origin['lat']; $lon1 = $origin['lng'];
+    $lat2 = $dest['lat']; $lon2 = $dest['lng'];
+    
+    $url = "https://api.openrouteservice.org/v2/directions/driving-car/json";
+    
+    $postData = [
+        'coordinates' => [[$lon1, $lat1], [$lon2, $lat2]],
+        'alternative_routes' => [
+            'target_count' => 3,
+            'weight_factor' => 2.0, // Increased to find more diverse routes (up to 2x longer)
+            'share_factor' => 0.5   // Decreased to allow less overlap (50%)
+        ],
+        'units' => 'km',
+        'geometry' => 'true'
+    ];
+    
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/json',
+        'Authorization: ' . $orsKey
+    ]);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($postData));
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Fix for local SSL issues
+    curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+    $resp = curl_exec($ch);
+    
+    if (curl_errno($ch)) {
+        throw new Exception("Routing Service Error: " . curl_error($ch));
+    }
+    curl_close($ch);
+    
+    $data = json_decode($resp, true);
+    
+    if (isset($data['error'])) {
+        $errMsg = is_array($data['error']) ? ($data['error']['message'] ?? json_encode($data['error'])) : $data['error'];
+        throw new Exception("ORS Error: " . $errMsg);
+    }
+    
+    if (!isset($data['routes']) || empty($data['routes'])) {
+        throw new Exception("No route found between these locations.");
+    }
+    
+    $routesOutput = [];
+    foreach ($data['routes'] as $route) {
+        $summary = $route['summary'];
+        $distKm = $summary['distance'];
+        $durationMin = round($summary['duration'] / 60);
+        
+        // 3. Calculate Battery Usage
+        // Efficiency is Wh/km. Total Wh = dist * eff.
+        $consumedWh = $distKm * $car['efficiency_wh_per_km'];
+        $consumedKwh = $consumedWh / 1000;
+        $percentDrain = ($consumedKwh / $car['battery_capacity_kwh']) * 100;
+        
+        $endBattery = round($battery - $percentDrain);
 
-    if (!$originCoords || !$destCoords) {
-        throw new Exception("Could not find location coordinates. Try a more specific address.");
+        $routesOutput[] = [
+            'geometry' => $route['geometry'],
+            'distance_km' => round($distKm, 1),
+            'duration_min' => $durationMin,
+            'est_usage' => round($percentDrain, 1),
+            'end_battery' => $endBattery
+        ];
     }
 
-    // 3. ROUTING (Using OSRM - Free)
-    $routeData = fetchOSRMRoute($originCoords, $destCoords);
-    
-    if (!$routeData) {
-        throw new Exception("Could not calculate route path.");
-    }
-
-    // 4. CALCULATE ENERGY
-    $distanceKm = $routeData['distance'] / 1000;
-    $durationMin = $routeData['duration'] / 60;
-    
-    // Energy (kWh) = (Dist * Wh/km) / 1000
-    $energyNeededKwh = ($distanceKm * $car['efficiency_wh_per_km']) / 1000;
-    
-    // Battery % usage
-    $percentUsage = ($energyNeededKwh / $car['battery_capacity_kwh']) * 100;
-    
     echo json_encode([
         'ok' => true,
         'car' => $car,
-        'destination_label' => $destination,
-        'destination_coords' => ['lat' => $destCoords[0], 'lng' => $destCoords[1]],
-        'routes' => [
-            [
-                'geometry' => $routeData['geometry'], // Polyline string
-                'distance_km' => round($distanceKm, 1),
-                'duration_min' => round($durationMin),
-                'est_usage' => round($percentUsage, 1)
-            ]
-        ]
+        'destination_label' => 'Selected Destination',
+        'routes' => $routesOutput
     ]);
 
 } catch (Exception $e) {
+    http_response_code(500);
     echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
-}
-
-// --- HELPERS ---
-
-function geocode($query) {
-    // Check if input is "lat,lng"
-    if (preg_match('/^(-?\d+(\.\d+)?),\s*(-?\d+(\.\d+)?)$/', $query, $matches)) {
-        return [(float)$matches[1], (float)$matches[3]];
-    }
-    // Use Nominatim
-    $url = "https://nominatim.openstreetmap.org/search?format=json&q=" . urlencode($query);
-    $opts = ["http" => ["header" => "User-Agent: EVTripPlanner/1.0\r\n"]];
-    $context = stream_context_create($opts);
-    $resp = @file_get_contents($url, false, $context);
-    $data = json_decode($resp, true);
-    return !empty($data[0]) ? [(float)$data[0]['lat'], (float)$data[0]['lon']] : null;
-}
-
-function fetchOSRMRoute($start, $end) {
-    // OSRM expects "lng,lat"
-    $startStr = $start[1] . ',' . $start[0];
-    $endStr = $end[1] . ',' . $end[0];
-    $url = "http://router.project-osrm.org/route/v1/driving/$startStr;$endStr?overview=full";
-    $resp = @file_get_contents($url);
-    $data = json_decode($resp, true);
-    return !empty($data['routes'][0]) ? $data['routes'][0] : null;
 }
 ?>

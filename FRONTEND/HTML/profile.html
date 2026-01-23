@@ -176,9 +176,16 @@
         /* Inside your Profile Page Script */
     document.addEventListener("DOMContentLoaded", () => {
     // 1. Retrieve the fresh data saved during login
-    const fullName = localStorage.getItem("full_display_name");
-    const email = localStorage.getItem("user_email");
+    const firstName = localStorage.getItem("first_name") || "";
+    const lastName = localStorage.getItem("last_name") || "";
+    let fullName = localStorage.getItem("full_display_name") || "";
     const username = localStorage.getItem("user_name");
+    const email = localStorage.getItem("user_email");
+
+    // Force reconstruction if specific name parts exist
+    if (firstName || lastName) {
+        fullName = `${firstName} ${lastName}`.trim();
+    }
 
     // 2. Select the EXACT IDs currently in your HTML
     const nameHeader = document.getElementById("display-name"); // Big "User Name" text
@@ -186,18 +193,17 @@
     const emailDiv = document.getElementById("user-email");     // The box that says "ksalisa86@gmail.com"
     const avatar = document.getElementById("avatar");           // The "?" circle
 
-    // 3. Populate the Header with the @Username handle
+    // 3. Populate UI
+    // Header always shows Username
     if (username && username !== "undefined") {
         if (nameHeader) nameHeader.innerText = `@${username}`;
     }
 
-    // 4. Populate the Identity Fields with Full Name and Email
-    // Use .innerText because your HTML uses <div> tags
-    if (fullName && fullName !== "undefined" && fullName !== "null") {
+    if (fullName && fullName !== "User" && fullName !== "undefined" && fullName !== "null") {
         if (fullNameDiv) fullNameDiv.innerText = fullName;
-        
-        // Bonus: Update avatar with first letter of the name
         if (avatar) avatar.innerText = fullName.charAt(0).toUpperCase();
+    } else if (username) {
+        if (avatar) avatar.innerText = username.charAt(0).toUpperCase();
     }
     
     if (email && email !== "undefined") {
@@ -232,7 +238,9 @@
 
         function toggleUnits() {
             const btn = document.getElementById('unit-btn');
-            const newUnit = btn.innerText === 'KM' ? 'MILES' : 'KM';
+            const currentUnit = localStorage.getItem('pref_units') || 'KM';
+            const newUnit = currentUnit === 'KM' ? 'MILES' : 'KM';
+            
             btn.innerText = newUnit;
             localStorage.setItem('pref_units', newUnit);
         }

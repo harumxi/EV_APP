@@ -22,23 +22,20 @@ try {
     $sql = "
       SELECT
         v.variant_id,
-        b.brand_name,
-        m.model_name,
-        v.variant_name,
+        v.make as brand_name,
+        v.model as model_name,
+        v.year as variant_name,
         v.battery_capacity_kwh,
         v.efficiency_wh_per_km
       FROM ev_variants v
-      JOIN ev_models m ON m.model_id = v.model_id
-      JOIN ev_brands b ON b.brand_id = m.brand_id
-      WHERE b.brand_name LIKE ?
-         OR m.model_name LIKE ?
-         OR v.variant_name LIKE ?
-      ORDER BY b.brand_name, m.model_name, v.variant_name
+      WHERE v.make LIKE ?
+         OR v.model LIKE ?
+      ORDER BY v.make, v.model
       LIMIT 25
     ";
 
     $stmt = $db->prepare($sql);
-    $stmt->execute([$like, $like, $like]);
+    $stmt->execute([$like, $like]);
     $results = $stmt->fetchAll();
 
     echo json_encode(['ok'=>true, 'results'=>$results]);

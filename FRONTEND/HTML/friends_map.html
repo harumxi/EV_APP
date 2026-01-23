@@ -307,33 +307,32 @@
         }
 
         function startTracking() {
-            if(!navigator.geolocation) return;
+            if(!navigator.geolocation) {
+                console.error("Geolocation not supported");
+                return;
+            }
             
             if (watchId !== null) navigator.geolocation.clearWatch(watchId);
 
+            // 1. Force Immediate Update (Fixes "Offline" status on load)
+            navigator.geolocation.getCurrentPosition(pos => {
+                myLat = pos.coords.latitude;
+                myLng = pos.coords.longitude;
+                updateMyMarker(myLat, myLng);
+                if(socket && socket.connected) socket.emit("update_location", { lat: myLat, lng: myLng });
+            }, err => console.warn("Initial GPS failed:", err));
+
+            // 2. Start Watching for Movement
             watchId = navigator.geolocation.watchPosition((pos) => {
                 myLat = pos.coords.latitude;
                 myLng = pos.coords.longitude;
-                
-                if(myMarker) {
-                    myMarker.setLatLng([myLat, myLng]);
-                } else {
-                    const meIcon = L.divIcon({
-                        className: '',
-                        html: '<div style="width: 16px; height: 16px; background: #2563eb; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.3);"></div>',
-                        iconSize: [16, 16]
-                    });
-                    myMarker = L.marker([myLat, myLng], { icon: meIcon, zIndexOffset: 1000 }).addTo(map).bindPopup("You");
-                }
-
-                if (!hasLocation) {
-                    map.setView([myLat, myLng], 16);
-                    hasLocation = true;
-                }
+                updateMyMarker(myLat, myLng);
 
                 // Send to server
-                socket.emit("update_location", { lat: myLat, lng: myLng });
-            }, null, { enableHighAccuracy: true });
+                if(socket && socket.connected) socket.emit("update_location", { lat: myLat, lng: myLng });
+            }, (err) => {
+                console.warn("GPS Watch Error:", err);
+            }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 10000 });
 
             const btn = document.getElementById('share-btn');
             if(btn) {
@@ -341,6 +340,24 @@
                 btn.className = "text-[10px] uppercase font-bold text-red-500 hover:text-red-700 border border-red-200 px-2 py-1 rounded";
             }
             document.getElementById('socket-status').classList.add('connected');
+        }
+
+        function updateMyMarker(lat, lng) {
+            if(myMarker) {
+                myMarker.setLatLng([lat, lng]);
+            } else {
+                const meIcon = L.divIcon({
+                    className: '',
+                    html: '<div style="width: 16px; height: 16px; background: #2563eb; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.3);"></div>',
+                    iconSize: [16, 16]
+                });
+                myMarker = L.marker([lat, lng], { icon: meIcon, zIndexOffset: 1000 }).addTo(map).bindPopup("You");
+            }
+
+            if (!hasLocation) {
+                map.setView([lat, lng], 16);
+                hasLocation = true;
+            }
         }
 
         function toggleSharing() {
@@ -401,7 +418,7 @@
                 }
 
                 markers[data.userId].off('click');
-                markers[data.userId].on('click', () => openFriendModal(friend, data.lat, data.lng));
+                markers[data.userId].on('click', () => openFriendModal(friend, data.lat, data.lng, data.timestamp));
             } else {
                 const icon = L.divIcon({
                     className: 'friend-marker',
@@ -419,7 +436,7 @@
                     if(el) el.classList.add('marker-move');
                 }, 100);
 
-                markers[data.userId].on('click', () => openFriendModal(friend, data.lat, data.lng));
+                markers[data.userId].on('click', () => openFriendModal(friend, data.lat, data.lng, data.timestamp));
             }
         }
 
@@ -451,8 +468,10 @@
             else alert("Friend location not yet received. They might be offline.");
         }
 
-        function openFriendModal(friend, lat, lng) {
+        function openFriendModal(friend, lat, lng, timestamp) {
             document.getElementById('detail-title').innerText = friend.name;
+            
+            const timeStr = timestamp ? new Date(timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Just now';
             
             const content = `
                 <div class="text-center mb-4">
@@ -461,6 +480,7 @@
                     </div>
                     <div class="font-bold text-gray-900 text-xl">${friend.name}</div>
                     <div class="text-gray-500">@${friend.username}</div>
+                    <div class="text-xs text-gray-400 mt-1 font-semibold"><i class="fa-regular fa-clock"></i> Last Seen: ${timeStr}</div>
                 </div>
                 
                 <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 mb-4">

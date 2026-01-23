@@ -132,6 +132,7 @@ function validateChargeLevel() {
     // RULE: BYD Logic - Unlock only if >= 70%
     if (val >= 70) {
         // SUCCESS: Unlock the app
+        localStorage.setItem('user_battery_level', val); // Sync with Dashboard
         localStorage.setItem('ev_lock_status', 'unlocked');
         localStorage.removeItem('ev_charging_mode');
         

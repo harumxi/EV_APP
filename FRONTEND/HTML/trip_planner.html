@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
- =<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Trip Planner</title>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -112,17 +113,38 @@
     html.dark .suggestBox { background: #1e293b; border-color: #334155; }
     html.dark .suggestItem { border-color: #334155; color: white; }
     html.dark .suggestItem:hover { background: #334155; }
-  </style>-i
-  <div class="weatherBox">
-        <div class="text-[10px] font-black uppercase tracking-widest text-blue-200 mb-1">Current Weather</div>
-     
- <      <div class="text-xs font-bold opacity-80 mt-2 flex items-center gap-1" id="weatherLoc"><i class="fa-solid fa-location-dot"></i> Locating…</div>
-      </div>
-      <div class="text-5xl opacity-90 drop-shadow-sm" id="weatherIcon">⛅</div>
-    </div>
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="toast"><i class="fa-solid fa-circle-info text-blue-400"></i> <span id="toast-msg">Notification</span></div>
 
-    <!-- Inputs -->
-    <div class="space-y-4 relative">
+  <div class="sidebar">
+    <div class="scroll">
+      <div class="flex items-center gap-3 mb-4 px-1">
+        <a href="dashboard.html" class="w-10 h-10 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full flex items-center justify-center transition shadow-sm">
+            <i class="fa-solid fa-arrow-left"></i>
+        </a>
+        <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tighter">Trip Planner</h1>
+      </div>
+
+      <div class="weatherBox">
+        <div>
+            <div class="text-[10px] font-black uppercase tracking-widest text-blue-200 mb-1">Current Weather</div>
+            <div class="text-3xl font-black" id="weatherTemp">--°</div>
+            <div class="text-xs font-bold opacity-80 mt-1" id="weatherDesc">Loading...</div>
+            <div class="text-xs font-bold opacity-80 mt-2 flex items-center gap-1" id="weatherLoc"><i class="fa-solid fa-location-dot"></i> Locating…</div>
+        </div>
+        <div class="text-5xl opacity-90 drop-shadow-sm" id="weatherIcon">⛅</div>
+      </div>
+
+      <div id="active-car-display" class="active-car-badge mb-4" onclick="window.location.href='garage.html'">
+        <i class="fa-solid fa-car"></i>
+        <span id="car-name">Loading Car...</span>
+      </div>
+
+      <!-- Inputs -->
+      <div class="space-y-4 relative">
       <div class="input-group">
         <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Start Location</label>
         <div class="relative flex items-center">
@@ -180,7 +202,7 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/@mapbox/polyline@1.2.0/src/polyline.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mapbox-polyline/1.1.1/polyline.min.js"></script>
 
 <script>
   const BASE_API = "http://localhost/WEBPROG_PROJ/BACKEND/API";
@@ -206,6 +228,9 @@
      checkBatteryGate();
   });
 
+  document.getElementById("origin").addEventListener("input", () => { selectedOrigin = null; });
+  document.getElementById("destination").addEventListener("input", () => { selectedDest = null; });
+
   function toast(msg){ 
       const t = document.getElementById("toast"); 
       document.getElementById("toast-msg").textContent = msg; 
@@ -221,7 +246,15 @@
       if (activeCar) {
           nameSpan.innerText = `${activeCar.brand} ${activeCar.model}`;
           badge.classList.remove('no-car');
-          const safeRange = Math.round((activeCar.range_km || 300) * 0.85);
+          
+          // Calculate Range from Specs (Capacity / Efficiency)
+          let maxRange = activeCar.range_km || 300;
+          if (activeCar.battery_kwh && activeCar.efficiency_whkm) {
+              const kwh = parseFloat(activeCar.battery_kwh);
+              const eff = parseInt(activeCar.efficiency_whkm);
+              if (eff > 0) maxRange = (kwh * 1000) / eff;
+          }
+          const safeRange = Math.round(maxRange * 0.85); // 85% Real-World Buffer
           carSafeRange = safeRange;
           updateRangeDisplay();
       } else {
@@ -251,7 +284,12 @@
   async function postJSON(url, payload){
     const res = await fetch(url, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(payload) });
     const raw = await res.text();
-    let data; try { data = JSON.parse(raw); } catch { console.error("Bad JSON:", raw); }
+    let data; 
+    try { data = JSON.parse(raw); } 
+    catch { 
+        console.error("Bad JSON Response:", raw); 
+        throw new Error("Server returned invalid data. Check console.");
+    }
     if(!data) throw new Error("Invalid Response"); if(!res.ok || data.ok === false) throw new Error(data.error || "Request failed");
     return data;
   }
@@ -273,6 +311,10 @@
     return m;
   }
   function drawRoute(encoded, isSelected, idx){
+    if (typeof polyline === 'undefined') {
+        console.error("Polyline library missing. Ensure script tag is loaded.");
+        return;
+    }
     const pts = polyline.decode(encoded); const color = isSelected ? "#2563eb" : "#94a3b8";
     const line = L.polyline(pts, { color, weight: isSelected?6:4, opacity: isSelected?1:0.6 }).addTo(map);
     line.routeId = idx; if(isSelected) { line.bringToFront(); map.fitBounds(line.getBounds().pad(0.1)); } routeLayers.push(line);
@@ -311,7 +353,7 @@
       if(!query || query.length < 2) return [];
       let qMain = query.toLowerCase().replace(/\bsjdm\b/g, "san jose del monte").replace(/\bqc\b/g, "quezon city").replace(/\bbgc\b/g, "bonifacio global city").replace(/\bncr\b/g, "metro manila");
       const injectedResults = [];
-      if(qMain.includes("national") && qMain.includes("fairview") || qMain.includes("nu fairview")) {
+      if((qMain.includes("national") && qMain.includes("fairview")) || qMain.includes("nu fairview") || qMain.includes("nu-fairview")) {
           injectedResults.push({
               properties: { name: "National University - Fairview", street: "Quirino Highway", city: "Quezon City", district: "SM City Fairview Complex", country: "Philippines" },
               geometry: { coordinates: [121.0570, 14.7338] }, _score: 9999, _distance: getDistanceKm(myLat, myLng, 14.7338, 121.0570)

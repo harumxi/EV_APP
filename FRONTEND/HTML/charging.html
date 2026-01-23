@@ -26,17 +26,18 @@
         }
 
         .station-card {
-            border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; margin-bottom: 10px;
+            border: 1px solid #e5e7eb; border-radius: 16px; padding: 16px; margin-bottom: 12px;
             cursor: pointer; transition: all 0.2s; background: white;
             position: relative;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
         }
-        .station-card:hover { border-color: #ef4444; background: #fef2f2; transform: translateY(-2px); }
+        .station-card:hover { border-color: #ef4444; background: #fef2f2; transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.1); }
         .station-card.selected { border: 2px solid #ef4444; background: #fee2e2; }
         
         /* Removed 'pointer-events: none' so you can always click even if disabled */
         .station-card.disabled { opacity: 0.7; background: #f3f4f6; filter: grayscale(1); }
         
-        .badge { font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 99px; text-transform: uppercase; }
+        .badge { font-size: 10px; font-weight: 800; letter-spacing: 0.05em; padding: 4px 10px; border-radius: 99px; text-transform: uppercase; }
         .badge-green { background: #dcfce7; color: #166534; }
         .badge-gold { background: #fef3c7; color: #b45309; border: 1px solid #fcd34d; }
 
@@ -100,6 +101,9 @@
                     <div class="text-2xl font-bold text-blue-600" id="current-range-display">-- km</div>
                 </div>
             </div>
+            <button onclick="switchToHomeCharging()" class="mt-4 w-full py-2 bg-white border border-red-200 text-red-600 rounded-lg font-bold text-xs uppercase hover:bg-red-50 transition shadow-sm flex items-center justify-center gap-2">
+                <i class="fa-solid fa-house-chimney"></i> I'm at Home / Have Charger
+            </button>
         </div>
 
         <div id="content-area" class="flex-1 overflow-y-auto p-4 bg-gray-50 relative">
@@ -136,8 +140,6 @@
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/@mapbox/polyline@1.2.0/src/polyline.js"></script>
-
     <script>
         const API_URL = "http://localhost/WEBPROG_PROJ/BACKEND/API/CHARGING/nearby.php";
         
@@ -169,7 +171,14 @@
             let savedBatt = localStorage.getItem('last_known_battery');
             currentBattery = savedBatt ? parseInt(savedBatt) : 15;
             document.getElementById('batt-input').value = currentBattery;
-            initMap();
+            
+            if (localStorage.getItem('ev_charging_mode') === 'home') {
+                const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
+                map = L.map('map', { zoomControl: false, layers: [streetLayer] }).setView([14.5995, 120.9842], 13);
+                switchToHomeCharging();
+            } else {
+                initMap();
+            }
         });
 
         function calculateSafeRange(batteryPercent) {
@@ -240,17 +249,12 @@
             // Sorting
             processedStationsList.sort((a, b) => {
                 if (a.reachable !== b.reachable) return b.reachable - a.reachable;
-                if (a.reachable) {
-                    if (a.rating >= 4.7 && b.rating < 4.7) return -1;
-                    if (b.rating >= 4.7 && a.rating < 4.7) return 1;
-                    return b.rating - a.rating; 
-                }
                 return a.distance - b.distance;
             });
 
             let html = `<div class="mb-4 flex justify-between items-end">
                             <span class="text-xs font-bold text-gray-400 uppercase">Best Stations</span>
-                            <span class="text-xs text-blue-500 font-bold"><i class="fa-solid fa-sort-amount-down"></i> Ranked by Quality</span>
+                            <span class="text-xs text-blue-500 font-bold"><i class="fa-solid fa-sort-amount-down"></i> Nearest Reachable</span>
                         </div>`;
             
             let hasReachable = false;
@@ -263,8 +267,12 @@
                     : 'disabled border-l-4 border-l-gray-300';
                 
                 let badgesHtml = '';
-                if (st.reachable && st.rating >= 4.7) {
-                    badgesHtml += `<span class="badge badge-gold ml-2"><i class="fa-solid fa-trophy"></i> Top Pick</span>`;
+                if (st.reachable) {
+                    if (index < 3) {
+                        badgesHtml += `<span class="badge badge-green ml-2"><i class="fa-solid fa-thumbs-up"></i> Recommended</span>`;
+                    } else if (st.rating >= 4.7) {
+                        badgesHtml += `<span class="badge badge-gold ml-2"><i class="fa-solid fa-trophy"></i> Top Pick</span>`;
+                    }
                 }
                 
                 // --- FIX: Pass INDEX to selectStation instead of Object ---
@@ -437,11 +445,33 @@
             const val = parseInt(document.getElementById('new-batt-input').value);
             const err = document.getElementById('error-msg');
             if (!val || val < 70 || val > 100) { err.innerText = "Please charge to at least 70%."; err.classList.remove('hidden'); return; }
+            
+            // Save new battery level for Dashboard/Trip Planner
+            localStorage.setItem('user_battery_level', val);
+
             document.getElementById('modal-final-batt').innerText = val + "%";
             document.getElementById('finish-modal').classList.add('active');
             localStorage.setItem("forceCharging", "0");
             localStorage.setItem("ev_lock_status", "unlocked");
             localStorage.removeItem("ev_target_charger");
+        }
+
+        function switchToHomeCharging() {
+            document.getElementById('content-area').innerHTML = `
+                <div class="flex flex-col h-full">
+                    <h1 class="text-2xl font-black text-gray-800 mb-1">Home Charging</h1>
+                    <p class="text-gray-500 mb-6 text-sm">Connect to your home charger.</p>
+                    <div class="flex-1 flex flex-col justify-center items-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 mb-6">
+                        <i class="fa-solid fa-plug text-green-500 text-6xl mb-4 animate-bounce"></i>
+                        <div class="flex items-baseline">
+                            <input type="number" id="new-batt-input" oninput="if(this.value>100)this.value=100; if(this.value<0)this.value=0;" class="text-6xl font-black text-center w-32 bg-transparent focus:outline-none" placeholder="0" min="0" max="100">
+                            <span class="text-3xl text-gray-400 font-bold">%</span>
+                        </div>
+                    </div>
+                    <div id="error-msg" class="text-center text-sm font-bold text-red-500 mb-4 hidden">Charge to at least 70%.</div>
+                    <button onclick="finishCharging()" class="w-full bg-gray-900 text-white py-4 rounded-xl font-bold text-xl hover:bg-gray-800 transition">Finish Charging</button>
+                    <button onclick="location.reload()" class="mt-3 text-sm text-gray-400 font-bold hover:text-gray-600 w-full">Cancel</button>
+                </div>`;
         }
 
         function exitToPlanner() { window.location.href = "trip_planner.html"; }
