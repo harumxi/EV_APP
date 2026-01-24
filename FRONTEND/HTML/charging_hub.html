@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Charging Hub (Updated)</title>
+
+    <!-- Tailwind (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- React (CDN) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <!-- Babel for JSX (dev/demo use) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+
+  <body class="bg-white text-slate-900 font-[Inter] overflow-hidden">	
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const { useState, useRef, useEffect } = React;
+
+      const SearchIcon = ({ className = "w-5 h-5" }) => (
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          className={className}
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+      );
+
+      const MapPinIcon = ({ className = "w-6 h-6" }) => (
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          className={className}
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 0 1 16 0Z"></path>
+          <circle cx="12" cy="10" r="3"></circle>
+        </svg>
+      );
+
+      const BoltIcon = ({ className = "w-5 h-5" }) => (
+        <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+          <path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z" />
+        </svg>
+      );
+
+      const ChargerTypeIcon = ({ type, onClick, active }) => {
+        const renderContent = () => {
+          if (type === 1) return <BoltIcon />;
+          if (type === 2)
+            return (
+              <>
+                <BoltIcon />
+                <BoltIcon />
+              </>
+            );
+          return (
+            <>
+              <BoltIcon />
+              <BoltIcon />
+              <BoltIcon />
+            </>
+          );
+        };
+
+        return (
+          <div onClick={onClick} className="cursor-pointer">
+            {active ? (
+              <div className="w-12 h-12 rounded-full flex items-center justify-center gap-0.5 text-white transition-all bg-gray-900 ring-2 ring-gray-300">
+                {renderContent()}
+              </div>
+            ) : (
+              <div className="flex gap-1 text-gray-900 p-2 hover:bg-gray-100 rounded-lg transition-all">
+                {renderContent()}
+              </div>
+            )}
+          </div>
+        );
+      };
+
+      const ZoomControls = () => (
+        <div className="absolute top-3 left-3 flex flex-col bg-white border border-gray-300 rounded shadow-md overflow-hidden z-10">
+          <button className="w-[30px] h-[30px] flex items-center justify-center hover:bg-gray-50 border-b border-gray-200 text-gray-700 font-bold text-lg leading-none" title="Zoom in">+</button>
+          <button className="w-[30px] h-[30px] flex items-center justify-center hover:bg-gray-50 text-gray-700 font-bold text-lg leading-none" title="Zoom out">−</button>
+        </div>
+      );
+
+      function ChargingHub() {
+        const [selectedStation, setSelectedStation] = useState(null);
+        const [filterType, setFilterType] = useState(null);
+
+        // ✅ drawer open/close (default open on desktop, closed on mobile)
+        const [panelOpen, setPanelOpen] = useState(false);
+
+        const popupRef = useRef(null);
+
+        const stations = [
+          {
+            id: 1,
+            name: "Poblacion, Manila",
+            location: "Metro Manila",
+            eta: "18 min",
+            power: "150 kW",
+            available: "6/10",
+            battery: "10%",
+            energy: "15 kWh",
+            mapX: "45%",
+            mapY: "50%",
+            chargerType: 1,
+          },
+          {
+            id: 2,
+            name: "Cebu IT Park Free",
+            location: "Cebu City",
+            eta: "45 min",
+            power: "120 kW",
+            available: "4/8",
+            free: true,
+            mapX: "70%",
+            mapY: "30%",
+            chargerType: 2,
+          },
+          {
+            id: 3,
+            name: "BGC Taguig",
+            location: "BGC Taguig",
+            eta: "1 hr 10 min",
+            power: "150 kW",
+            available: "7/10",
+            mapX: "55%",
+            mapY: "65%",
+            chargerType: 3,
+          },
+          {
+            id: 4,
+            name: "Clark Freeport Zone",
+            location: "Clark Freeport Zone",
+            eta: "1 hr 25 min",
+            power: "150 kW",
+            available: "8/10",
+            mapX: "60%",
+            mapY: "80%",
+            chargerType: 1,
+          },
+          {
+            id: 5,
+            name: "Manila Bay Area",
+            location: "Metro Manila",
+            eta: "22 min",
+            power: "150 kW",
+            available: "5/10",
+            mapX: "25%",
+            mapY: "45%",
+            chargerType: 2,
+          },
+          {
+            id: 6,
+            name: "Makati Central",
+            location: "Makati",
+            eta: "35 min",
+            power: "150 kW",
+            available: "9/10",
+            mapX: "48%",
+            mapY: "55%",
+            chargerType: 3,
+          },
+          {
+            id: 7,
+            name: "Quezon City Hub",
+            location: "Quezon City",
+            eta: "28 min",
+            power: "150 kW",
+            available: "3/10",
+            mapX: "35%",
+            mapY: "25%",
+            chargerType: 1,
+          },
+          {
+            id: 8,
+            name: "Pasig Station",
+            location: "Pasig",
+            eta: "40 min",
+            power: "150 kW",
+            available: "6/10",
+            mapX: "65%",
+            mapY: "45%",
+            chargerType: 2,
+          },
+        ];
+
+        // ✅ auto-open on desktop, closed on mobile
+        useEffect(() => {
+          const sync = () => {
+            const isDesktop = window.matchMedia("(min-width: 1024px)").matches; // lg
+            setPanelOpen(isDesktop);
+          };
+          sync();
+          window.addEventListener("resize", sync);
+          return () => window.removeEventListener("resize", sync);
+        }, []);
+
+        useEffect(() => {
+          const handleClickOutside = (event) => {
+            if (popupRef.current && !popupRef.current.contains(event.target)) {
+              const isMarkerClick = event.target.closest(".station-marker");
+              if (!isMarkerClick) setSelectedStation(null);
+            }
+          };
+
+          document.addEventListener("mousedown", handleClickOutside);
+          return () => document.removeEventListener("mousedown", handleClickOutside);
+        }, []);
+
+        const filteredStations = filterType
+          ? stations.filter((s) => s.chargerType === filterType)
+          : stations;
+
+        return (
+          <div className="h-screen w-screen overflow-hidden bg-white text-slate-900">
+            {/* Header */}
+            <header className="fixed top-0 left-0 right-0 z-[5000] h-[68px] bg-white/70 backdrop-blur-[16px] border-b border-white/50 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex items-center">
+              <div className="mx-auto w-full max-w-[1120px] px-6 flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-white/40 border border-black/5 flex items-center justify-center text-black shrink-0">
+                    <BoltIcon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h1 className="text-[19px] font-bold tracking-[-0.02em] leading-[1.1] text-[#111]">Charging Hub</h1>
+                    <p className="mt-[2px] text-[13.5px] font-medium text-black/55 tracking-[-0.01em]">Nearby stations</p>
+                  </div>
+              </div>
+            </header>
+
+            {/* Map Section */}
+            <div className="absolute inset-0 top-[68px] bg-gray-100">
+              <ZoomControls />
+              {/* Map Background */}
+              <div className="w-full h-full bg-gradient-to-br from-blue-100 via-gray-50 to-green-50">
+                <svg className="absolute inset-0 w-full h-full opacity-30 pointer-events-none">
+                  <line x1="0" y1="50%" x2="100%" y2="50%" stroke="#94a3b8" strokeWidth="1" />
+                  <line x1="50%" y1="0" x2="50%" y2="100%" stroke="#94a3b8" strokeWidth="1" />
+                  <line x1="0" y1="30%" x2="100%" y2="30%" stroke="#cbd5e1" strokeWidth="0.5" />
+                  <line x1="0" y1="70%" x2="100%" y2="70%" stroke="#cbd5e1" strokeWidth="0.5" />
+                  <line x1="30%" y1="0" x2="30%" y2="100%" stroke="#cbd5e1" strokeWidth="0.5" />
+                  <line x1="70%" y1="0" x2="70%" y2="100%" stroke="#cbd5e1" strokeWidth="0.5" />
+                </svg>
+
+                {/* Station Markers */}
+                {stations.map((station) => (
+                  <div
+                    key={station.id}
+                    className="station-marker absolute cursor-pointer transform -translate-x-1/2 -translate-y-1/2 transition-all hover:scale-110"
+                    style={{
+                      left: station.mapX,
+                      top: station.mapY,
+                      opacity: filterType && station.chargerType !== filterType ? 0.3 : 1,
+                    }}
+                    onClick={() => setSelectedStation(station)}
+                  >
+                    <div
+                      className={`flex items-center justify-center transition-all ${
+                        selectedStation?.id === station.id
+                          ? "text-black scale-125 drop-shadow-md"
+                          : "text-black"
+                      }`}
+                    >
+                      <BoltIcon className="w-8 h-8 fill-current" />
+                    </div>
+                  </div>
+                ))}
+
+                {/* Info Popup */}
+                {selectedStation && (
+                  <div
+                    className="absolute z-30"
+                    style={{
+                      left: selectedStation.mapX,
+                      top: selectedStation.mapY,
+                      transform: "translate(-50%, calc(-100% - 20px))",
+                    }}
+                  >
+                    <div ref={popupRef} className="bg-white rounded-2xl shadow-xl border border-gray-100 p-4 w-64 relative">
+                      <div className="font-bold text-base text-gray-900">
+                        {selectedStation.name}
+                      </div>
+                      <div className="text-sm text-gray-600 mt-1">
+                        {selectedStation.location}
+                      </div>
+                      <div className="text-sm text-gray-900 mt-2">
+                        {selectedStation.power} max
+                      </div>
+                      <div className="text-sm text-gray-900">{selectedStation.eta}</div>
+                      <div className="text-sm text-gray-600 mt-2">
+                        Battery Consumption: {selectedStation.battery}
+                      </div>
+                      <div className="text-sm text-gray-600">Energy: {selectedStation.energy}</div>
+
+                      <button
+                        onClick={() => window.location.href = 'trip.html'}
+                        className="mt-3 w-full bg-gray-900 text-white text-sm font-bold py-2 rounded-lg hover:bg-gray-800 transition-colors"
+                      >
+                        Start Navigation
+                      </button>
+
+                      <div
+                        className="absolute w-4 h-4 bg-white transform rotate-45 shadow-md"
+                        style={{
+                          bottom: "-8px",
+                          left: "50%",
+                          transform: "translateX(-50%) rotate(45deg)",
+                          clipPath: "polygon(0 0, 100% 0, 100% 100%)",
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Click-away overlay (mobile only) */}
+            {panelOpen && (
+              <div
+                className="absolute inset-0 bg-black/20 z-30 lg:hidden"
+                onClick={() => setPanelOpen(false)}
+              />
+            )}
+
+            {/* Side Panel (Trip Planner Style) */}
+            <aside
+              className={`
+                absolute z-40 flex flex-col
+                transition-transform duration-300 ease-out
+                
+                /* Desktop */
+                lg:top-[76px] lg:right-[14px] lg:w-[392px] lg:max-h-[calc(100vh-96px)] lg:h-auto
+                lg:bg-white/90 lg:backdrop-blur-xl lg:rounded-[20px] lg:border lg:border-gray-200 lg:shadow-2xl
+                lg:translate-x-0 lg:translate-y-0
+
+                /* Mobile */
+                ${panelOpen ? "translate-y-0" : "translate-y-[calc(100%-60px)]"}
+                left-3 right-3 bottom-3 top-auto h-[85vh] w-auto
+                bg-white/95 backdrop-blur-xl rounded-[22px] border border-gray-200 shadow-2xl
+                lg:bottom-auto lg:left-auto
+              `}
+            >
+              {/* Mobile Handle */}
+              <div 
+                className="lg:hidden w-12 h-1.5 bg-gray-300 rounded-full mx-auto mt-3 mb-2 cursor-pointer" 
+                onClick={() => setPanelOpen(!panelOpen)}
+              ></div>
+
+              {/* Panel Header */}
+              <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 shrink-0">
+                <h3 className="text-[16px] font-black tracking-tight text-gray-900">Stations</h3>
+                <div className="text-[11px] font-extrabold text-gray-600 bg-white/80 px-2.5 py-1.5 rounded-full border border-gray-200">
+                  {filteredStations.length} Found
+                </div>
+              </div>
+
+              {/* List */}
+              <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
+                  {filteredStations.map((station) => (
+                    <div
+                      key={station.id}
+                      onClick={() => {
+                        setSelectedStation(station);
+                        if (!window.matchMedia("(min-width: 1024px)").matches) setPanelOpen(false);
+                      }}
+                      className={`
+                        group relative p-3.5 rounded-[18px] border transition-all cursor-pointer
+                        ${
+                        selectedStation?.id === station.id
+                          ? "bg-gray-50 border-gray-300 shadow-md"
+                          : "bg-white border-gray-200 shadow-sm hover:shadow-md hover:-translate-y-px"
+                        }
+                      `}
+                    >
+                      <div className="flex items-start gap-3">
+                        {/* Pin Icon */}
+                        <div className="w-8 h-8 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center shrink-0 text-gray-500">
+                          <MapPinIcon className="w-4 h-4" />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <h3 className="text-[16px] font-extrabold tracking-tight text-gray-900 truncate leading-tight">
+                                  {station.name}
+                                </h3>
+                                {station.free && (
+                                  <span className="flex-shrink-0 px-2.5 py-0.5 bg-green-500 text-white text-xs rounded-full font-semibold">
+                                    Free
+                                  </span>
+                                )}
+                              </div>
+                              <div className="mt-1 text-[12.5px] font-semibold text-gray-500 leading-snug truncate">
+                                {station.location}
+                              </div>
+                              <div className="mt-1.5 text-[12.5px] font-semibold text-gray-600">
+                                <span className="text-gray-900 font-extrabold">{station.available}</span> available
+                              </div>
+                            </div>
+
+                            <div className="text-right shrink-0 flex flex-col gap-1 pt-0.5">
+                              <div className="text-[14px] font-extrabold text-gray-900 tracking-tight">{station.eta}</div>
+                              <div className="text-[12px] font-semibold text-gray-500">{station.power}</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </aside>
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(<ChargingHub />);
+    </script>
+  </body>
+</html>
