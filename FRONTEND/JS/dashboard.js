@@ -1,21 +1,46 @@
-(function initBottomNav(){
-  const nav = document.getElementById('bottomNav');
-  if (!nav) return;
+lucide.createIcons();
 
-  const items = Array.from(nav.querySelectorAll('button.nav-item'));
+window.addEventListener("load", () => {
+  const selected = localStorage.getItem("selectedVehicle");
 
-  function setActive(btn){
-    items.forEach(b => b.removeAttribute('aria-current'));
-    btn.setAttribute('aria-current', 'page');
+  if (!selected) {
+    window.location.href = "garage.html";
+    return;
   }
 
-  items.forEach(btn => {
-    btn.addEventListener('click', () => setActive(btn));
-    btn.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        setActive(btn);
-      }
+  const vehicle = JSON.parse(selected);
+
+  document.getElementById("evOwner").textContent =
+    `Owner: ${vehicle.ownerName}`;
+
+  document.getElementById("evBrand").textContent =
+    vehicle.brand;
+
+  document.getElementById("evModel").textContent =
+    vehicle.model;
+
+  document.getElementById("evIcon").textContent =
+    vehicle.image || "🚗";
+
+  const toggleBtn = document.getElementById("toggleAnalytics");
+  const body = document.getElementById("analyticsBody");
+  const chevron = document.getElementById("analyticsChevron");
+
+  if (toggleBtn && body && chevron) {
+    toggleBtn.addEventListener("click", () => {
+      body.classList.toggle("hidden");
+      chevron.classList.toggle("rotate");
     });
-  });
-})();
+  }
+});
+
+function goToTripPlanner() {
+  const selected = localStorage.getItem("selectedVehicle");
+
+  if (!selected) {
+    window.location.href = "garage.html";
+    return;
+  }
+
+  window.location.href = "../UI_HTML/trip_planner.html";
+}
