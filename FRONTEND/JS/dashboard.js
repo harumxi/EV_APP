@@ -54,7 +54,7 @@ document.addEventListener("DOMContentLoaded", () => {
 async function fetchTripHistory() {
     const userId = localStorage.getItem("user_id");
     try {
-        const res = await fetch(`${API_BASE}/BATTERY/logs.php?user_id=`);
+        const res = await fetch(`${API_BASE}/BATTERY/logs.php?user_id=${userId}`);
         const data = await res.json();
         
         if(data.ok && data.logs) {
@@ -110,7 +110,7 @@ function calculateStats() {
     // Note: I added IDs to the new HTML for easier targeting: stat-efficiency, stat-co2, stat-time
     
     const effEl = document.getElementById('stat-efficiency');
-    if(effEl) effEl.innerText = Math.round(160 / DIST_FACTOR) + ` Wh/`; // Avg efficiency
+    if(effEl) effEl.innerText = Math.round(160 / DIST_FACTOR) + ` Wh/${DIST_LABEL}`; // Avg efficiency
 
     const co2El = document.getElementById('stat-co2');
     if(co2El) co2El.innerText = totalSavings.toFixed(1) + " kg CO₂e";
@@ -141,9 +141,9 @@ function renderTable() {
         div.innerHTML = `
             <div>
               <div class="text-sm font-semibold">${trip.to}</div>
-              <div class="text-xs text-black/60">${trip.date} · ${(trip.dist * DIST_FACTOR).toFixed(1)} </div>
+              <div class="text-xs text-black/60">${trip.date} · ${(trip.dist * DIST_FACTOR).toFixed(1)} ${DIST_LABEL}</div>
             </div>
-            <div class="text-xs font-semibold text-green-600"> kg saved</div>
+            <div class="text-xs font-semibold text-green-600">${savings} kg saved</div>
         `;
         container.appendChild(div);
     });
@@ -209,7 +209,7 @@ async function triggerSOS() {
             
             if (contacts.length === 0) return alert("No emergency contacts saved.");
 
-            await fetch(`/SOS/trigger.php`, {
+            await fetch(`${API_BASE}/SOS/trigger.php`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

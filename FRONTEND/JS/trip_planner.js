@@ -1,384 +1,542 @@
-// =======================================================
-// 1. CONFIGURATION & SETUP
-// =======================================================
-const API_BASE = 'http://localhost/WEBPROG_PROJ/BACKEND/API';
-let map, userMarker, destMarker, routeLayers = [];
-let selectedRoute = null;
+// c:\Users\Alexa\Documents\GitHub\EV_APP\FRONTEND\UI_JS\trip_planner.js
 
-// EV SPECS (BYD Atto 3 Default)
-const EV_SPECS = {
-    capacity_kwh: 60.4, 
-    efficiency_wh_km: 160 
-};
+// ===== CONFIG & BACKEND API =====
+const BASE_API = "http://localhost/WEBPROG_PROJ/BACKEND/API";
+const USER_ID = localStorage.getItem("user_id");
+let myLat = 14.5995, myLng = 120.9842; 
+let activeCar = null;
+let selectedOrigin = null;
+let selectedDest = null;
+let selectedRouteObject = null;
 
-// =======================================================
-// 2. INITIALIZATION (Runs on Load)
-// =======================================================
-document.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 Trip Planner Script Loaded");
+// UNIT PREFERENCES
+const PREF_UNIT = localStorage.getItem('pref_units') || 'KM';
+const DIST_FACTOR = PREF_UNIT === 'MILES' ? 0.621371 : 1;
+const DIST_LABEL = PREF_UNIT === 'MILES' ? 'mi' : 'km';
 
-    // A. ROBUST INPUT FINDER
-    // We look for 'battery_level' OR 'battery-input' to prevent crashes
-    const batteryInput = document.getElementById('battery_level') || document.getElementById('battery-input');
-    
-    if (!batteryInput) {
-        alert("❌ CRITICAL ERROR: Input ID 'battery_level' not found in HTML.\nPlease add id='battery_level' to your input tag.");
-        return; // Stop execution if input is missing
-    }
+// ===== UI HELPERS =====
+lucide.createIcons();
 
-    // Sync: Load saved battery level from Dashboard
-    const savedBatt = localStorage.getItem('user_battery_level');
-    if (savedBatt) batteryInput.value = savedBatt;
+function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+function hasText(v){ return String(v || "").trim().length > 0; }
 
-    // B. CHECK LOCK STATE IMMEDIATELY
-    // If locked from before, block access immediately
-    if (enforceBatteryLock(batteryInput)) return; 
+/* Elements */
+const resultsSection = document.getElementById("results-section");
+const routesList = document.getElementById("routes-list");
+const modePill = document.getElementById("mode-pill");
+const recalcBtn = document.getElementById("recalc-btn");
+const startNavBtn = document.getElementById("start-nav");
+const fromInput = document.getElementById("from-input");
+const toInput = document.getElementById("to-input");
+const afterStartLoading = document.getElementById("after-start-loading");
 
-    // C. SETUP EVENT LISTENERS
-    batteryInput.addEventListener('input', () => {
-        localStorage.setItem('user_battery_level', batteryInput.value);
-        updateBatteryStats(batteryInput);
-        monitorBatteryStatus(batteryInput);
-    });
+/* Connector Swap */
+const connectorBtn = document.querySelector(".connector");
+if (connectorBtn) {
+  connectorBtn.addEventListener("click", () => {
+    if (fromInput.disabled || toInput.disabled) return;
+    const tmp = fromInput.value;
+    fromInput.value = toInput.value;
+    toInput.value = tmp;
+    // Swap selected objects too
+    const tmpObj = selectedOrigin;
+    selectedOrigin = selectedDest;
+    selectedDest = tmpObj;
+  });
+}
 
-    // Listen for changes from other tabs (Dashboard)
-    window.addEventListener('storage', (e) => {
-        if (e.key === 'user_battery_level') {
-            batteryInput.value = e.newValue;
-            updateBatteryStats(batteryInput);
-            monitorBatteryStatus(batteryInput);
-        }
-    });
+const batteryBox = document.getElementById("battery-box");
+const fromBox = document.getElementById("from-box");
+const toBox = document.getElementById("to-box");
 
-    // D. INITIALIZE TOOLS
-    initMap();
-    getWeather();
-    if (window.lucide) lucide.createIcons();
-    updateBatteryStats(batteryInput); // Initial calculation
+/* Inject icons if missing */
+function ensureInputIcons() {
+  if (fromBox && !fromBox.querySelector("svg") && !fromBox.querySelector("i")) {
+    const i = document.createElement("i");
+    i.setAttribute("data-lucide", "circle");
+    i.style.width = "18px";
+    i.style.height = "18px";
+    i.style.color = "#9ca3af";
+    i.style.fill = "#e5e7eb";
+    fromBox.insertBefore(i, fromBox.firstChild);
+  }
+  if (toBox && !toBox.querySelector("svg") && !toBox.querySelector("i")) {
+    const i = document.createElement("i");
+    i.setAttribute("data-lucide", "map-pin");
+    i.style.width = "18px";
+    i.style.height = "18px";
+    i.style.color = "#ef4444";
+    i.style.fill = "rgba(239,68,68,0.1)";
+    toBox.insertBefore(i, toBox.firstChild);
+  }
+  lucide.createIcons();
+}
+ensureInputIcons();
+
+function showAfterStartLoading(ms = 900) {
+  afterStartLoading.classList.add("show");
+  return new Promise((res) => setTimeout(() => {
+    afterStartLoading.classList.remove("show");
+    res();
+  }, ms));
+}
+
+/* ✅ Lock/unlock inputs */
+function setInputsLocked(locked) {
+  batInput.disabled = locked;
+  fromInput.disabled = locked;
+  toInput.disabled = locked;
+
+  batteryBox.classList.toggle("locked", locked);
+  fromBox.classList.toggle("locked", locked);
+  toBox.classList.toggle("locked", locked);
+
+  // Hide suggestion dropdowns when locking
+  document.getElementById("from-suggest").style.display = "none";
+  document.getElementById("to-suggest").style.display = "none";
+}
+
+/* Map */
+const map = L.map("map", { zoomControl: true }).setView([14.5547, 121.0244], 12);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 19,
+  attribution: "&copy; OpenStreetMap"
+}).addTo(map);
+
+let routeLayers = [];
+let startMarker = null, endMarker = null;
+
+function clearMapLayers(){
+  routeLayers.forEach(l => map.removeLayer(l));
+  routeLayers = [];
+  if (startMarker) { map.removeLayer(startMarker); startMarker = null; }
+  if (endMarker) { map.removeLayer(endMarker); endMarker = null; }
+}
+
+function addMarker(lat, lng, label, isStart){
+  const color = isStart ? '#16a34a' : '#dc2626'; 
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" stroke="white" stroke-width="2" style="filter:drop-shadow(0 3px 3px rgba(0,0,0,0.5))"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5" fill="white"/></svg>`;
+  const icon = L.divIcon({ html: svg, className: '', iconSize: [40, 40], iconAnchor: [20, 40], popupAnchor: [0, -40] });
+  const m = L.marker([lat, lng], {icon}).addTo(map).bindPopup(label);
+  return m;
+}
+
+function drawRoute(encoded, isSelected, idx){
+  if (typeof polyline === 'undefined') return;
+  const pts = polyline.decode(encoded); 
+  const color = isSelected ? "#2563eb" : "#94a3b8";
+  const line = L.polyline(pts, { color, weight: isSelected?6:4, opacity: isSelected?1:0.6 }).addTo(map);
+  line.routeId = idx; 
+  if(isSelected) { line.bringToFront(); map.fitBounds(line.getBounds().pad(0.1)); } 
+  routeLayers.push(line);
+}
+
+function highlightRoute(idx){ 
+  routeLayers.forEach(l => { 
+    const isSel = (l.routeId === idx); 
+    l.setStyle({ color: isSel ? "#2563eb" : "#9ca3af", weight: isSel?6:4, opacity: isSel?1:0.6 }); 
+    if(isSel) l.bringToFront(); 
+  }); 
+}
+
+/* Battery */
+const batInput = document.getElementById("bat-input");
+const batDisplay = document.getElementById("bat-display");
+const energyTxt = document.getElementById("energy-txt");
+const rangeTxt  = document.getElementById("range-txt");
+const ringProgress = document.querySelector(".ring-progress");
+const batError = document.getElementById("bat-error");
+
+const RING_R = 52;
+const CIRC = 2 * Math.PI * RING_R;
+ringProgress.style.strokeDasharray = `${CIRC}`;
+ringProgress.style.strokeDashoffset = `${CIRC}`;
+
+let lastValidBattery = 75;
+
+function setRing(percent){
+  const p = clamp(Number(percent || 0), 0, 100);
+  const offset = CIRC * (1 - p / 100);
+  ringProgress.style.strokeDashoffset = `${offset}`;
+}
+
+function estimateRangeKm(batteryPct){ 
+    // Use active car efficiency if available
+    let maxRange = 300;
+    if(activeCar && activeCar.range_km) maxRange = activeCar.range_km;
+    return Math.round(maxRange * (batteryPct / 100) * DIST_FACTOR); 
+}
+
+function setBatteryError(on){ batError.classList.toggle("show", !!on); }
+function isBatteryValid(n){ return Number.isFinite(n) && n >= 0 && n <= 100; }
+function readBatteryRaw(){
+  const raw = String(batInput.value ?? "").trim();
+  if (raw === "") return NaN;
+  return Number(raw);
+}
+function applyBatteryUI(val){
+  setRing(val);
+  batDisplay.textContent = String(val);
+  
+  let capacity = 60; // Default 60kWh
+  if(activeCar && activeCar.battery_kwh) capacity = parseFloat(activeCar.battery_kwh);
+  
+  const kwh = (capacity * val / 100);
+  const dist = estimateRangeKm(val);
+  energyTxt.textContent = `${kwh.toFixed(1)} kWh`;
+  rangeTxt.textContent  = `${dist} ${DIST_LABEL}`;
+}
+function validateAndCommitBattery(){
+  const n = readBatteryRaw();
+  if (!isBatteryValid(n)) {
+    setBatteryError(true);
+    batInput.value = String(lastValidBattery);
+    applyBatteryUI(lastValidBattery);
+    return { ok:false, value:lastValidBattery };
+  }
+  setBatteryError(false);
+  const v = Math.round(n);
+  lastValidBattery = v;
+  batInput.value = String(v);
+  applyBatteryUI(v);
+  return { ok:true, value:v };
+}
+
+batInput.addEventListener("input", () => {
+  if (batInput.disabled) return;
+  const n = readBatteryRaw();
+  if (isBatteryValid(n)) {
+    setBatteryError(false);
+    setRing(n);
+    batDisplay.textContent = String(n);
+  } else {
+    if (Number.isFinite(n) && (n < 0 || n > 100)) setBatteryError(true);
+  }
 });
 
-// =======================================================
-// 3. BATTERY LOGIC & GATES
-// =======================================================
-
-// HELPER: Calculate Range Display
-function updateBatteryStats(inputElement) {
-    const val = parseInt(inputElement.value) || 0;
-    const energy = (val / 100) * EV_SPECS.capacity_kwh;
-    const range = Math.round(energy / (EV_SPECS.efficiency_wh_km / 1000));
-
-    if(document.getElementById('energy-val')) 
-        document.getElementById('energy-val').innerText = energy.toFixed(1) + " kWh";
-    
-    if(document.getElementById('range-val')) 
-        document.getElementById('range-val').innerText = range + " km";
+/* Suggestions (Photon API) */
+async function smartSearch(query) {
+    if(!query || query.length < 2) return [];
+    // Bias towards Philippines
+    const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&lat=${myLat}&lon=${myLng}&limit=5&bbox=116.8,4.5,126.7,21.2`);
+    const data = await res.json();
+    return data.features || [];
 }
 
-// MONITOR: Checks Battery Level on every input change
-function monitorBatteryStatus(inputElement) {
-    const currentSoc = parseInt(inputElement.value) || 0;
-    
-    // 1. HEALTHY (>20%) - Release Lock
-    if (currentSoc > 20) {
-        localStorage.setItem("forceCharging", "0");
-        return; 
-    }
+function updateStartButtonState() {
+    if(fromInput.disabled) return;
+    const hasText = fromInput.value.trim().length > 0 && toInput.value.trim().length > 0;
+    startNavBtn.disabled = !hasText;
+}
 
-    // 2. LOW WARNING (11-20%)
-    if (currentSoc <= 20 && currentSoc > 10) {
-        showToastWarning("⚠️ Low Battery (≤20%). Plan charging soon.");
-        return;
-    }
+function mountSuggest(inputEl, listEl, isOrigin) {
+  let debounce;
+  
+  inputEl.addEventListener("input", () => {
+    if(isOrigin) selectedOrigin = null; else selectedDest = null;
+    selectedRouteObject = null;
+    updateStartButtonState();
 
-    // 3. CRITICAL (≤10%) - LOCK APP
-    if (currentSoc <= 10) {
-        console.log("⚠️ Battery Critical! Locking App...");
-        localStorage.setItem("forceCharging", "1");
+    clearTimeout(debounce);
+    debounce = setTimeout(async () => {
+        const q = inputEl.value;
+        if(q.length < 2) { listEl.style.display = "none"; return; }
         
-        const severity = currentSoc <= 5 ? 'emergency' : 'critical';
-        showCriticalBatteryModal(currentSoc, severity);
-    }
-}
+        const results = await smartSearch(q);
+        if(results.length === 0) { listEl.style.display = "none"; return; }
 
-// GATEKEEPER: Prevents actions if locked
-function enforceBatteryLock(inputElement) {
-    const isLocked = localStorage.getItem("forceCharging") === "1";
+        listEl.innerHTML = results.map((r) => {
+            const p = r.properties;
+            const name = p.name || p.street || "Unknown";
+            const details = [p.city, p.state, p.country].filter(Boolean).join(", ");
+            const lat = r.geometry.coordinates[1];
+            const lng = r.geometry.coordinates[0];
+            
+            return `
+              <div class="suggest-item" data-lat="${lat}" data-lng="${lng}" data-name="${name}">
+                <i data-lucide="map-pin" style="margin-top:2px;"></i>
+                <div class="meta">
+                  <b>${name}</b>
+                  <span>${details}</span>
+                </div>
+              </div>
+            `;
+        }).join("");
+
+        lucide.createIcons();
+        listEl.style.display = "block";
+    }, 300);
+  });
+
+  listEl.addEventListener("click", (e) => {
+    const row = e.target.closest(".suggest-item");
+    if (!row) return;
     
-    if (isLocked) {
-        const val = inputElement ? parseInt(inputElement.value) : 0;
-        
-        // Only enforce if the value is STILL low
-        if (val <= 10) {
-            const severity = val <= 5 ? 'emergency' : 'critical';
-            showCriticalBatteryModal(val, severity);
-            return true; // We are locked
-        } else {
-            // Auto-unlock if value is high now
-            localStorage.setItem("forceCharging", "0");
-            return false;
-        }
-    }
-    return false; // Safe to proceed
+    inputEl.value = row.getAttribute("data-name");
+    const lat = parseFloat(row.getAttribute("data-lat"));
+    const lng = parseFloat(row.getAttribute("data-lng"));
+    
+    if(isOrigin) selectedOrigin = { lat, lng };
+    else selectedDest = { lat, lng };
+    
+    listEl.style.display = "none";
+    
+    // Auto-trigger calculation if both set
+    // if(selectedOrigin && selectedDest) calculateRoutes();
+    updateStartButtonState();
+  });
+
+  document.addEventListener("click", (e) => {
+    const within = listEl.contains(e.target) || inputEl.contains(e.target);
+    if (!within) listEl.style.display = "none";
+  });
 }
 
-// =======================================================
-// 4. MODALS & UI
-// =======================================================
-function showCriticalBatteryModal(soc, severity) {
-    if (document.getElementById('critical-modal')) return; // No duplicates
+mountSuggest(fromInput, document.getElementById("from-suggest"), true);
+mountSuggest(toInput, document.getElementById("to-suggest"), false);
 
-    const isEmerg = severity === 'emergency';
-    const color = isEmerg ? 'bg-red-600' : 'bg-orange-600';
-    const title = isEmerg ? '🚨 EMERGENCY STOP' : '⚠️ CRITICAL BATTERY';
-    const msg = isEmerg ? 'Battery Critical. Do not drive.' : 'You must charge now.';
+/* Data & Logic */
+let currentRoutes = [];
+let selectedIndex = -1;
+let mode = "routes";
+let resultsVisible = false;
+let isNavigating = false;
 
-    const html = `
-        <div id="critical-modal" class="fixed inset-0 bg-black/95 z-[9999] flex items-center justify-center p-4 backdrop-blur-md">
-            <div class="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl animate-bounce-in">
-                <div class="${color} p-6 text-white text-center">
-                    <h2 class="text-3xl font-black uppercase">${title}</h2>
-                    <p class="mt-2 font-bold">${msg}</p>
-                </div>
-                <div class="p-6 space-y-4">
-                    <p class="text-gray-700 font-bold text-center">Select Charging Option:</p>
-                    
-                    <button onclick="handleHomeCharging()" class="w-full py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-lg shadow-lg flex justify-center gap-2">
-                        <i class="fa-solid fa-house"></i> Home / Private Charger
-                    </button>
-                    
-                    <button id="btn-reroute" onclick="handlePublicCharging(event)" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg shadow-lg flex justify-center gap-2">
-                        <i class="fa-solid fa-bolt"></i> Reroute to Charger
-                    </button>
-                </div>
+function setHeaderFor(mode){
+  document.getElementById("app-title").textContent = "Trip Planner";
+  document.getElementById("app-subtitle").textContent = mode === "charging"
+    ? "Nearby charging stations"
+    : "Suggested routes";
+}
+
+function resetDetails(){
+  selectedIndex = -1;
+  document.getElementById("rd-title").textContent = "Select an item";
+  document.getElementById("rd-note").textContent = "Details will appear here.";
+  document.getElementById("rd-energy").textContent = "—";
+  document.getElementById("rd-arrival").textContent = "—";
+  document.getElementById("rd-eta").textContent = "—";
+}
+
+function updateDetails(item) {
+  document.getElementById("rd-title").textContent = item.name || "Route " + (selectedIndex + 1);
+  document.getElementById("rd-note").textContent = item.note || "Fastest route based on traffic";
+
+  document.getElementById("rd-m1-label").textContent = "Energy";
+  document.getElementById("rd-m2-label").textContent = "Arrival";
+  document.getElementById("rd-m3-label").textContent = "ETA";
+  
+  document.getElementById("rd-energy").textContent = `${item.est_usage}%`;
+  document.getElementById("rd-arrival").textContent = `${item.end_battery}%`;
+  document.getElementById("rd-eta").textContent = `${item.duration_min} min`;
+}
+
+function renderList(){
+  routesList.innerHTML = currentRoutes.map((it, i) => {
+    return `
+      <div class="route-card ${i === selectedIndex ? "active" : ""}" data-idx="${i}" tabindex="0" role="button">
+        <div class="row-top">
+          <div class="left-pack">
+            <div class="pin" aria-hidden="true"><i data-lucide="route"></i></div>
+            <div class="title-col">
+              <div class="title-line">
+                <div class="main-title">Route ${i + 1}</div>
+              </div>
+              <div class="sub-title">${(it.distance_km * DIST_FACTOR).toFixed(1)} ${DIST_LABEL}</div>
+              <div class="availability">
+                <b>${it.end_battery}%</b> arrival • <b>${it.est_usage}%</b> used
+              </div>
             </div>
+          </div>
+          <div class="right-pack">
+            <div class="eta-big">${it.duration_min} min</div>
+            <div class="power">ETA</div>
+          </div>
         </div>
+      </div>
     `;
-    document.body.insertAdjacentHTML('beforeend', html);
+  }).join("");
+
+  lucide.createIcons();
 }
 
-function showToastWarning(msg) {
-    const div = document.createElement('div');
-    div.className = "fixed top-5 left-1/2 transform -translate-x-1/2 bg-orange-500 text-white px-6 py-3 rounded-full shadow-2xl font-bold z-[100] animate-pulse";
-    div.innerText = msg;
-    document.body.appendChild(div);
-    setTimeout(() => div.remove(), 4000);
-}
+routesList.addEventListener("click", (e) => {
+  if (!resultsVisible) return;
+  const card = e.target.closest(".route-card");
+  if (!card) return;
 
-// =======================================================
-// 5. REDIRECT HANDLERS (THE FIX)
-// =======================================================
+  selectedIndex = Number(card.dataset.idx || 0);
+  renderList(); // Re-render to update active class
+  
+  const route = currentRoutes[selectedIndex];
+  updateDetails(route);
+  highlightRoute(selectedIndex);
+  
+  selectedRouteObject = { 
+      route: route, 
+      origin: fromInput.value, 
+      destination: toInput.value 
+  };
 
-// A. HOME CHARGING
-function handleHomeCharging() {
-    localStorage.setItem('ev_charging_mode', 'home');
-    window.location.replace("charging.html");
-}
+  startNavBtn.disabled = false;
+});
 
-// B. PUBLIC CHARGING (Reroute)
-async function handlePublicCharging(event) {
-    if(event) event.preventDefault(); // Stop form submit
-    console.log("🚀 Initiating Reroute...");
-
-    const btn = document.getElementById('btn-reroute');
-    if(btn) {
-        btn.innerHTML = "🔍 Locating...";
-        btn.disabled = true;
-    }
-
-    // 1. SET LOCK STATE FIRST
-    localStorage.setItem("forceCharging", "1");
-    localStorage.setItem('ev_lock_status', 'critical');
-    localStorage.setItem('ev_charging_mode', 'public');
-
-    try {
-        // 2. GET LOCATION & DATA
-        const pos = await getCurrentPosition();
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        
-        localStorage.setItem("lastLat", lat);
-        localStorage.setItem("lastLng", lng);
-
-        const response = await fetch(`${API_BASE}/CHARGING/nearby.php?lat=${lat}&lon=${lng}`);
-        const stations = await response.json();
-
-        if (stations && stations.length > 0) {
-            localStorage.setItem('ev_target_charger', JSON.stringify(stations[0]));
-        }
-
-        // 3. EXECUTE REDIRECT
-        console.log("➡ Redirecting to charging.html");
-        
-        // Try Absolute Path First (Adjust 'WEBPROG_PROJ' if your folder name is different)
-        // window.location.href = "/WEBPROG_PROJ/FRONTEND/HTML/charging.html";
-        
-        // Try Relative Path (Standard)
-        window.location.replace("charging.html");
-
-    } catch (err) {
-        console.error("Redirect Error:", err);
-        // Fallback: Force redirect anyway
-        window.location.replace("charging.html");
-    }
-}
-
-// C. NAVIGATION START (Blocked)
-function startNavigation() {
-    console.log("🛑 Checking battery before Nav start...");
-    const isLocked = localStorage.getItem("forceCharging") === "1";
+/* Calculate Logic */
+async function calculateRoutes() {
+    const battRes = validateAndCommitBattery();
+    if(!battRes.ok) return;
     
-    // ⛔ THE WALL: Stops test_navigation.html leak
-    if (isLocked) {
-        alert("⛔ BATTERY CRITICAL. Cannot start trip.");
-        window.location.replace("charging.html");
-        return; 
-    }
-
-    if(!selectedRoute) return;
-    localStorage.setItem('activeTrip', JSON.stringify(selectedRoute));
-    window.location.href = '../test/test_navigation.html'; 
-}
-
-// =======================================================
-// 6. UTILITIES & MAP
-// =======================================================
-function getCurrentPosition() {
-    return new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject);
-    });
-}
-
-function initMap() {
-    const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
-    map = L.map('map', { center: [14.5995, 120.9842], zoom: 12, layers: [osm], zoomControl: false });
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
-}
-
-async function getWeather() {
-    try {
-        const res = await fetch(`${API_BASE}/WEATHER/current.php`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ lat: 14.5995, lng: 120.9842 })
-        });
-        const data = await res.json();
-        if(data.ok) document.getElementById('weather-widget').innerHTML = `${data.weather.temp}°C`;
-    } catch(e) {}
-}
-
-async function calculateTrip() {
-    // Also block calculation if critical
-    const isLocked = localStorage.getItem("forceCharging") === "1";
-    if (isLocked) {
-        alert("Battery Critical. Please charge.");
+    // Battery Gate
+    if(battRes.value <= 20) {
+        alert("⛔ BATTERY LOW (≤20%)\n\nYou cannot start a trip.\nRedirecting to Charging Station...");
+        localStorage.setItem("forceCharging", "1");
+        localStorage.setItem("ev_lock_status", "critical");
+        window.location.href = "charging.html";
         return;
     }
 
-    // Your Existing Calc Logic...
-    const origin = document.getElementById('from-loc').value;
-    const dest = document.getElementById('to-loc').value;
-    const batt = document.getElementById('battery_level')?.value || document.getElementById('battery-input')?.value;
-    
-    // UI Code...
-    const loader = document.getElementById('loading-overlay');
-    const errorBox = document.getElementById('error-msg');
+    if(!selectedOrigin || !selectedDest) return;
 
-    if(!origin || !dest) {
-        if(errorBox) { errorBox.innerText = "Please enter both Start and Destination."; errorBox.classList.remove('hidden'); }
-        return;
-    }
-    if(loader) loader.classList.remove('hidden');
-    
+    // UI Loading State
+    setInputsLocked(true);
+    resultsSection.classList.add("hidden");
+    await showAfterStartLoading(500);
+
     try {
-        const res = await fetch(`${API_BASE}/TRIPS/calculate.php`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ user_id: 1, origin, destination: dest, battery_percent: batt })
+        const res = await fetch(`${BASE_API}/TRIPS/calculate.php`, {
+            method: "POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({ 
+                user_id: USER_ID, 
+                battery_percent: battRes.value, 
+                origin: selectedOrigin, 
+                destination: selectedDest 
+            })
         });
         const data = await res.json();
-        if(loader) loader.classList.add('hidden');
-        if(!data.ok) throw new Error(data.error);
+        
+        if(!data.ok || !data.routes || data.routes.length === 0) {
+            alert("No routes found.");
+            setInputsLocked(false);
+            return;
+        }
 
-        document.getElementById('plan-section').classList.add('hidden');
-        document.getElementById('results-section').classList.remove('hidden');
-        setTimeout(() => map.invalidateSize(), 200);
-        renderResults(data);
-    } catch (err) {
-        if(loader) loader.classList.add('hidden');
-        if(errorBox) { errorBox.innerText = err.message; errorBox.classList.remove('hidden'); }
+        currentRoutes = data.routes;
+        resultsVisible = true;
+        resultsSection.classList.remove("hidden");
+        
+        // Draw Routes
+        clearMapLayers();
+        startMarker = addMarker(selectedOrigin.lat, selectedOrigin.lng, "Start", true);
+        endMarker = addMarker(selectedDest.lat, selectedDest.lng, "End", false);
+        
+        currentRoutes.forEach((r, idx) => {
+            drawRoute(r.geometry, idx === 0, idx);
+        });
+        
+        // Auto-select first
+        selectedIndex = 0;
+        renderList();
+        updateDetails(currentRoutes[0]);
+        selectedRouteObject = { route: currentRoutes[0], origin: fromInput.value, destination: toInput.value };
+        startNavBtn.disabled = false;
+        recalcBtn.style.display = "block";
+        
+        // Scroll to results
+        document.getElementById("panel-scroll").scrollTo({ top: document.getElementById("panel-scroll").scrollHeight, behavior: "smooth" });
+
+    } catch(e) {
+        console.error(e);
+        alert("Calculation failed.");
+        setInputsLocked(false);
     }
 }
 
-function renderResults(data) {
-    const container = document.getElementById('routes-container');
-    container.innerHTML = '';
+/* Start Navigation */
+startNavBtn.addEventListener("click", async () => {
+  if (!selectedRouteObject) {
+      // Attempt to resolve locations if text is present but no route selected
+      if (!selectedOrigin && fromInput.value.trim()) {
+          const res = await smartSearch(fromInput.value);
+          if(res.length) selectedOrigin = { lat: res[0].geometry.coordinates[1], lng: res[0].geometry.coordinates[0] };
+      }
+      if (!selectedDest && toInput.value.trim()) {
+          const res = await smartSearch(toInput.value);
+          if(res.length) selectedDest = { lat: res[0].geometry.coordinates[1], lng: res[0].geometry.coordinates[0] };
+      }
+
+      if (selectedOrigin && selectedDest) {
+          await calculateRoutes();
+          return;
+      } else {
+          alert("Please select valid locations.");
+          return;
+      }
+  }
+  
+  if (selectedRouteObject) {
+      localStorage.setItem("activeTrip", JSON.stringify(selectedRouteObject));
+      window.location.href = "test_navigation.html";
+  }
+});
+
+/* Recalculate / Reset */
+recalcBtn.addEventListener("click", () => {
+  setInputsLocked(false);
+  resultsVisible = false;
+  resultsSection.classList.add("hidden");
+  resetDetails();
+  recalcBtn.style.display = "none";
+  startNavBtn.disabled = true;
+  clearMapLayers();
+  
+  // Reset View
+  map.setView([myLat, myLng], 12);
+});
+
+/* Init */
+document.addEventListener("DOMContentLoaded", () => {
+    if(!USER_ID) window.location.href = "login.html";
     
-    routeLayers.forEach(l => map.removeLayer(l)); routeLayers = [];
-    if(destMarker) map.removeLayer(destMarker);
-    if(userMarker) map.removeLayer(userMarker);
-
-    if(data.destination_coords) {
-        const {lat, lng} = data.destination_coords;
-        destMarker = L.marker([lat, lng]).addTo(map).bindPopup("Destination");
-        const originVal = document.getElementById('from-loc').value;
-        if(originVal.includes(',')) {
-            const [olat, olng] = originVal.split(',');
-            userMarker = L.marker([olat, olng]).addTo(map).bindPopup("Start");
-        }
+    // Load Active Car (Logic only)
+    activeCar = JSON.parse(localStorage.getItem('active_car') || "null");
+    
+    // Sync Battery
+    const savedBatt = localStorage.getItem('user_battery_level');
+    if(savedBatt) {
+        batInput.value = savedBatt;
+        applyBatteryUI(parseInt(savedBatt));
     }
 
-    data.routes.forEach((route, index) => {
-        const isRec = index === 0;
-        const points = polyline.decode(route.geometry);
-        const color = isRec ? '#3b82f6' : '#94a3b8';
-        const weight = isRec ? 6 : 4;
-        const line = L.polyline(points, { color, weight, opacity: 0.8 }).addTo(map);
-        routeLayers.push({ id: index, layer: line });
-
-        if(isRec) {
-            map.fitBounds(line.getBounds().pad(0.1));
-            selectedRoute = { route, car: data.car, destLabel: data.destination_label };
-            document.getElementById('start-nav-box').classList.remove('hidden');
-        }
-
-        const card = document.createElement('div');
-        card.className = `route-item ${isRec ? 'selected' : ''}`;
-        card.innerHTML = `
-            <div class="badge ${isRec ? 'rec' : 'alt'}">${isRec ? 'Recommended' : 'Alternative'}</div>
-            <div style="flex justify-between items-center">
-                <div>
-                    <div style="font-weight:800; font-size:18px;">${route.distance_km} km</div>
-                    <div style="font-size:13px; color:#64748b;">${route.duration_min} min</div>
-                </div>
-                <div style="text-align:right;">
-                    <div style="font-weight:700; color:#ef4444;">-${route.est_usage}%</div>
-                </div>
-            </div>
-        `;
-        card.onclick = () => selectRoute(index, route, data, card);
-        container.appendChild(card);
-    });
-}
-
-function selectRoute(index, route, data, cardEl) {
-    document.querySelectorAll('.route-item').forEach(c => c.classList.remove('selected'));
-    cardEl.classList.add('selected');
-    routeLayers.forEach(item => {
-        if(item.id === index) {
-            item.layer.setStyle({ color: '#3b82f6', weight: 6 });
-            item.layer.bringToFront();
-            map.fitBounds(item.layer.getBounds().pad(0.1));
-        } else {
-            item.layer.setStyle({ color: '#94a3b8', weight: 4 });
-        }
-    });
-    selectedRoute = { route, car: data.car, destLabel: data.destination_label };
-}
-
-// Use Location Helper
-function useMyLocation() {
-    if(!navigator.geolocation) return alert("GPS not supported");
+    // GPS
     navigator.geolocation.getCurrentPosition(pos => {
-        document.getElementById('from-loc').value = `${pos.coords.latitude}, ${pos.coords.longitude}`;
+        myLat = pos.coords.latitude;
+        myLng = pos.coords.longitude;
+        
+        // Auto-fill Origin
+        fromInput.value = "My Location";
+        selectedOrigin = { lat: myLat, lng: myLng };
+        map.setView([myLat, myLng], 14);
+        L.circleMarker([myLat, myLng], { radius: 8, fillColor: "#3b82f6", color: "#fff", weight: 2, fillOpacity: 1 }).addTo(map);
+        updateStartButtonState();
+        
+        // Check for incoming nav request from Hubs
+        const navDest = JSON.parse(localStorage.getItem('nav_destination'));
+        if (navDest) {
+            toInput.value = navDest.name;
+            selectedDest = { lat: navDest.lat, lng: navDest.lng };
+            localStorage.removeItem('nav_destination');
+            calculateRoutes();
+        }
     });
-}
+});
+
+/* Mobile sheet */
+const panel = document.getElementById("panel");
+const sheetHandle = document.getElementById("sheet-handle");
+function isMobile() { return window.matchMedia("(max-width: 980px)").matches; }
+function setSheetOpen(open) { if (isMobile()) panel.classList.toggle("closed", !open); }
+function syncSheetMode() { if (isMobile()) setSheetOpen(true); else panel.classList.remove("closed"); }
+syncSheetMode();
+window.addEventListener("resize", syncSheetMode);
+if (sheetHandle) sheetHandle.addEventListener("click", () => { if (isMobile()) panel.classList.toggle("closed"); });
