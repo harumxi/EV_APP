@@ -389,6 +389,7 @@ async function calculateRoutes() {
     // Battery Gate
     if(battRes.value <= 20) {
         alert("⛔ BATTERY LOW (≤20%)\n\nYou cannot start a trip.\nRedirecting to Charging Station...");
+        localStorage.setItem("user_battery_level", battRes.value);
         localStorage.setItem("forceCharging", "1");
         localStorage.setItem("ev_lock_status", "critical");
         window.location.href = "charging.html";
