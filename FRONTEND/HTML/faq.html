@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Help / FAQ Drawer</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+    <link rel="stylesheet" href="./faq.css" />
+  </head>
+
+  <body class="min-h-screen bg-background">
+    <!-- Demo button (remove this if you're opening it from your profile page) -->
+    <div class="mx-auto max-w-3xl p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-xl font-semibold text-foreground">Help / FAQ Drawer</div>
+          <div class="text-sm text-muted-foreground">
+            Demo standalone version
+          </div>
+        </div>
+
+        <button
+          id="openHelpDrawer"
+          type="button"
+          class="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+        >
+          Open FAQ
+        </button>
+      </div>
+    </div>
+
+    <!-- HELP / FAQ DRAWER -->
+    <div id="helpDrawer" class="fixed inset-0 z-50 hidden">
+      <div id="helpBackdrop" class="absolute inset-0 drawer-backdrop"></div>
+
+      <div
+        id="helpPanel"
+        class="drawer-panel absolute right-0 top-0 h-full w-full max-w-md border-l bg-background shadow-xl"
+        data-open="false"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Help and FAQ"
+      >
+        <div class="flex h-full flex-col">
+          <!-- header -->
+          <div class="flex items-center justify-between border-b px-5 py-4">
+            <div class="flex items-center gap-2">
+              <i data-lucide="help-circle" class="h-5 w-5"></i>
+              <div class="text-base font-semibold text-foreground">Help &amp; FAQ</div>
+            </div>
+
+            <button
+              id="closeHelpDrawer"
+              type="button"
+              class="rounded-full border bg-background px-3 py-1.5 text-sm font-semibold hover:bg-muted"
+            >
+              Close
+            </button>
+          </div>
+
+          <!-- content -->
+          <div class="flex-1 overflow-auto p-5">
+            <div class="grid gap-4">
+              <!-- Search -->
+              <div class="rounded-2xl border p-4">
+                <div class="text-sm font-semibold text-foreground">How can we help?</div>
+                <div class="mt-3 flex items-center gap-2 rounded-xl border bg-background px-3 py-2">
+                  <i data-lucide="search" class="h-4 w-4 text-muted-foreground"></i>
+                  <input
+                    id="faqSearch"
+                    type="text"
+                    placeholder="Search topics…"
+                    class="w-full bg-transparent text-sm outline-none"
+                  />
+                </div>
+                <p class="mt-2 text-xs text-muted-foreground">
+                  Try “change username”, “notifications”, or “upload photo”.
+                </p>
+              </div>
+
+              <!-- Quick actions -->
+              <div class="rounded-2xl border p-4">
+                <div class="text-sm font-semibold text-foreground">Quick actions</div>
+                <div class="mt-3 grid gap-2">
+                  <button
+                    id="helpContact"
+                    type="button"
+                    class="flex items-center justify-between rounded-xl border bg-background px-3 py-2 text-sm font-semibold text-foreground hover:bg-muted"
+                  >
+                    Contact support
+                    <i data-lucide="external-link" class="h-4 w-4 text-muted-foreground"></i>
+                  </button>
+
+                  <button
+                    id="helpReportBug"
+                    type="button"
+                    class="flex items-center justify-between rounded-xl border bg-background px-3 py-2 text-sm font-semibold text-foreground hover:bg-muted"
+                  >
+                    Report a bug
+                    <i data-lucide="bug" class="h-4 w-4 text-muted-foreground"></i>
+                  </button>
+
+                  <button
+                    id="helpReset"
+                    type="button"
+                    class="flex items-center justify-between rounded-xl border bg-background px-3 py-2 text-sm font-semibold text-foreground hover:bg-muted"
+                  >
+                    Reset settings
+                    <i data-lucide="rotate-ccw" class="h-4 w-4 text-muted-foreground"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- FAQ Accordion -->
+              <div class="rounded-2xl border p-4">
+                <div class="text-sm font-semibold text-foreground">Frequently asked questions</div>
+
+                <div id="faqList" class="mt-3 grid gap-2">
+                  <div class="faq-item rounded-xl border bg-background" data-open="false" data-q="How do I change my username?">
+                    <button type="button" class="faq-btn flex w-full items-center justify-between px-3 py-3 text-left text-sm font-semibold">
+                      <span>How do I change my username?</span>
+                      <i data-lucide="chevron-down" class="faq-chevron h-4 w-4 text-muted-foreground"></i>
+                    </button>
+                    <div class="faq-answer px-3 pb-3 text-sm text-muted-foreground">
+                      Tap <span class="font-semibold text-foreground">Edit profile</span>, update your username, then tap <span class="font-semibold text-foreground">Save</span>.
+                    </div>
+                  </div>
+
+                  <div class="faq-item rounded-xl border bg-background" data-open="false" data-q="How do I enable or disable notifications?">
+                    <button type="button" class="faq-btn flex w-full items-center justify-between px-3 py-3 text-left text-sm font-semibold">
+                      <span>How do I enable or disable notifications?</span>
+                      <i data-lucide="chevron-down" class="faq-chevron h-4 w-4 text-muted-foreground"></i>
+                    </button>
+                    <div class="faq-answer px-3 pb-3 text-sm text-muted-foreground">
+                      Use the master toggle in the Notifications screen. You can also choose channels like Push/Email/SMS.
+                    </div>
+                  </div>
+
+                  <div class="faq-item rounded-xl border bg-background" data-open="false" data-q="How do I change my profile photo or cover?">
+                    <button type="button" class="faq-btn flex w-full items-center justify-between px-3 py-3 text-left text-sm font-semibold">
+                      <span>How do I change my profile photo or cover?</span>
+                      <i data-lucide="chevron-down" class="faq-chevron h-4 w-4 text-muted-foreground"></i>
+                    </button>
+                    <div class="faq-answer px-3 pb-3 text-sm text-muted-foreground">
+                      Tap <span class="font-semibold text-foreground">Edit profile</span> first. Then use the camera buttons on the avatar/cover to upload an image.
+                    </div>
+                  </div>
+
+                  <div class="faq-item rounded-xl border bg-background" data-open="false" data-q="Why can’t I edit my information?">
+                    <button type="button" class="faq-btn flex w-full items-center justify-between px-3 py-3 text-left text-sm font-semibold">
+                      <span>Why can’t I edit my information?</span>
+                      <i data-lucide="chevron-down" class="faq-chevron h-4 w-4 text-muted-foreground"></i>
+                    </button>
+                    <div class="faq-answer px-3 pb-3 text-sm text-muted-foreground">
+                      Editing is disabled until you tap <span class="font-semibold text-foreground">Edit profile</span>.
+                    </div>
+                  </div>
+
+                  <div class="faq-item rounded-xl border bg-background" data-open="false" data-q="How do I discard changes?">
+                    <button type="button" class="faq-btn flex w-full items-center justify-between px-3 py-3 text-left text-sm font-semibold">
+                      <span>How do I discard changes?</span>
+                      <i data-lucide="chevron-down" class="faq-chevron h-4 w-4 text-muted-foreground"></i>
+                    </button>
+                    <div class="faq-answer px-3 pb-3 text-sm text-muted-foreground">
+                      Tap <span class="font-semibold text-foreground">Cancel</span> to revert back to the last saved profile.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <p class="text-xs text-muted-foreground">
+                • If you still need help, contact support from the quick actions above.
+              </p>
+            </div>
+          </div>
+
+          <!-- footer -->
+          <div class="border-t p-4">
+            <button
+              id="helpOk"
+              type="button"
+              class="w-full rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Theme helpers (same variables as your profile page) -->
+    <style>
+      :root {
+        --background: 0 0% 100%;
+        --foreground: 222.2 84% 4.9%;
+        --muted: 210 40% 96.1%;
+        --muted-foreground: 215.4 16.3% 46.9%;
+        --border: 214.3 31.8% 91.4%;
+        --primary: 222.2 47.4% 11.2%;
+        --primary-foreground: 210 40% 98%;
+      }
+      .bg-background { background-color: hsl(var(--background)); }
+      .text-foreground { color: hsl(var(--foreground)); }
+      .bg-muted { background-color: hsl(var(--muted)); }
+      .text-muted-foreground { color: hsl(var(--muted-foreground)); }
+      .border { border-color: hsl(var(--border)); }
+      .bg-primary { background-color: hsl(var(--primary)); }
+      .text-primary-foreground { color: hsl(var(--primary-foreground)); }
+    </style>
+
+    <script src="./faq.js" defer></script>
+  </body>
+</html>
