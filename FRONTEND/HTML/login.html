@@ -3,177 +3,298 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EnerGo - Access</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        // Check dark mode preference immediately to prevent flickering
-        if (localStorage.getItem('pref_dark') === 'true') {
-            document.documentElement.classList.add('dark');
-        }
-        tailwind.config = { darkMode: 'class' };
-    </script>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>EnerGo - Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        .hidden { display: none !important; }
-        .toast { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform: translate(-50%, -100%); opacity: 0; }
-        .toast.show { transform: translate(-50%, 20px); opacity: 1; }
-    </style>
+
+    <!-- Link to CSS file -->
+    <link rel="stylesheet" href="../CSS/login.css">
 </head>
+<body>
+    <div class="success-message" id="successMessage">Welcome to EnerGo!</div>
 
-<body class="bg-white dark:bg-slate-900 overflow-hidden transition-colors duration-300">
-    <div id="successMessage" class="toast fixed top-0 left-1/2 bg-slate-900 text-white px-8 py-4 rounded-2xl shadow-2xl z-[1000] font-bold"></div>
+    <div class="main-container">
+        <!-- Left Panel -->
+        <div class="left-panel">
+            <div class="logo">
+                <div class="logo-icon">⚡</div>
+                EnerGo
+            </div>
 
-    <div class="flex h-screen">
-        <div class="hidden lg:flex w-1/2 bg-blue-600 relative items-center justify-center">
-            <div class="absolute top-12 left-12 z-20">
-                <div class="text-white text-3xl font-black tracking-tighter flex items-center gap-2">
-                    <span class="bg-white text-blue-600 w-10 h-10 flex items-center justify-center rounded-xl shadow-lg">⚡</span> EnerGo
+            <div class="form-container">
+                <div class="welcome-section">
+                    <h1 class="welcome-title">Welcome</h1>
+                    <p class="welcome-subtitle">Power your journey with smart energy management. Connect to a sustainable future.</p>
+                </div>
+
+                <div class="form-content">
+                    <!-- Login Form -->
+                    <div class="form-panel" id="loginForm">
+                        <form id="loginFormElement">
+                            <div class="input-group">
+                                <label class="input-label">Email</label>
+                                <div class="input-wrapper">
+                                    <input type="email" class="input-field" id="loginEmail" required>
+                                </div>
+                            </div>
+
+                            <div class="input-group">
+                                <label class="input-label">Password</label>
+                                <div class="input-wrapper">
+                                    <input type="password" class="input-field" id="loginPassword" required>
+                                    <span class="password-toggle" onclick="togglePassword('loginPassword', this)">
+                                        <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                            <circle cx="12" cy="12" r="3"></circle>
+                                        </svg>
+                                    </span>
+                                </div>
+                                <div class="error-message" id="loginPasswordError">Password is required</div>
+                                <div class="forgot-password">
+                                    <a onclick="showForgot()">Forgot Password?</a>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="submit-btn">
+                                <span>Login</span>
+                            </button>
+                        </form>
+
+                        <div class="toggle-form">
+                            Don't have an account? <a onclick="showSignup()">Create an Account</a>
+                        </div>
+                    </div>
+
+                    <!-- Signup Form -->
+                    <div class="form-panel hidden" id="signupForm">
+                        <form id="signupFormElement">
+                            <div class="input-group">
+                                <label class="input-label">First Name</label>
+                                <div class="input-wrapper">
+                                    <input type="text" class="input-field" id="signupFirstName" required>
+                                </div>
+                                <div class="error-message" id="signupFirstNameError">First Name is required</div>
+                            </div>
+
+                            <div class="input-group">
+                                <label class="input-label">Last Name</label>
+                                <div class="input-wrapper">
+                                    <input type="text" class="input-field" id="signupLastName" required>
+                                </div>
+                                <div class="error-message" id="signupLastNameError">Last Name is required</div>
+                            </div>
+
+                            <!-- ✅ REQUIRED: User Handle (signupUserCustom) -->
+                            <div class="input-group">
+                                <label class="input-label">User Handle</label>
+                                <div class="input-wrapper">
+                                    <input type="text" class="input-field" id="signupUserCustom" required>
+                                </div>
+                                <div class="error-message" id="signupUserCustomError">User Handle is required</div>
+                            </div>
+
+                            <div class="input-group">
+                                <label class="input-label">Email Address</label>
+                                <div class="input-wrapper">
+                                    <input type="email" class="input-field" id="signupEmail" required>
+                                </div>
+                                <div class="error-message" id="signupEmailError">Valid email is required</div>
+                            </div>
+
+                            <div class="input-group">
+                                <label class="input-label">Password</label>
+                                <div class="input-wrapper">
+                                    <input type="password" class="input-field" id="signupPassword" required>
+                                    <span class="password-toggle" onclick="togglePassword('signupPassword', this)">
+                                        <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                            <circle cx="12" cy="12" r="3"></circle>
+                                        </svg>
+                                    </span>
+                                </div>
+                                <div class="error-message" id="signupPasswordError">Password must be at least 6 characters</div>
+                            </div>
+
+                            <div class="input-group">
+                                <label class="input-label">Confirm Password</label>
+                                <div class="input-wrapper">
+                                    <input type="password" class="input-field" id="confirmPassword" required>
+                                    <span class="password-toggle" onclick="togglePassword('confirmPassword', this)">
+                                        <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                            <circle cx="12" cy="12" r="3"></circle>
+                                        </svg>
+                                    </span>
+                                </div>
+                                <div class="error-message" id="confirmPasswordError">Passwords do not match</div>
+                            </div>
+
+                            <button type="submit" class="submit-btn">
+                                <span>Create Account</span>
+                            </button>
+                        </form>
+
+                        <div class="toggle-form">
+                            Already have an account? <a onclick="showLogin()">Login</a>
+                        </div>
+                    </div>
+
+                    <!-- OTP Verification Form (Signup OTP) -->
+                    <div class="form-panel hidden" id="otpForm">
+                        <div class="welcome-section" style="margin-bottom: 20px; animation: none;">
+                            <h2 class="welcome-title" style="font-size: 24px;">Verify Email</h2>
+                            <p class="welcome-subtitle">Please enter the OTP sent to your email.</p>
+
+                            <!-- ✅ REQUIRED: display element for email -->
+                            <div class="otp-email-display" id="otpEmailDisplay"></div>
+                        </div>
+
+                        <form id="otpFormElement">
+                            <!-- ✅ REQUIRED: hidden inputs -->
+                            <input type="hidden" id="otpUserId" name="otpUserId" value="">
+                            <input type="hidden" id="otpPurpose" name="otpPurpose" value="">
+
+                            <div class="input-group">
+                                <label class="input-label">Enter OTP</label>
+                                <div class="input-wrapper">
+                                    <input type="text" class="input-field" id="otpInput" required>
+                                </div>
+                                <div class="error-message" id="verifyOTPError">Invalid OTP</div>
+                            </div>
+
+                            <button type="submit" class="submit-btn">
+                                <span>Verify & Login</span>
+                            </button>
+                        </form>
+
+                        <div class="toggle-form">
+                            <a onclick="backToSignup()">Back</a>
+                        </div>
+                    </div>
+
+                    <!-- ✅ Forgot Password Step 1: Request OTP -->
+                    <div class="form-panel hidden" id="forgotPanel1">
+                        <div class="welcome-section" style="margin-bottom: 20px; animation: none;">
+                            <h2 class="welcome-title" style="font-size: 24px;">Recover Password</h2>
+                            <p class="welcome-subtitle">Enter your email to receive a recovery OTP.</p>
+                        </div>
+
+                        <form id="forgotStep1">
+                            <div class="input-group">
+                                <label class="input-label">Email</label>
+                                <div class="input-wrapper">
+                                    <input type="email" class="input-field" id="forgotEmail" required>
+                                </div>
+                                <div class="error-message" id="forgotEmailError">Valid email is required</div>
+                            </div>
+
+                            <button type="submit" class="submit-btn">
+                                <span>Send OTP</span>
+                            </button>
+                        </form>
+
+                        <div class="forgot-cancel">
+                            <a onclick="cancelForgotFlow()">Cancel</a>
+                        </div>
+                    </div>
+
+                    <!-- ✅ Forgot Password Step 2: Verify OTP -->
+                    <div class="form-panel hidden" id="forgotPanel2">
+                        <div class="welcome-section" style="margin-bottom: 20px; animation: none;">
+                            <h2 class="welcome-title" style="font-size: 24px;">Verify OTP</h2>
+                            <p class="welcome-subtitle">Please enter the 6-digit OTP sent to your email.</p>
+                            <div class="otp-email-display" id="forgotOtpEmailDisplay"></div>
+                        </div>
+
+                        <form id="forgotStep2">
+                            <!-- backend-friendly hidden fields -->
+                            <input type="hidden" id="forgotOtpUserId" name="otpUserId" value="">
+                            <input type="hidden" id="forgotOtpPurpose" name="otpPurpose" value="password_reset">
+
+                            <div class="input-group">
+                                <label class="input-label">Enter OTP</label>
+                                <div class="input-wrapper">
+                                    <input type="text" class="input-field" id="forgotOtp" maxlength="6" inputmode="numeric" required>
+                                </div>
+                                <div class="error-message" id="forgotOtpError">Invalid OTP</div>
+                            </div>
+
+                            <button type="submit" class="submit-btn">
+                                <span>Verify OTP</span>
+                            </button>
+                        </form>
+
+                        <div class="forgot-cancel">
+                            <a onclick="cancelForgotFlow()">Cancel</a>
+                        </div>
+                    </div>
+
+                    <!-- ✅ Forgot Password Step 3: Reset Password -->
+                    <div class="form-panel hidden" id="forgotPanel3">
+                        <div class="welcome-section" style="margin-bottom: 20px; animation: none;">
+                            <h2 class="welcome-title" style="font-size: 24px;">Reset Password</h2>
+                            <p class="welcome-subtitle">Set your new password below.</p>
+                        </div>
+
+                        <form id="forgotStep3">
+                            <!-- ✅ REQUIRED: reset token (backend) -->
+                            <input type="hidden" id="resetToken" name="resetToken" value="">
+
+                            <div class="input-group">
+                                <label class="input-label">New Password</label>
+                                <div class="input-wrapper">
+                                    <input type="password" class="input-field" id="newPass" required>
+                                    <span class="password-toggle" onclick="togglePassword('newPass', this)">
+                                        <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                            <circle cx="12" cy="12" r="3"></circle>
+                                        </svg>
+                                    </span>
+                                </div>
+                                <div class="error-message" id="forgotNewPasswordError">Password must be at least 6 characters</div>
+                            </div>
+
+                            <div class="input-group">
+                                <label class="input-label">Confirm New Password</label>
+                                <div class="input-wrapper">
+                                    <input type="password" class="input-field" id="confirmNewPass" required>
+                                    <span class="password-toggle" onclick="togglePassword('confirmNewPass', this)">
+                                        <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                            <circle cx="12" cy="12" r="3"></circle>
+                                        </svg>
+                                    </span>
+                                </div>
+                                <div class="error-message" id="forgotConfirmPasswordError">Passwords do not match</div>
+                            </div>
+
+                            <button type="submit" class="submit-btn">
+                                <span>Reset Password</span>
+                            </button>
+                        </form>
+
+                        <div class="forgot-cancel">
+                            <a onclick="cancelForgotFlow()">Cancel</a>
+                        </div>
+                    </div>
+
                 </div>
             </div>
-            
-            <div class="text-center z-10 p-16">
-                <img src="car.png" class="w-full max-w-lg drop-shadow-[0_50px_50px_rgba(0,0,0,0.4)] transform hover:scale-105 transition-transform duration-700" onerror="this.onerror=null; this.style.display='none';">
-                <h2 class="text-white text-5xl font-extrabold mt-16 leading-tight tracking-tight">The future of <br>EV management.</h2>
-                <p class="text-blue-100 text-xl mt-6 font-light opacity-80">Elegance meets efficiency on the open road.</p>
-            </div>
-
-            <div class="absolute -bottom-24 -right-24 w-96 h-96 bg-blue-400 rounded-full blur-[100px] opacity-40 animate-pulse"></div>
-            <div class="absolute -top-24 -left-24 w-96 h-96 bg-blue-800 rounded-full blur-[100px] opacity-40"></div>
         </div>
 
-        <div class="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-24">
-            <div class="w-full max-w-md">
-                
-                <div id="loginForm" class="space-y-10">
-                    <div>
-                        <h1 class="text-5xl font-black text-slate-900 dark:text-white tracking-tighter">Sign In</h1>
-                        <p class="text-slate-400 mt-3 text-lg font-medium">Access your EnerGo dashboard.</p>
-                    </div>
-
-                    <form id="loginFormElement" class="space-y-6">
-                        <div class="space-y-2">
-                            <label class="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em]">Email Address</label>
-                            <input type="email" id="loginEmail" class="w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 dark:text-white border-2 border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-slate-700 rounded-2xl outline-none transition-all duration-300" placeholder="your@email.com" required>
-                        </div>
-                        <div class="space-y-2">
-                            <label class="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em]">Password</label>
-                            <input type="password" id="loginPassword" class="w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 dark:text-white border-2 border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-slate-700 rounded-2xl outline-none transition-all duration-300" placeholder="••••••••" required>
-                        </div>
-                        <div class="flex justify-end">
-                            <button type="button" onclick="showForgot()" class="text-sm font-bold text-blue-600 hover:underline">Forgot Password?</button>
-                        </div>
-                        <button type="submit" class="w-full py-5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-2xl shadow-blue-200 transition-all transform active:scale-[0.98]">Enter Dashboard</button>
-                    </form>
-                    <p class="text-center text-slate-400 font-semibold">New here? <button onclick="showSignup()" class="text-blue-600 font-black hover:underline underline-offset-4">Create Account</button></p>
-                </div>
-
-                <div id="signupForm" class="hidden space-y-8">
-                    <div>
-                        <h1 class="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">Create Account</h1>
-                        <p class="text-slate-400 mt-2 font-medium">Join the green revolution.</p>
-                    </div>
-
-                    <form id="signupFormElement" class="space-y-4">
-                        <div class="space-y-1">
-                            <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest">User Handle</label>
-                            <input type="text" id="signupUserCustom" class="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 dark:text-white border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all" placeholder="@username" required>
-                        </div>
-                        
-                        <div class="flex gap-4">
-                            <div class="w-1/2 space-y-1">
-                                <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest">First Name</label>
-                                <input type="text" id="signupFirstName" class="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 dark:text-white border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all" placeholder="Alexa" required>
-                            </div>
-                            <div class="w-1/2 space-y-1">
-                                <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Last Name</label>
-                                <input type="text" id="signupLastName" class="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 dark:text-white border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all" placeholder="Baldueza" required>
-                            </div>
-                        </div>
-
-                        <div class="space-y-1">
-                            <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Email</label>
-                            <input type="email" id="signupEmail" class="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 dark:text-white border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all" required>
-                        </div>
-
-                        <div class="flex gap-4">
-                            <div class="w-1/2 space-y-1">
-                                <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Password</label>
-                                <input type="password" id="signupPassword" class="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 dark:text-white border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all" required>
-                            </div>
-                            <div class="w-1/2 space-y-1">
-                                <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Confirm</label>
-                                <input type="password" id="confirmPassword" class="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 dark:text-white border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all" required>
-                            </div>
-                        </div>
-
-                        <button type="submit" class="w-full py-5 bg-slate-900 hover:bg-black text-white font-bold rounded-2xl shadow-xl mt-4 transition-all transform active:scale-[0.98]">Register Now</button>
-                    </form>
-                    <p class="text-center text-slate-400 font-semibold">Member already? <button onclick="showLogin()" class="text-blue-600 font-black hover:underline">Sign In</button></p>
-                </div>
-
-                <div id="otpForm" class="hidden space-y-8">
-                    <div>
-                        <h1 class="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">Verification</h1>
-                        <p class="text-slate-400 mt-2 font-medium">Enter the 6-digit code sent to <span id="otpEmailDisplay" class="text-slate-900 font-bold dark:text-white">your email</span>.</p>
-                    </div>
-
-                    <form id="otpFormElement" class="space-y-6">
-                        <input type="hidden" id="otpUserId">
-                        <input type="hidden" id="otpPurpose">
-                        <div class="space-y-2">
-                            <input type="text" id="otpInput" class="w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 dark:text-white border-2 border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-slate-700 rounded-2xl outline-none text-center text-3xl font-black tracking-widest transition-all" placeholder="000000" maxlength="6" required>
-                        </div>
-                        <button type="submit" class="w-full py-5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-2xl shadow-xl transition-all transform active:scale-[0.98]">Verify Code</button>
-                    </form>
-                    <p class="text-center text-slate-400 text-sm cursor-pointer hover:text-blue-600" onclick="location.reload()">Cancel</p>
-                </div>
-
-                <div id="forgotForm" class="hidden space-y-8">
-                    <div>
-                        <h1 class="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">Recovery</h1>
-                        <p class="text-slate-400 mt-2 font-medium">Reset your password securely.</p>
-                    </div>
-
-                    <form id="forgotStep1" onsubmit="handleForgotRequest(event)" class="space-y-6">
-                        <div class="space-y-2">
-                            <label class="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em]">Email Address</label>
-                            <input type="email" id="forgotEmail" class="w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 dark:text-white border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none" placeholder="your@email.com" required>
-                        </div>
-                        <button type="submit" class="w-full py-5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-xl">Send Reset Code</button>
-                    </form>
-
-                    <form id="forgotStep2" onsubmit="handleForgotVerify(event)" class="hidden space-y-6">
-                        <div class="space-y-2">
-                            <label class="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em]">Verification Code</label>
-                            <input type="text" id="forgotOtp" class="w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 dark:text-white border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none text-center text-2xl font-bold tracking-widest" placeholder="000000" maxlength="6" required>
-                        </div>
-                        <button type="submit" class="w-full py-5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-2xl shadow-xl">Verify Code</button>
-                    </form>
-
-                    <form id="forgotStep3" onsubmit="handleNewPassword(event)" class="hidden space-y-6">
-                        <input type="hidden" id="resetToken">
-                        <div class="space-y-2">
-                            <label class="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em]">New Password</label>
-                            <input type="password" id="newPass" class="w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 dark:text-white border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none" required>
-                        </div>
-                        <div class="space-y-2">
-                            <label class="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em]">Confirm Password</label>
-                            <input type="password" id="confirmNewPass" class="w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 dark:text-white border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none" required>
-                        </div>
-                        <button type="submit" class="w-full py-5 bg-slate-900 hover:bg-black text-white font-bold rounded-2xl shadow-xl">Update Password</button>
-                    </form>
-                    
-                    <p class="text-center text-slate-400 font-semibold cursor-pointer hover:text-blue-600" onclick="showLogin()">Back to Sign In</p>
-                </div>
-
+        <!-- Right Panel with Background -->
+        <div class="right-panel">
+            <img src="bg.jpg" class="bg-image" alt="City Background">
+            <div class="car-container">
+                <img src="car.png" alt="Electric Car">
             </div>
         </div>
     </div>
-    
+
     <script src="../JS/login.js"></script>
 </body>
 </html>
