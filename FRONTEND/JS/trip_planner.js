@@ -21,7 +21,6 @@ function hasText(v){ return String(v || "").trim().length > 0; }
 /* Elements */
 const resultsSection = document.getElementById("results-section");
 const routesList = document.getElementById("routes-list");
-const modePill = document.getElementById("mode-pill");
 const recalcBtn = document.getElementById("recalc-btn");
 const startNavBtn = document.getElementById("start-nav");
 const fromInput = document.getElementById("from-input");
@@ -275,6 +274,9 @@ function mountSuggest(inputEl, listEl, isOrigin) {
     
     if(isOrigin) selectedOrigin = { lat, lng };
     else selectedDest = { lat, lng };
+
+    // Update weather to match new origin
+    if(isOrigin) fetchWeather(lat, lng);
     
     listEl.style.display = "none";
     
@@ -377,6 +379,44 @@ routesList.addEventListener("click", (e) => {
 
   startNavBtn.disabled = false;
 });
+
+/* Weather */
+async function fetchWeather(lat, lng) {
+    const useLat = lat || myLat;
+    const useLng = lng || myLng;
+    
+    const w = document.getElementById('weather-widget');
+    if(w) w.style.opacity = '0.5';
+
+    try {
+        const res = await fetch(`${BASE_API}/WEATHER/current.php`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ lat: useLat, lng: useLng })
+        });
+        const data = await res.json();
+        if(w) w.style.opacity = '1';
+
+        if(data.ok && data.weather) {
+            if(w) {
+                const { temp, condition } = data.weather;
+                let icon = "cloud";
+                const c = String(condition).toLowerCase();
+                if(c.includes("sun") || c.includes("clear")) icon = "sun";
+                else if(c.includes("rain")) icon = "cloud-rain";
+                else if(c.includes("storm")) icon = "cloud-lightning";
+                else if(c.includes("partly")) icon = "cloud-sun";
+
+                w.innerHTML = `<i data-lucide="${icon}" style="width:14px; height:14px;"></i> ${temp}°C <span style="margin-left:4px; font-weight:400; opacity:0.7;">| ${condition}</span>`;
+                w.style.display = 'flex';
+                lucide.createIcons();
+            }
+        }
+    } catch(e) { 
+        console.error("Weather error", e); 
+        if(w) w.style.opacity = '1';
+    }
+}
 
 /* Calculate Logic */
 async function calculateRoutes() {
@@ -517,6 +557,8 @@ document.addEventListener("DOMContentLoaded", () => {
         applyBatteryUI(lastValidBattery);
     }
 
+    fetchWeather();
+
     // GPS
     navigator.geolocation.getCurrentPosition(pos => {
         myLat = pos.coords.latitude;
@@ -537,6 +579,9 @@ document.addEventListener("DOMContentLoaded", () => {
             localStorage.removeItem('nav_destination');
             calculateRoutes();
         }
+
+        // Refresh weather for actual location
+        fetchWeather();
     });
 });
 
