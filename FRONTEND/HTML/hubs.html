@@ -26,6 +26,10 @@
   <link rel="stylesheet" href="../CSS/trip_planner.css" />
 
   <style>
+    /* Hide scrollbar for clean panel */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
     /* Hubs specific overrides to match Trip Planner theme */
     .filter-chip {
         padding: 6px 12px;
@@ -96,15 +100,16 @@
 </head>
 
 <body class="overflow-x-hidden">
-  <header class="app-header">
-    <div class="header-inner">
-      <a href="dashboard.html" class="header-icon" aria-hidden="true">
-        <i data-lucide="arrow-left"></i>
-      </a>
-
-      <div class="title-group">
-        <h1 id="app-title">Charging Hubs</h1>
-        <p id="app-subtitle">Directory & Reviews</p>
+  <header class="fixed top-0 left-0 right-0 z-[5000] bg-white/50 backdrop-blur-[20px] border-b border-white/40 shadow-xl">
+    <div class="mx-auto max-w-6xl h-[68px] px-4 flex items-center justify-between">
+      <div class="text-2xl font-bold text-gray-900 tracking-tight">Charging Hubs</div>
+      
+      <div class="flex items-center gap-3">
+        <div class="text-right hidden sm:block">
+          <div class="text-sm font-semibold text-gray-900 leading-tight" id="header-user-name">User</div>
+          <div class="text-xs font-medium text-gray-500 mt-0.5" id="header-car-name">No Car Selected</div>
+        </div>
+        <img src="https://i.pravatar.cc/256?img=12" alt="Profile" class="h-10 w-10 rounded-full border border-white/60 shadow-sm object-cover" />
       </div>
     </div>
   </header>
@@ -112,15 +117,15 @@
   <div class="app-shell">
     <div id="map" aria-label="Map"></div>
 
-    <aside id="panel" class="side-panel">
+    <aside id="panel" class="side-panel !bg-white/50 !backdrop-blur-[20px] !border !border-white/40 !shadow-xl !rounded-[28px] overflow-hidden flex flex-col transition-transform duration-300 !p-0">
       <div class="sheet-handle" id="sheet-handle" aria-hidden="true"></div>
 
-      <div class="panel-top">
-        <h3 id="panel-title">Find Station</h3>
+      <div class="panel-top flex items-center justify-between gap-3 px-4 pt-4 pb-2 md:px-5 md:pt-5 md:pb-3 border-b border-black/5 shrink-0">
+        <h3 id="panel-title" class="text-lg font-bold text-gray-900 tracking-tight">Find Station</h3>
         <div class="mode-pill">Live</div>
       </div>
 
-      <div class="panel-scroll" id="panel-scroll">
+      <div class="panel-scroll no-scrollbar px-4 pb-20 space-y-3 md:px-5 md:pb-4 md:space-y-4" id="panel-scroll">
         <section class="search-section search-area">
             <div class="suggest-wrap">
                 <div class="input-icon-box relative">
@@ -263,6 +268,13 @@
   <script>
     // Initialize Lucide icons
     lucide.createIcons();
+
+    // Populate Header
+    const headerUser = document.getElementById('header-user-name');
+    const headerCar = document.getElementById('header-car-name');
+    const activeCarObj = JSON.parse(localStorage.getItem('active_car') || "null");
+    if(headerUser) headerUser.textContent = localStorage.getItem('full_display_name') || 'User';
+    if(headerCar && activeCarObj) headerCar.textContent = `${activeCarObj.brand} ${activeCarObj.model}`;
     
     // Mobile sheet logic
     const panel = document.getElementById("panel");
