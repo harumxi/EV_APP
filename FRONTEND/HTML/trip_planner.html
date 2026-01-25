@@ -6,6 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trip Planner</title>
 
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
   <!-- Fonts + Icons -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
@@ -29,8 +32,8 @@
   <link rel="stylesheet" href="../CSS/trip_planner.css" />
 </head>
 
-<body>
-  <header class="app-header">
+<body class="overflow-x-hidden">
+  <header class="app-header" style="border-bottom: none; box-shadow: none;">
     <div class="header-inner">
       <a href="dashboard.html" class="header-icon" aria-hidden="true">
         <i data-lucide="arrow-left"></i>
@@ -150,6 +153,51 @@
       </div>
     </aside>
   </div>
+
+<nav class="fixed bottom-0 left-0 w-screen bg-white/50 backdrop-blur-xl shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-[5000]">
+  <div class="mx-auto max-w-6xl px-4 py-1">
+    <div id="bottomNav" class="grid grid-cols-4 gap-2 text-center">
+
+      <button class="nav-item flex flex-col items-center gap-0.5 py-1 rounded-xl hover:bg-black/5 transition-transform active:scale-95" type="button" data-tab="dashboard" onclick="window.location.href='dashboard.html'">
+        <svg class="h-5 w-5 text-black/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="2"></rect>
+          <rect x="14" y="3" width="7" height="7" rx="2"></rect>
+          <rect x="3" y="14" width="7" height="7" rx="2"></rect>
+          <rect x="14" y="14" width="7" height="7" rx="2"></rect>
+        </svg>
+        <span class="nav-label text-[10px] font-semibold text-black/60">Dashboard</span>
+      </button>
+
+      <button class="nav-item relative flex flex-col items-center gap-0.5 py-1 rounded-xl hover:bg-black/5 transition-transform active:scale-95" type="button" data-tab="trip-planner" onclick="window.location.href='trip_planner.html'">
+        <div class="absolute top-0 h-1 w-8 bg-black rounded-b-full"></div>
+        <svg class="h-5 w-5 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="6" cy="6" r="2"></circle>
+          <circle cx="18" cy="18" r="2"></circle>
+          <path d="M8 6h6a2 2 0 0 1 2 2v2"></path>
+          <path d="M16 14v2a2 2 0 0 1-2 2H8"></path>
+          <path d="M8 18l-2 2"></path>
+        </svg>
+        <span class="nav-label text-[10px] font-semibold text-black">Trip Planner</span>
+      </button>
+
+      <button class="nav-item flex flex-col items-center gap-0.5 py-1 rounded-xl hover:bg-black/5 transition-transform active:scale-95" type="button" data-tab="charging" onclick="window.location.href='hubs.html'">
+        <svg class="h-5 w-5 text-black/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"></path>
+        </svg>
+        <span class="nav-label text-[10px] font-semibold text-black/60">Charging Hub</span>
+      </button>
+
+      <button class="nav-item flex flex-col items-center gap-0.5 py-1 rounded-xl hover:bg-black/5 transition-transform active:scale-95" type="button" data-tab="profile" onclick="window.location.href='profile.html'">
+        <svg class="h-5 w-5 text-black/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21a8 8 0 0 0-16 0"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        <span class="nav-label text-[10px] font-semibold text-black/60">Profile</span>
+      </button>
+
+    </div>
+  </div>
+</nav>
 
   <script src="../JS/trip_planner.js"></script>
 </body>

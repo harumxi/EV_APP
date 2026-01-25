@@ -1,6 +1,4 @@
-<!-- c:\Users\Alexa\Documents\GitHub\EV_APP\FRONTEND\HTML\profile.html -->
-<!doctype html>
-<html lang="en">
+<!tml lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -19,10 +17,11 @@
     <link rel="stylesheet" href="../CSS/profile.css" />
   </head>
 
-  <body class="min-h-screen bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-50">
-    <div class="mx-auto max-w-6xl p-4 sm:p-6">
+  <body class="h-screen bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-50 overflow-hidden flex flex-col">
+    
       <!-- HEADER -->
-      <div class="mt-2">
+      <div class="flex-none bg-white dark:bg-slate-950 z-20">
+      <div class="mx-auto max-w-6xl px-4 sm:px-6 pt-2">
         <div class="flex items-center gap-4 py-3 dark:text-slate-100">
             <a href="dashboard.html" class="flex h-10 w-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition">
                 <i data-lucide="arrow-left" class="h-5 w-5 text-gray-600 dark:text-gray-400"></i>
@@ -45,7 +44,10 @@
 
         <div class="h-px w-full bg-gray-200 dark:bg-slate-800"></div>
       </div>
+      </div>
 
+    <div class="flex-1 overflow-y-auto min-h-0">
+    <div class="mx-auto max-w-6xl p-4 sm:p-6 pt-0">
       <div id="coverContainer" class="fm-enter group relative mt-3 h-64 w-full overflow-hidden rounded-3xl border bg-gray-100 sm:h-80 dark:bg-slate-900 dark:border-slate-800">
         <div
           id="coverBg"
@@ -359,6 +361,7 @@
         </div>
       </section>
     </div>
+    </div>
 
     <!-- ABOUT US DRAWER -->
     <div id="aboutDrawer" class="fixed inset-0 z-50 hidden">
@@ -441,6 +444,8 @@
         </div>
       </div>
     </div>
+
+    <div class="flex-none h-[52px]"></div>
 
     <!-- HELP / FAQ DRAWER -->
     <div id="helpDrawer" class="fixed inset-0 z-50 hidden">
@@ -557,6 +562,51 @@
         </div>
       </div>
     </div>
+
+<nav class="fixed bottom-0 left-0 w-screen bg-white/50 backdrop-blur-xl shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-[5000]">
+  <div class="mx-auto max-w-6xl px-4 py-1">
+    <div id="bottomNav" class="grid grid-cols-4 gap-2 text-center">
+
+      <button class="nav-item flex flex-col items-center gap-0.5 py-1 rounded-xl hover:bg-black/5 transition-transform active:scale-95" type="button" data-tab="dashboard" onclick="window.location.href='dashboard.html'">
+        <svg class="h-5 w-5 text-black/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="2"></rect>
+          <rect x="14" y="3" width="7" height="7" rx="2"></rect>
+          <rect x="3" y="14" width="7" height="7" rx="2"></rect>
+          <rect x="14" y="14" width="7" height="7" rx="2"></rect>
+        </svg>
+        <span class="nav-label text-[10px] font-semibold text-black/60">Dashboard</span>
+      </button>
+
+      <button class="nav-item flex flex-col items-center gap-0.5 py-1 rounded-xl hover:bg-black/5 transition-transform active:scale-95" type="button" data-tab="trip-planner" onclick="window.location.href='trip_planner.html'">
+        <svg class="h-5 w-5 text-black/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="6" cy="6" r="2"></circle>
+          <circle cx="18" cy="18" r="2"></circle>
+          <path d="M8 6h6a2 2 0 0 1 2 2v2"></path>
+          <path d="M16 14v2a2 2 0 0 1-2 2H8"></path>
+          <path d="M8 18l-2 2"></path>
+        </svg>
+        <span class="nav-label text-[10px] font-semibold text-black/60">Trip Planner</span>
+      </button>
+
+      <button class="nav-item flex flex-col items-center gap-0.5 py-1 rounded-xl hover:bg-black/5 transition-transform active:scale-95" type="button" data-tab="charging" onclick="window.location.href='hubs.html'">
+        <svg class="h-5 w-5 text-black/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"></path>
+        </svg>
+        <span class="nav-label text-[10px] font-semibold text-black/60">Charging Hub</span>
+      </button>
+
+      <button class="nav-item relative flex flex-col items-center gap-0.5 py-1 rounded-xl hover:bg-black/5 transition-transform active:scale-95" type="button" data-tab="profile" onclick="window.location.href='profile.html'">
+        <div class="absolute top-0 h-1 w-8 bg-black rounded-b-full"></div>
+        <svg class="h-5 w-5 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21a8 8 0 0 0-16 0"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        <span class="nav-label text-[10px] font-semibold text-black">Profile</span>
+      </button>
+
+    </div>
+  </div>
+</nav>
 
     <!-- Your JS -->
     <script src="../JS/profile.js"></script>
