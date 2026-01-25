@@ -1,57 +1,13 @@
-const trips = [
-  {
-    id: 't-2026-01-12',
-    title: 'Intramuros Walk + Fort Santiago',
-    date: '2026-01-12',
-    from: 'Taft Avenue, Manila',
-    to: 'Intramuros, Manila',
-    location: 'Manila',
-    distanceKm: 9.6,
-    durationMinutes: 330,
-    etaMinutes: 28,
-    emissionsSavedKgCO2e: 2.4,
-    timeSavedMinutes: 12,
-    energyEfficiencyWhPerKm: 132,
-    stops: ['Intramuros', 'Fort Santiago', 'Casa Manila'],
-    reflections: 'Noted how the walls shaped the city’s movement and defense strategy.',
-    fileName: 'evida-report-2026-01-12.json',
-  },
-  {
-    id: 't-2025-12-02',
-    title: 'Corregidor WWII Day Trip',
-    date: '2025-12-02',
-    from: 'MOA, Pasay',
-    to: 'Corregidor Ferry Terminal',
-    location: 'Cavite',
-    distanceKm: 31.2,
-    durationMinutes: 420,
-    etaMinutes: 62,
-    emissionsSavedKgCO2e: 4.1,
-    timeSavedMinutes: 18,
-    energyEfficiencyWhPerKm: 145,
-    stops: ['Mile-Long Barracks', 'Malinta Tunnel', 'Battery Way'],
-    reflections: 'Strong emphasis on remembrance and resilience—collect primary-source plaques.',
-    fileName: 'evida-report-2025-12-02.json',
-  },
-  {
-    id: 't-2025-11-19',
-    title: 'Vigan Heritage Night Walk',
-    date: '2025-11-19',
-    from: 'Bantay Church',
-    to: 'Calle Crisologo',
-    location: 'Ilocos Sur',
-    distanceKm: 4.8,
-    durationMinutes: 210,
-    etaMinutes: 14,
-    emissionsSavedKgCO2e: 1.1,
-    timeSavedMinutes: 6,
-    energyEfficiencyWhPerKm: 118,
-    stops: ['Bantay Bell Tower', 'Calle Crisologo', 'Plaza Salcedo'],
-    reflections: 'Architecture details are easier to compare at night under consistent lighting.',
-    fileName: 'evida-report-2025-11-19.json',
-  }
-];
+// CONFIGURATION
+const API_BASE = "http://localhost/WEBPROG_PROJ/BACKEND/API";
+const USER_ID = localStorage.getItem("user_id");
 
+// UNIT PREFERENCES
+const PREF_UNIT = localStorage.getItem('pref_units') || 'KM';
+const DIST_FACTOR = PREF_UNIT === 'MILES' ? 0.621371 : 1;
+const DIST_LABEL = PREF_UNIT === 'MILES' ? 'mi' : 'km';
+
+let trips = [];
 let isDeleteMode = false;
 let selectedIds = new Set();
 let activeTrip = null;
@@ -87,6 +43,42 @@ const ICONS = {
   </svg>`
 };
 
+document.addEventListener("DOMContentLoaded", async () => {
+    if(!USER_ID) window.location.href = 'login.html';
+    await fetchTrips();
+    render();
+});
+
+async function fetchTrips() {
+    try {
+        const res = await fetch(`${API_BASE}/BATTERY/logs.php?user_id=${USER_ID}`);
+        const data = await res.json();
+        
+        if(data.ok && data.logs) {
+            trips = data.logs.map(log => ({
+                id: log.id,
+                title: `Trip to ${log.destination || 'Unknown'}`,
+                date: log.created_at,
+                from: log.origin || 'Unknown',
+                to: log.destination || 'Unknown',
+                location: (log.destination || '').split(',')[0],
+                distanceKm: parseFloat(log.distance_km),
+                durationMinutes: Math.round(parseFloat(log.distance_km) * 1.5), // Estimate
+                etaMinutes: Math.round(parseFloat(log.distance_km) * 1.5),
+                emissionsSavedKgCO2e: (parseFloat(log.distance_km) * 0.192).toFixed(1),
+                timeSavedMinutes: Math.round(parseFloat(log.distance_km) * 0.5),
+                energyEfficiencyWhPerKm: 160,
+                stops: [],
+                reflections: 'No notes added.',
+                fileName: `report-${log.id}.json`
+            }));
+        }
+    } catch(e) { 
+        console.error("Fetch error", e);
+        app.innerHTML = `<div class="text-center text-red-500 py-10">Failed to load reports.</div>`;
+    }
+}
+
 function formatDate(iso) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
@@ -95,7 +87,7 @@ function formatDate(iso) {
 
 function computeStats() {
   const total = trips.length;
-  const emissions = trips.reduce((s, t) => s + (t.emissionsSavedKgCO2e || 0), 0);
+  const emissions = trips.reduce((s, t) => s + (parseFloat(t.emissionsSavedKgCO2e) || 0), 0);
   const timeSaved = trips.reduce((s, t) => s + (t.timeSavedMinutes || 0), 0);
   const avgEff = trips.length
     ? Math.round(trips.reduce((s, t) => s + (t.energyEfficiencyWhPerKm || 0), 0) / trips.length)
@@ -356,7 +348,7 @@ function openDetailModal(id) {
     <div class="grid gap-3 sm:grid-cols-3">
       <div class="rounded-2xl border border-black/10 bg-white p-3">
         <div class="text-xs text-black/60">Distance</div>
-        <div class="mt-1 text-sm font-semibold">${activeTrip.distanceKm} km</div>
+        <div class="mt-1 text-sm font-semibold">${(activeTrip.distanceKm * DIST_FACTOR).toFixed(1)} ${DIST_LABEL}</div>
       </div>
       <div class="rounded-2xl border border-black/10 bg-white p-3">
         <div class="text-xs text-black/60">ETA</div>
@@ -454,6 +446,3 @@ confirmModal.addEventListener('click', (e) => {
     rect.left <= e.clientX && e.clientX <= rect.right;
   if (!inDialog) closeConfirmModal();
 });
-
-/* Start */
-render();
