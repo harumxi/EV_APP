@@ -1,0 +1,65 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+body {
+  font-family: 'Inter', sans-serif;
+}
+
+/* Accordion Logic */
+.acc-body {
+  display: none;
+}
+.acc-open .acc-body {
+  display: block;
+}
+.acc-chevron {
+  transition: transform 0.2s ease;
+}
+.acc-open .acc-chevron {
+  transform: rotate(90deg);
+}
+
+/* Tab Pill Active State */
+.tab-pill[aria-selected="true"] {
+  background-color: #111827;
+  color: white;
+}
+.dark .tab-pill[aria-selected="true"] {
+  background-color: #f8fafc; /* slate-50 */
+  color: #0f172a; /* slate-900 */
+}
+.tab-pill[aria-selected="false"] {
+  background-color: transparent;
+  color: #6b7280;
+}
+.dark .tab-pill[aria-selected="false"] {
+  color: #94a3b8; /* slate-400 */
+}
+.tab-pill[aria-selected="false"]:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+.dark .tab-pill[aria-selected="false"]:hover {
+  background-color: #1e293b; /* slate-800 */
+  color: #f8fafc;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fm-enter {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+/* Custom Scrollbar for Drawers */
+.overflow-auto::-webkit-scrollbar {
+  width: 6px;
+}
+.overflow-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+.overflow-auto::-webkit-scrollbar-thumb {
+  background-color: rgba(0,0,0,0.1);
+  border-radius: 10px;
+}
