@@ -21,26 +21,10 @@ const closeConfirmBtn = document.getElementById('closeConfirmBtn');
 const cancelConfirmBtn = document.getElementById('cancelConfirmBtn');
 
 const ICONS = {
-  calendar: `<svg class="w-4 h-4 inline-block text-black/70" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <path d="M8 7V5M16 7V5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-    <path d="M4.5 9.5H19.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-    <path d="M7 21h10c2.2 0 3.5-1.3 3.5-3.5V9c0-2.2-1.3-3.5-3.5-3.5H7C4.8 5.5 3.5 6.8 3.5 9v8.5C3.5 19.7 4.8 21 7 21Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-  </svg>`,
-  route: `<svg class="w-4 h-4 inline-block text-black/70" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <path d="M7 18a3 3 0 1 0 0-6a3 3 0 0 0 0 6Z" stroke="currentColor" stroke-width="1.8"/>
-    <path d="M17 12a3 3 0 1 0 0-6a3 3 0 0 0 0 6Z" stroke="currentColor" stroke-width="1.8"/>
-    <path d="M9.3 13.2c1.7-1.1 3.7-1.7 6.2-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-    <path d="M8.4 16.9c2.2 1.1 4.6 1.6 7.6 1.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-  </svg>`,
-  clock: `<svg class="w-4 h-4 inline-block text-black/70" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <path d="M12 21a9 9 0 1 0 0-18a9 9 0 0 0 0 18Z" stroke="currentColor" stroke-width="1.8"/>
-    <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>`,
-  file: `<svg class="w-4 h-4 inline-block text-black/70" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <path d="M14 3H8c-2 0-3 1-3 3v12c0 2 1 3 3 3h8c2 0 3-1 3-3V8l-5-5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-    <path d="M14 3v5h5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-    <path d="M8 13h8M8 17h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-  </svg>`
+  calendar: `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>`,
+  route: `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><line x1="6" y1="9" x2="6" y2="21"/><line x1="18" y1="3" x2="18" y2="15"/><path d="M6 21a3 3 0 0 0 3-3h6a3 3 0 0 1 3 3"/></svg>`,
+  clock: `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`,
+  file: `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>`
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -122,107 +106,146 @@ function render() {
   const ms = masterState();
 
   app.innerHTML = `
-    <section class="rounded-2xl border border-black/10 bg-white/80 shadow-sm backdrop-blur p-4 space-y-3">
+    <!-- Summary Header -->
+    <section class="rounded-[24px] border border-white/60 bg-white/40 shadow-sm backdrop-blur-xl p-5 space-y-4">
       <div class="flex items-start justify-between gap-4">
         <div class="flex items-start gap-3">
-          <div class="mt-0.5 rounded-2xl border border-black/10 bg-white p-2 shadow-sm">
-            <span class="font-semibold">R</span>
+          <div class="mt-1 rounded-xl bg-white/60 border border-white/60 p-2 shadow-sm text-gray-900">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
           </div>
           <div>
-            <div class="text-lg font-semibold tracking-tight text-black">My trips</div>
+            <div class="text-xl font-bold tracking-tight text-gray-900">My trips</div>
             ${isDeleteMode ? `
-              <div class="mt-0.5 text-sm text-black/60">
+              <div class="mt-0.5 text-sm text-gray-500 font-medium">
                 Select reports to delete.
               </div>
-            ` : ``}
+            ` : `
+              <div class="mt-0.5 text-sm text-gray-500 font-medium">
+                Your recent travel history
+              </div>
+            `}
           </div>
         </div>
 
         <div class="flex items-center gap-2">
           ${isDeleteMode ? `
-            <button id="deleteAllBtn" class="inline-flex items-center gap-2 rounded-2xl border border-black/10 bg-white px-3 py-2 text-xs font-semibold text-black/80">
+            <button id="deleteAllBtn" class="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-100 transition">
               Delete all
             </button>
-            <button id="doneBtn" class="inline-flex items-center gap-2 rounded-2xl bg-black px-3 py-2 text-xs font-semibold text-white">
+            <button id="doneBtn" class="inline-flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2 text-xs font-bold text-white hover:bg-black transition shadow-lg shadow-gray-900/10">
               Done
             </button>
           ` : `
-            <button id="enterDeleteBtn" class="inline-flex items-center gap-2 rounded-2xl bg-black px-3 py-2 text-xs font-semibold text-white ${trips.length ? '' : 'opacity-50'}" ${trips.length ? '' : 'disabled'}>
-              Delete
+            <button id="enterDeleteBtn" class="inline-flex items-center gap-2 rounded-xl border border-white/60 bg-white/40 px-3 py-2 text-xs font-bold text-gray-600 hover:bg-white/80 hover:text-gray-900 transition ${trips.length ? '' : 'opacity-50'}" ${trips.length ? '' : 'disabled'}>
+              Manage
             </button>
           `}
         </div>
       </div>
 
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <div class="rounded-xl border border-black/10 bg-white p-3">
-          <div class="text-xs text-black/60">Total reports</div>
-          <div class="mt-0.5 text-lg font-semibold text-black">${s.total}</div>
+        <div class="rounded-2xl border border-white/50 bg-white/40 p-3.5">
+          <div class="text-xs font-medium text-gray-500">Total reports</div>
+          <div class="mt-0.5 text-lg font-bold text-gray-900">${s.total}</div>
         </div>
-        <div class="rounded-xl border border-black/10 bg-white p-3">
-          <div class="text-xs text-black/60">Emissions saved</div>
-          <div class="mt-0.5 text-lg font-semibold text-green-600">${s.emissions.toFixed(1)} kg</div>
+        <div class="rounded-2xl border border-white/50 bg-white/40 p-3.5">
+          <div class="text-xs font-medium text-gray-500">Emissions saved</div>
+          <div class="mt-0.5 text-lg font-bold text-emerald-600">${s.emissions.toFixed(1)} kg</div>
         </div>
-        <div class="rounded-xl border border-black/10 bg-white p-3">
-          <div class="text-xs text-black/60">Avg efficiency</div>
-          <div class="mt-0.5 text-lg font-semibold text-black">${s.avgEff} Wh/km</div>
+        <div class="rounded-2xl border border-white/50 bg-white/40 p-3.5">
+          <div class="text-xs font-medium text-gray-500">Avg efficiency</div>
+          <div class="mt-0.5 text-lg font-bold text-gray-900">${s.avgEff} Wh/km</div>
         </div>
       </div>
 
       ${isDeleteMode ? `
-        <div class="mt-2 flex flex-wrap items-center justify-between gap-3">
+        <div class="mt-2 flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-gray-100/50">
           <div class="flex items-center gap-2">
-            <label class="inline-flex items-center gap-2 rounded-2xl border border-black/10 bg-white px-3 py-2 text-sm cursor-pointer ${trips.length ? '' : 'opacity-50'}">
-              <input id="masterCheckbox" type="checkbox" ${ms.checked ? 'checked' : ''} ${trips.length ? '' : 'disabled'} />
-              <span class="text-sm">${ms.checked ? 'Clear all' : 'Select all'}</span>
+            <label class="inline-flex items-center gap-2 rounded-xl border border-white/60 bg-white/40 px-3 py-2 text-sm cursor-pointer hover:bg-white/60 transition ${trips.length ? '' : 'opacity-50'}">
+              <input id="masterCheckbox" type="checkbox" ${ms.checked ? 'checked' : ''} ${trips.length ? '' : 'disabled'} class="rounded border-gray-300 text-black focus:ring-black" />
+              <span class="text-xs font-bold text-gray-700">${ms.checked ? 'Clear all' : 'Select all'}</span>
             </label>
-            ${selectedIds.size ? `<span class="inline-flex items-center rounded-full border border-black/10 bg-white px-2.5 py-1 text-xs text-black/70 shadow-sm">${selectedIds.size} selected</span>` : ''}
+            ${selectedIds.size ? `<span class="inline-flex items-center rounded-full bg-gray-900 px-2.5 py-1 text-xs font-bold text-white shadow-sm">${selectedIds.size} selected</span>` : ''}
           </div>
-          <button id="deleteSelectedBtn" class="inline-flex items-center gap-2 rounded-2xl bg-black px-3 py-2 text-xs font-semibold text-white ${selectedIds.size ? '' : 'opacity-50'}" ${selectedIds.size ? '' : 'disabled'}>
-            Delete selected (${selectedIds.size})
+          <button id="deleteSelectedBtn" class="inline-flex items-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-700 transition shadow-lg shadow-red-600/20 ${selectedIds.size ? '' : 'opacity-50'}" ${selectedIds.size ? '' : 'disabled'}>
+            Delete selected
           </button>
         </div>
       ` : ''}
     </section>
 
-    <section class="rounded-2xl border border-black/10 bg-white overflow-hidden">
-      <div class="${isDeleteMode ? 'grid grid-cols-[44px_1fr]' : 'grid grid-cols-1'} items-center border-b border-black/10 bg-black/5 px-2 py-2">
-        ${isDeleteMode ? `<div class="flex items-center justify-center text-xs text-black/60">✓</div>` : ''}
-        <div class="text-xs font-semibold text-black/70">Trip</div>
+    <!-- Trip List Section -->
+    <section class="rounded-[24px] border border-white/60 bg-white/40 shadow-sm backdrop-blur-xl overflow-hidden mt-4">
+      <div class="${isDeleteMode ? 'grid grid-cols-[44px_1fr]' : 'grid grid-cols-1'} items-center border-b border-white/20 bg-white/30 px-4 py-3">
+        ${isDeleteMode ? `<div class="flex items-center justify-center text-xs text-gray-400">✓</div>` : ''}
+        <div class="text-xs font-bold text-gray-400 uppercase tracking-wider">Recent Trips</div>
       </div>
 
       ${sortedTrips().length ? `
-        <div class="divide-y divide-black/10">
+        <div class="divide-y divide-gray-200">
           ${sortedTrips().map(t => {
             const checked = selectedIds.has(t.id);
             return `
-              <div class="${isDeleteMode ? 'grid grid-cols-[44px_1fr]' : 'grid grid-cols-1'} items-stretch ${checked ? 'bg-black/[0.03]' : 'bg-white'}">
+              <div class="${isDeleteMode ? 'grid grid-cols-[44px_1fr]' : 'grid grid-cols-1'} items-stretch group transition-colors hover:bg-white/40 ${checked ? 'bg-blue-50/50' : ''}">
+                
                 ${isDeleteMode ? `
-                  <div class="flex items-center justify-center p-2">
-                    <input type="checkbox" data-id="${t.id}" class="row-checkbox" ${checked ? 'checked' : ''} />
+                  <div class="flex items-center justify-center">
+                    <input type="checkbox" data-id="${t.id}" class="row-checkbox w-5 h-5 rounded-md border-gray-300 text-black focus:ring-black" ${checked ? 'checked' : ''} />
                   </div>
                 ` : ''}
-                <button type="button" class="row-open w-full px-3 py-3 text-left transition hover:bg-black/5" data-id="${t.id}">
-                  <div class="flex items-start justify-between gap-3">
-                    <div>
-                      <div class="text-sm font-semibold leading-snug">${t.title}</div>
-                      <div class="mt-1 text-xs text-black/60">${formatDate(t.date)} • ${t.location}</div>
-                      <div class="mt-1 text-xs text-black/60">${t.from} → ${t.to}</div>
-                      <div class="mt-2 flex flex-wrap gap-2">
-                        <span class="rounded-full bg-black/5 px-2 py-0.5 text-[11px]">${t.emissionsSavedKgCO2e} kg CO₂e saved</span>
-                      </div>
+
+                <button type="button" class="row-open w-full text-left py-4 px-4 flex items-center gap-4" data-id="${t.id}">
+                  
+                  <!-- Leading Icon -->
+                  <div class="hidden sm:flex flex-none w-10 h-10 rounded-full bg-white border border-white/60 shadow-sm items-center justify-center text-gray-400 group-hover:text-blue-600 group-hover:border-blue-100 transition-colors">
+                    ${ICONS.route}
+                  </div>
+
+                  <!-- Main Content -->
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1">
+                        <h3 class="text-[16px] font-bold text-gray-900 leading-tight truncate">${t.title}</h3>
                     </div>
-                    <div class="mt-0.5 text-xs text-black/60">
-                      <span class="inline-flex items-center gap-1">${ICONS.file} <span>Report</span></span>
+                    <div class="flex items-center gap-2 text-xs font-medium text-gray-400 mb-1.5">
+                        <span>${formatDate(t.date)}</span>
+                        <span class="w-0.5 h-0.5 rounded-full bg-gray-300"></span>
+                        <span>${t.location}</span>
+                    </div>
+                    <div class="text-[13px] text-gray-600 truncate font-normal flex items-center gap-1.5">
+                        <span class="text-gray-900">${t.from}</span>
+                        <svg class="w-3 h-3 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+                        <span class="text-gray-900">${t.to}</span>
                     </div>
                   </div>
+
+                  <!-- Right Actions -->
+                  <div class="flex flex-col items-end gap-2 pl-2">
+                    <!-- CO2 Pill -->
+                    <div class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-emerald-50/40 border border-emerald-100/50 backdrop-blur-md">
+                        <svg class="w-3 h-3 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-2.072-2.143-3-3-.928.857-1.928.857-3 3 0 1.071.5 1.693 1 3a2.5 2.5 0 0 0 2.5 2.5z"/><path d="M15.5 14.5A2.5 2.5 0 0 0 18 12c0-1.38-.5-2-1-3-1.072-2.143-2.072-2.143-3-3-.928.857-1.928.857-3 3 0 1.071.5 1.693 1 3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+                        <span class="text-xs font-bold text-emerald-600">${t.emissionsSavedKgCO2e} kg</span>
+                    </div>
+                    
+                    <!-- Report Ghost Button -->
+                    <div class="flex items-center gap-1.5 px-2 py-1 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-black/5 transition-all">
+                        ${ICONS.file}
+                        <span class="text-[11px] font-semibold uppercase tracking-wide">Report</span>
+                    </div>
+                  </div>
+
                 </button>
               </div>
             `;
           }).join('')}
         </div>
       ` : `
-        <div class="p-10 text-center text-sm text-black/60">No reports yet.</div>
+        <div class="p-12 text-center">
+            <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3 text-gray-300">
+                <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 17h6"/><path d="M9 13h6"/><path d="M14 3H8c-2 0-3 1-3 3v12c0 2 1 3 3 3h8c2 0 3-1 3-3V8l-5-5Z"/><path d="M14 3v5h5"/></svg>
+            </div>
+            <div class="text-sm font-medium text-gray-900">No trips found</div>
+            <div class="text-xs text-gray-500 mt-1">Your trip history will appear here.</div>
+        </div>
       `}
     </section>
   `;
