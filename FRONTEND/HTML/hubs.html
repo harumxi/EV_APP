@@ -14,61 +14,143 @@
     tailwind.config = { darkMode: 'class' };
   </script>
 
+  <!-- Fonts + Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
   <!-- Vendor CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <!-- Your CSS -->
-  <link rel="stylesheet" href="../CSS/hubs.css" />
+  <link rel="stylesheet" href="../CSS/trip_planner.css" />
+
+  <style>
+    /* Hubs specific overrides to match Trip Planner theme */
+    .filter-chip {
+        padding: 6px 12px;
+        border-radius: 99px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        background: #f3f4f6;
+        color: #4b5563;
+        border: 1px solid transparent;
+        transition: all 0.2s;
+    }
+    .filter-chip.active {
+        background: #111827;
+        color: white;
+    }
+    .filter-chip:hover:not(.active) {
+        background: #e5e7eb;
+    }
+    
+    /* Card Styles (Ported from hubs.css) */
+    .hub-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        padding: 16px;
+        margin-bottom: 12px;
+        cursor: pointer;
+        transition: 0.2s;
+        display: flex;
+        gap: 12px;
+        position: relative;
+    }
+    .hub-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+        border-color: #3b82f6;
+    }
+    .hub-card.active { border: 2px solid #3b82f6; background: #eff6ff; }
+
+    .hub-icon {
+        width: 48px;
+        height: 48px;
+        background: #f3f4f6;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        color: #374151;
+        flex-shrink: 0;
+    }
+
+    /* Toast (Ported from hubs.css) */
+    #toast {
+        position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px);
+        z-index: 2000; background: #1e293b; color: white; padding: 12px 24px;
+        border-radius: 99px; font-weight: 700; font-size: 13px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2); opacity: 0;
+        transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); pointer-events: none;
+        display: flex; align-items: center; gap: 8px;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .search-section { padding-bottom: 10px; }
+    .sidebar { display: none; } /* Hide legacy sidebar if CSS leaks */
+  </style>
 </head>
 
 <body>
-  <div class="sidebar">
-    <div class="search-area">
-      <div class="flex items-center justify-between mb-4">
-        <h1 class="text-xl font-black text-gray-900 flex items-center gap-2">
-          <i class="fa-solid fa-charging-station text-blue-600"></i> Charging Hubs
-        </h1>
-        <a href="dashboard.html"
-           class="w-10 h-10 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full flex items-center justify-center transition shadow-sm"
-           title="Back to Dashboard">
-          <i class="fa-solid fa-house"></i>
-        </a>
-      </div>
+  <header class="app-header">
+    <div class="header-inner">
+      <a href="dashboard.html" class="header-icon" aria-hidden="true">
+        <i data-lucide="arrow-left"></i>
+      </a>
 
-      <div class="relative mb-4">
-        <i class="fa-solid fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-        <input
-          type="text"
-          id="search-input"
-          class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-gray-700 outline-none focus:border-blue-500 transition"
-          placeholder="Search city, mall, or area..."
-          onkeypress="handleEnter(event)"
-        />
-        <button
-          onclick="performSearch()"
-          class="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 text-white w-8 h-8 rounded-lg flex items-center justify-center hover:bg-blue-700"
-        >
-          <i class="fa-solid fa-arrow-right"></i>
-        </button>
-      </div>
-
-      <div class="flex gap-2 flex-wrap">
-        <div class="filter-chip active" onclick="toggleFilter(this, 'all')">All</div>
-        <div class="filter-chip" onclick="toggleFilter(this, 'Favorites')">❤️ Favorites</div>
+      <div class="title-group">
+        <h1 id="app-title">Charging Hubs</h1>
+        <p id="app-subtitle">Directory & Reviews</p>
       </div>
     </div>
+  </header>
 
-    <div id="results-list" class="results-list">
-      <div class="text-center mt-10 text-gray-400 text-sm">
-        <i class="fa-solid fa-map-location-dot text-4xl mb-2 opacity-50"></i>
-        <p>Search a location to find chargers.</p>
+  <div class="app-shell">
+    <div id="map" aria-label="Map"></div>
+
+    <aside id="panel" class="side-panel">
+      <div class="sheet-handle" id="sheet-handle" aria-hidden="true"></div>
+
+      <div class="panel-top">
+        <h3 id="panel-title">Find Station</h3>
+        <div class="mode-pill">Live</div>
       </div>
-    </div>
+
+      <div class="panel-scroll" id="panel-scroll">
+        <section class="search-section search-area">
+            <div class="suggest-wrap">
+                <div class="input-icon-box relative">
+                  <i data-lucide="search"></i>
+                  <input id="search-input" placeholder="Search city, mall, or area..." onkeypress="handleEnter(event)" autocomplete="off" />
+                  <button onclick="performSearch()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black">
+                    <i class="fa-solid fa-arrow-right"></i>
+                  </button>
+                </div>
+                <div id="search-suggest" class="suggest-list"></div>
+            </div>
+            
+            <div class="flex gap-2 mt-3 flex-wrap">
+                <div class="filter-chip active" onclick="toggleFilter(this, 'all')">All</div>
+                <div class="filter-chip" onclick="toggleFilter(this, 'Favorites')">❤️ Favorites</div>
+            </div>
+        </section>
+
+        <div id="results-list" class="results-list">
+            <div class="text-center mt-10 text-gray-400 text-sm">
+                <i class="fa-solid fa-map-location-dot text-4xl mb-2 opacity-50"></i>
+                <p>Search a location to find chargers.</p>
+            </div>
+        </div>
+      </div>
+    </aside>
   </div>
 
   <!-- REVIEWS MODAL -->
-  <div id="reviews-modal" class="hidden fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+  <div id="reviews-modal" class="hidden fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
     <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
       <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
         <h3 class="font-black text-lg text-gray-800 truncate pr-4" id="review-station-name">Station Reviews</h3>
@@ -113,7 +195,7 @@
   </div>
 
   <!-- STATION DETAILS MODAL -->
-  <div id="details-modal" class="hidden fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+  <div id="details-modal" class="hidden fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
     <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
       <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
         <h3 class="font-black text-lg text-gray-800 truncate pr-4" id="detail-title">Station Details</h3>
@@ -126,7 +208,6 @@
     </div>
   </div>
 
-  <div id="map"></div>
   <div id="toast"><i class="fa-solid fa-circle-info text-blue-400"></i> <span id="toast-msg">Notification</span></div>
 
   <!-- Vendor JS -->
@@ -134,5 +215,18 @@
 
   <!-- Your JS -->
   <script src="../JS/hubs.js"></script>
+  <script>
+    // Initialize Lucide icons
+    lucide.createIcons();
+    
+    // Mobile sheet logic
+    const panel = document.getElementById("panel");
+    const sheetHandle = document.getElementById("sheet-handle");
+    if(sheetHandle) {
+        sheetHandle.addEventListener("click", () => {
+            panel.classList.toggle("closed");
+        });
+    }
+  </script>
 </body>
 </html>
