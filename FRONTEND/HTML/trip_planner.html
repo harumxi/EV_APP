@@ -112,15 +112,16 @@
 </head>
 
 <body class="overflow-x-hidden">
-  <header class="app-header" style="border-bottom: none; box-shadow: none;">
-    <div class="header-inner">
-      <a href="dashboard.html" class="header-icon" aria-hidden="true">
-        <i data-lucide="arrow-left"></i>
-      </a>
-
-      <div class="title-group">
-        <h1 id="app-title">Trip Planner</h1>
-        <p id="app-subtitle">Plan your next drive</p>
+  <header class="fixed top-0 left-0 right-0 z-[5000] bg-white/50 backdrop-blur-[20px] border-b border-white/40 shadow-xl">
+    <div class="mx-auto max-w-6xl h-[68px] px-4 flex items-center justify-between">
+      <div class="text-2xl font-bold text-gray-900 tracking-tight">Trip Planner</div>
+      
+      <div class="flex items-center gap-3">
+        <div class="text-right hidden sm:block">
+          <div class="text-sm font-semibold text-gray-900 leading-tight" id="header-user-name">User</div>
+          <div class="text-xs font-medium text-gray-500 mt-0.5" id="header-car-name">No Car Selected</div>
+        </div>
+        <img src="https://i.pravatar.cc/256?img=12" alt="Profile" class="h-10 w-10 rounded-full border border-white/60 shadow-sm object-cover" />
       </div>
     </div>
   </header>
