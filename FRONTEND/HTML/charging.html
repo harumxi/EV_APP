@@ -27,8 +27,7 @@
 
         /* Adapt Charging specific elements to Trip Planner Theme */
         .station-card {
-            background: rgba(255,255,255,0.8);
-            backdrop-filter: blur(12px);
+            background: rgba(255,255,255,0.98);
             border-radius: 16px;
             padding: 12px 14px;
             border: 1px solid rgba(0,0,0,0.10);
@@ -86,18 +85,15 @@
 </head>
 
 <body>
-  <header class="fixed top-0 left-0 right-0 z-[5000] bg-white/30 backdrop-blur-[20px] border-b border-white/40 shadow-[0_10px_30px_rgba(0,0,0,0.06)]">
-    <div class="mx-auto max-w-6xl h-[68px] px-4 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="text-2xl font-bold text-gray-900 tracking-tight">Emergency Charging</div>
-      </div>
+  <header class="app-header">
+    <div class="header-inner">
+      <a href="dashboard.html" class="header-icon" aria-hidden="true">
+        <i data-lucide="arrow-left"></i>
+      </a>
 
-      <div class="flex items-center gap-3">
-        <div class="text-right hidden sm:block">
-          <div class="text-sm font-semibold text-gray-900 leading-tight" id="header-user-name">User</div>
-          <div class="text-xs font-medium text-gray-500 mt-0.5" id="header-car-name">No Car Selected</div>
-        </div>
-        <img src="https://i.pravatar.cc/256?img=12" alt="Profile" class="h-10 w-10 rounded-full border border-white/60 shadow-sm object-cover" />
+      <div class="title-group">
+        <h1 id="app-title">Emergency Charging</h1>
+        <p id="app-subtitle">Find nearest stations</p>
       </div>
     </div>
   </header>
@@ -106,7 +102,7 @@
     <div id="map" aria-label="Map"></div>
     <div id="nav-status" class="nav-overlay"><i class="fa-solid fa-circle-notch fa-spin"></i> Navigating...</div>
 
-    <aside id="panel" class="side-panel !bg-white/60 !backdrop-blur-xl !border !border-white/50 !shadow-[0_20px_40px_-10px_rgba(0,0,0,0.05)] !rounded-[28px] overflow-hidden flex flex-col transition-transform duration-300 !p-0">
+    <aside id="panel" class="side-panel !bg-white/50 !backdrop-blur-[20px] !border !border-white/40 !shadow-xl !rounded-[28px] overflow-hidden flex flex-col transition-transform duration-300 !p-0">
       <div class="sheet-handle" id="sheet-handle" aria-hidden="true"></div>
 
       <div class="panel-top flex items-center justify-between gap-3 px-5 pt-5 pb-3 border-b border-black/5 shrink-0">
@@ -238,13 +234,6 @@
     <script>
     // Initialize Lucide icons
     lucide.createIcons();
-
-    // Populate Header
-    const headerUser = document.getElementById('header-user-name');
-    const headerCar = document.getElementById('header-car-name');
-    const activeCarObj = JSON.parse(localStorage.getItem('active_car') || "null");
-    if(headerUser) headerUser.textContent = localStorage.getItem('full_display_name') || 'User';
-    if(headerCar && activeCarObj) headerCar.textContent = `${activeCarObj.brand} ${activeCarObj.model}`;
 
     // UI Helper for Battery Ring (Ported from trip_planner.js logic for UI consistency)
     function updateRingUI(percent) {

@@ -608,12 +608,6 @@ document.addEventListener("DOMContentLoaded", () => {
         carName.textContent = `${activeCar.brand} ${activeCar.model}`;
         carDisplay.style.display = 'block';
     }
-
-    // Update Header User/Car
-    const headerUser = document.getElementById('header-user-name');
-    const headerCar = document.getElementById('header-car-name');
-    if(headerUser) headerUser.textContent = localStorage.getItem('full_display_name') || 'User';
-    if(headerCar && activeCar) headerCar.textContent = `${activeCar.brand} ${activeCar.model}`;
     
     // Sync Battery
     const savedBatt = localStorage.getItem('user_battery_level');
