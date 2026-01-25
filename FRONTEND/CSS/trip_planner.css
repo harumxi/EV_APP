@@ -573,12 +573,18 @@ button:disabled{
     max-height: 85vh;
     min-height: 0;
     border-radius: 22px;
-    z-index: 6000;
+    z-index: 4900;
     padding: 12px 14px 14px;
     transform: translateY(0);
     transition: transform .22s ease;
   }
-  .side-panel.closed{ transform: translateY(calc(100% - 50px)); }
+  .side-panel.closed{ transform: translateY(calc(100% - 24px)); }
+
+  .side-panel.closed .panel-top {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .panel-top { transition: opacity 0.2s ease; }
 
   .sheet-handle{
     width: 54px;
@@ -590,4 +596,32 @@ button:disabled{
   }
 
   .battery-ring{ width: min(200px, 60vw); }
+}
+
+/* Mobile Compact Adjustments (<= 768px) */
+@media (max-width: 768px) {
+  .side-panel {
+    height: 50vh; /* Default shorter height */
+    max-height: 85vh;
+    padding: 12px 14px !important;
+    gap: 8px !important;
+    bottom: calc(64px + env(safe-area-inset-bottom)) !important; /* Ensure nav clearance */
+  }
+  
+  .panel-top h3 { font-size: 17px !important; }
+  .mode-pill { padding: 4px 10px !important; font-size: 10px !important; height: 24px; display: flex; align-items: center; }
+
+  /* Compact Battery */
+  .battery-ring { width: 160px !important; }
+  .ring-track, .ring-progress { stroke-width: 8px !important; }
+  .bat-display { font-size: 32px !important; }
+  .ring-icon { width: 20px !important; height: 20px !important; }
+
+  /* Compact Inputs & Lists */
+  .input-icon-box { padding: 10px 12px !important; min-height: 44px; }
+  .input-icon-box input { font-size: 14px !important; }
+  .route-card { padding: 10px 12px !important; border-radius: 14px !important; }
+  .main-title { font-size: 15px !important; }
+  .sub-title { font-size: 12px !important; margin-top: 2px !important; }
+  .eta-big { font-size: 13px !important; }
 }

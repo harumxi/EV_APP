@@ -132,19 +132,19 @@
     <aside id="panel" class="side-panel !bg-white/50 !backdrop-blur-[20px] !border !border-white/40 !shadow-xl !rounded-[28px] overflow-hidden flex flex-col transition-transform duration-300 !p-0">
       <div class="sheet-handle" id="sheet-handle" aria-hidden="true"></div>
 
-      <div class="panel-top flex items-center justify-between gap-3 px-5 pt-5 pb-3 border-b border-black/5 shrink-0">
+      <div class="panel-top flex items-center justify-between gap-3 px-4 pt-4 pb-2 md:px-5 md:pt-5 md:pb-3 border-b border-black/5 shrink-0">
         <h3 id="panel-title" class="text-lg font-bold text-gray-900 tracking-tight">Trip Controls</h3>
         <div id="weather-widget" class="hidden items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/40 border border-white/30 text-[11px] font-semibold text-gray-600 shadow-sm backdrop-blur-md"></div>
       </div>
 
-      <div class="panel-scroll no-scrollbar px-5 pb-4 space-y-4" id="panel-scroll">
+      <div class="panel-scroll no-scrollbar px-4 pb-20 space-y-3 md:px-5 md:pb-4 md:space-y-4" id="panel-scroll">
         <!-- Battery -->
-        <section class="battery-input-box !bg-transparent !border-0 !p-0 flex flex-col items-center justify-center py-2" id="battery-box">
+        <section class="battery-input-box !bg-transparent !border-0 !p-0 flex flex-col items-center justify-center py-1 md:py-2" id="battery-box">
           <div class="battery-ring-wrap !p-0">
-            <div class="battery-ring w-36 h-36" aria-label="Battery level">
+            <div class="battery-ring w-32 h-32 md:w-36 md:h-36" aria-label="Battery level">
               <svg class="ring-svg" viewBox="0 0 120 120" aria-hidden="true">
-                <circle class="ring-track text-black/5" cx="60" cy="60" r="52" stroke-width="6" fill="none"></circle>
-                <circle class="ring-progress text-emerald-500" cx="60" cy="60" r="52" stroke-width="6" fill="none" stroke-linecap="round"></circle>
+                <circle class="ring-track text-black/5" cx="60" cy="60" r="52" stroke-width="8" fill="none"></circle>
+                <circle class="ring-progress text-emerald-500" cx="60" cy="60" r="52" stroke-width="8" fill="none" stroke-linecap="round"></circle>
               </svg>
 
               <div class="ring-center">
@@ -163,7 +163,7 @@
 
           <div id="bat-error" class="battery-error">Battery must be between 0 and 100.</div>
 
-          <div id="active-car-info" class="hidden mt-2 w-full rounded-[18px] bg-white/40 border border-white/50 p-3 flex items-center justify-between shadow-sm backdrop-blur-sm">
+          <div id="active-car-info" class="hidden mt-2 w-full rounded-[18px] bg-white/40 border border-white/50 p-2 md:p-3 flex items-center justify-between shadow-sm backdrop-blur-sm">
             <div class="flex items-center gap-3">
                <div class="relative w-9 h-9 rounded-xl bg-white/60 flex items-center justify-center text-gray-600 shadow-sm">
                  <i data-lucide="car" class="w-5 h-5"></i>
@@ -176,12 +176,12 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-3 w-full mt-2">
-            <div class="bg-white/40 border border-white/50 rounded-[18px] p-3 text-center">
+          <div class="grid grid-cols-2 gap-2 md:gap-3 w-full mt-2">
+            <div class="bg-white/40 border border-white/50 rounded-[18px] p-2 md:p-3 text-center">
                 <div class="text-[10px] font-semibold text-gray-500 uppercase">Energy</div>
                 <strong id="energy-txt" class="text-sm font-bold text-gray-900 block mt-0.5">—</strong>
             </div>
-            <div class="bg-white/40 border border-white/50 rounded-[18px] p-3 text-center">
+            <div class="bg-white/40 border border-white/50 rounded-[18px] p-2 md:p-3 text-center">
                 <div class="text-[10px] font-semibold text-gray-500 uppercase">Range</div>
                 <strong id="range-txt" class="text-sm font-bold text-gray-900 block mt-0.5">—</strong>
             </div>
@@ -195,7 +195,7 @@
         </div>
 
         <!-- Trip inputs -->
-        <section class="space-y-3 mt-6">
+        <section class="space-y-2 md:space-y-3 mt-4 md:mt-6">
           <div class="suggest-wrap">
             <div class="input-icon-box !bg-transparent !border !border-transparent !rounded-[18px] !shadow-none focus-within:!bg-white/40 transition-all" id="from-box">
               <i data-lucide="map-pin"></i>
@@ -204,7 +204,7 @@
             <div id="from-suggest" class="suggest-list"></div>
           </div>
 
-          <div class="connector !my-4"><i data-lucide="arrow-down" class="text-emerald-500"></i></div>
+          <div class="connector !my-2 md:!my-4"><i data-lucide="arrow-down" class="text-emerald-500"></i></div>
 
           <div class="suggest-wrap">
             <div class="input-icon-box !bg-transparent !border !border-transparent !rounded-[18px] !shadow-none focus-within:!bg-white/40 transition-all" id="to-box">
@@ -239,10 +239,10 @@
 
       <div class="panel-footer !sticky !bottom-0 !bg-transparent !backdrop-blur-none !border-t-0 !p-3">
         <div class="routes-actions flex w-full gap-3">
-          <button id="recalc-btn" class="btn-main btn-secondary flex-1 !h-[56px] !rounded-[18px] !bg-white/40 !border !border-white/50 !text-gray-800 !font-bold !text-[15px] hover:!bg-white transition shadow-sm" style="display:none;">
+          <button id="recalc-btn" class="btn-main btn-secondary flex-1 !h-[48px] md:!h-[56px] !rounded-[16px] md:!rounded-[18px] !bg-white/40 !border !border-white/50 !text-gray-800 !font-bold !text-[14px] md:!text-[15px] hover:!bg-white transition shadow-sm" style="display:none;">
             <span class="btn-row justify-center gap-2"><i data-lucide="refresh-ccw"></i> Recalculate</span>
           </button>
-          <button id="start-nav" class="btn-main flex-1 w-full !h-[56px] !rounded-[18px] !bg-slate-900 !text-white !font-bold !text-[15px] !shadow-xl hover:!bg-black disabled:!opacity-50 disabled:!cursor-not-allowed transition-all active:scale-[0.98] flex items-center justify-center gap-2" disabled>
+          <button id="start-nav" class="btn-main flex-1 w-full !h-[48px] md:!h-[56px] !rounded-[16px] md:!rounded-[18px] !bg-slate-900 !text-white !font-bold !text-[14px] md:!text-[15px] !shadow-xl hover:!bg-black disabled:!opacity-50 disabled:!cursor-not-allowed transition-all active:scale-[0.98] flex items-center justify-center gap-2" disabled>
             <span class="btn-row justify-center gap-2"><i data-lucide="navigation"></i> Start Navigation</span>
           </button>
         </div>
