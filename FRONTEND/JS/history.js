@@ -56,7 +56,7 @@ async function fetchTrips() {
         
         if(data.ok && data.logs) {
             trips = data.logs.map(log => ({
-                id: log.id,
+                id: String(log.id),
                 title: `Trip to ${log.destination || 'Unknown'}`,
                 date: log.created_at,
                 from: log.origin || 'Unknown',
@@ -154,7 +154,7 @@ function render() {
         </div>
       </div>
 
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <div class="rounded-xl border border-black/10 bg-white p-3">
           <div class="text-xs text-black/60">Total reports</div>
           <div class="mt-0.5 text-lg font-semibold text-black">${s.total}</div>
@@ -162,10 +162,6 @@ function render() {
         <div class="rounded-xl border border-black/10 bg-white p-3">
           <div class="text-xs text-black/60">Emissions saved</div>
           <div class="mt-0.5 text-lg font-semibold text-green-600">${s.emissions.toFixed(1)} kg</div>
-        </div>
-        <div class="rounded-xl border border-black/10 bg-white p-3">
-          <div class="text-xs text-black/60">Time saved</div>
-          <div class="mt-0.5 text-lg font-semibold text-black">${s.timeSaved} min</div>
         </div>
         <div class="rounded-xl border border-black/10 bg-white p-3">
           <div class="text-xs text-black/60">Avg efficiency</div>
@@ -214,7 +210,6 @@ function render() {
                       <div class="mt-1 text-xs text-black/60">${t.from} → ${t.to}</div>
                       <div class="mt-2 flex flex-wrap gap-2">
                         <span class="rounded-full bg-black/5 px-2 py-0.5 text-[11px]">${t.emissionsSavedKgCO2e} kg CO₂e saved</span>
-                        <span class="rounded-full bg-black/5 px-2 py-0.5 text-[11px]">${t.timeSavedMinutes} min saved</span>
                       </div>
                     </div>
                     <div class="mt-0.5 text-xs text-black/60">
@@ -312,7 +307,7 @@ function render() {
 }
 
 function openDetailModal(id) {
-  activeTrip = trips.find(t => t.id === id) || null;
+  activeTrip = trips.find(t => t.id == id) || null;
   if (!activeTrip) return;
 
   const batteryPct = Math.max(1, Math.min(100, 100 - Math.round((activeTrip.energyEfficiencyWhPerKm || 0) / 2)));
@@ -330,14 +325,10 @@ function openDetailModal(id) {
       </div>
     </div>
 
-    <div class="grid gap-3 sm:grid-cols-3">
+    <div class="grid gap-3 sm:grid-cols-2">
       <div class="rounded-2xl border border-black/10 bg-white p-3">
         <div class="text-xs text-black/60">Emissions saved</div>
         <div class="mt-1 text-sm font-semibold">${activeTrip.emissionsSavedKgCO2e} kg CO₂e</div>
-      </div>
-      <div class="rounded-2xl border border-black/10 bg-white p-3">
-        <div class="text-xs text-black/60">Time saved</div>
-        <div class="mt-1 text-sm font-semibold">${activeTrip.timeSavedMinutes} min</div>
       </div>
       <div class="rounded-2xl border border-black/10 bg-white p-3">
         <div class="text-xs text-black/60">Energy efficiency</div>
@@ -357,13 +348,6 @@ function openDetailModal(id) {
       <div class="rounded-2xl border border-black/10 bg-white p-3">
         <div class="text-xs text-black/60">File</div>
         <div class="mt-1 truncate text-sm font-semibold" title="${activeTrip.fileName}">${activeTrip.fileName}</div>
-      </div>
-    </div>
-
-    <div class="rounded-2xl border border-black/10 bg-white p-4">
-      <div class="text-xs font-semibold text-black/70">Key points</div>
-      <div class="mt-2 flex flex-wrap gap-2">
-        ${activeTrip.stops.map(s => `<span class="inline-flex items-center rounded-full border border-black/10 bg-white px-2.5 py-1 text-xs text-black/70 shadow-sm">${s}</span>`).join('')}
       </div>
     </div>
 
