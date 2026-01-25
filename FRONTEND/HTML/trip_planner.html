@@ -2,537 +2,149 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trip Planner</title>
 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script>
-      if (localStorage.getItem('pref_dark') === 'true') {
-          document.documentElement.classList.add('dark');
-      }
-      tailwind.config = { darkMode: 'class' };
-  </script>
+  <!-- Fonts + Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 
-  <style>
-    body { margin:0; height:100vh; overflow:hidden; background:#f8fafc; font-family: 'Plus Jakarta Sans', sans-serif; }
-    #map { height:100vh; width:100%; z-index: 0; }
-    
-    /* Modern Sidebar with Glass Effect */
-    .sidebar { 
-        width: 400px; max-width: 92vw; height: calc(100vh - 32px); margin: 16px; 
-        background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px);
-        border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15); 
-        border: 1px solid rgba(255, 255, 255, 0.8);
-        overflow: hidden; z-index: 999; position: absolute; top: 0; left: 0; 
-        display: flex; flex-direction: column; 
-    }
-    .scroll { overflow-y: auto; padding: 24px; height: 100%; }
-    .scroll::-webkit-scrollbar { width: 6px; }
-    .scroll::-webkit-scrollbar-thumb { background-color: #e2e8f0; border-radius: 10px; }
-    
-    /* Route Cards */
-    .route-card { 
-        border: 1px solid #f1f5f9; border-radius: 16px; padding: 16px; 
-        cursor: pointer; transition: all 0.2s ease; background: white; 
-        margin-bottom: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
-    }
-    .route-card:hover { transform: translateY(-2px); border-color: #3b82f6; box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1); }
-    .route-card.selected { border: 2px solid #3b82f6; background: #eff6ff; ring: 2px solid #bfdbfe; }
-    
-    /* Badges */
-    .badge { font-size: 10px; font-weight: 800; letter-spacing: 0.05em; padding: 4px 10px; border-radius: 99px; text-transform: uppercase; }
-    .badge.rec { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
-    .badge.alt { background: #f3f4f6; color: #4b5563; border: 1px solid #e5e7eb; }
+  <!-- Leaflet (Map) -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <!-- Polyline Decoder (Required for backend routes) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mapbox-polyline/1.1.1/polyline.min.js"></script>
 
-    /* Weather Widget */
-    .weatherBox { 
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); 
-        color: white; border-radius: 20px; padding: 20px; 
-        display: flex; justify-content: space-between; align-items: center; 
-        box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4); margin-bottom: 24px; 
-        position: relative; overflow: hidden;
-    }
-    .weatherBox::after {
-        content: ''; position: absolute; top: -50%; right: -20%; width: 150px; height: 150px;
-        background: rgba(255,255,255,0.1); border-radius: 50%; pointer-events: none;
-    }
-    
-    /* Suggestions Dropdown */
-    .suggestBox { 
-        border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; 
-        background: white; position: absolute; width: 100%; z-index: 1001; 
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); margin-top: 4px;
-    }
-    .suggestItem { width: 100%; text-align: left; padding: 12px 16px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: 0.1s; }
-    .suggestItem:hover { background: #f8fafc; color: #2563eb; }
-
-    /* Active Car Badge */
-    .active-car-badge {
-        background: white; border: 1px solid #e2e8f0; color: #334155;
-        padding: 10px 16px; rounded: 16px; font-size: 0.9rem; font-weight: 700;
-        cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 10px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.03);
-    }
-    .active-car-badge:hover { border-color: #3b82f6; color: #2563eb; background: #eff6ff; }
-    .active-car-badge.no-car { background: #fef2f2; border-color: #fecaca; color: #dc2626; }
-
-    /* Inputs */
-    .input-group { position: relative; }
-    .input-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 14px; }
-    .styled-input {
-        width: 100%; padding: 14px 16px 14px 44px; background: #f8fafc;
-        border: 1px solid #e2e8f0; border-radius: 16px; font-weight: 600; color: #1e293b;
-        outline: none; transition: all 0.2s; font-size: 14px;
-    }
-    .styled-input:focus { background: white; border-color: #3b82f6; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
-
-    /* Toast */
-    #toast { 
-        position: absolute; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px); 
-        z-index: 1200; background: #1e293b; color: white; padding: 12px 24px; 
-        border-radius: 99px; font-weight: 700; font-size: 13px; 
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2); opacity: 0; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
-        pointer-events: none; display: flex; align-items: center; gap: 8px;
-    }
-    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-    /* DARK MODE OVERRIDES */
-    html.dark body { background: #0f172a; color: #f8fafc; }
-    html.dark .sidebar { background: rgba(30, 41, 59, 0.95); border-color: #334155; }
-    html.dark .text-slate-900, html.dark .text-slate-800 { color: white; }
-    html.dark .text-slate-500, html.dark .text-slate-400 { color: #94a3b8; }
-    html.dark .bg-slate-100 { background-color: #334155; color: white; }
-    html.dark .route-card { background: #1e293b; border-color: #334155; color: white; }
-    html.dark .route-card:hover { border-color: #3b82f6; }
-    html.dark .styled-input { background: #334155; border-color: #475569; color: white; }
-    html.dark .styled-input:focus { background: #1e293b; }
-    html.dark .active-car-badge { background: #1e293b; border-color: #334155; color: white; }
-    html.dark .suggestBox { background: #1e293b; border-color: #334155; }
-    html.dark .suggestItem { border-color: #334155; color: white; }
-    html.dark .suggestItem:hover { background: #334155; }
-  </style>
+  <!-- CSS -->
+  <link rel="stylesheet" href="../CSS/trip_planner.css" />
 </head>
+
 <body>
-  <div id="map"></div>
-  <div id="toast"><i class="fa-solid fa-circle-info text-blue-400"></i> <span id="toast-msg">Notification</span></div>
+  <header class="app-header">
+    <div class="header-inner">
+      <a href="dashboard.html" class="header-icon" aria-hidden="true">
+        <i data-lucide="arrow-left"></i>
+      </a>
 
-  <div class="sidebar">
-    <div class="scroll">
-      <div class="flex items-center gap-3 mb-4 px-1">
-        <a href="dashboard.html" class="w-10 h-10 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full flex items-center justify-center transition shadow-sm">
-            <i class="fa-solid fa-arrow-left"></i>
-        </a>
-        <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tighter">Trip Planner</h1>
-      </div>
-
-      <div class="weatherBox">
-        <div>
-            <div class="text-[10px] font-black uppercase tracking-widest text-blue-200 mb-1">Current Weather</div>
-            <div class="text-3xl font-black" id="weatherTemp">--°</div>
-            <div class="text-xs font-bold opacity-80 mt-1" id="weatherDesc">Loading...</div>
-            <div class="text-xs font-bold opacity-80 mt-2 flex items-center gap-1" id="weatherLoc"><i class="fa-solid fa-location-dot"></i> Locating…</div>
-        </div>
-        <div class="text-5xl opacity-90 drop-shadow-sm" id="weatherIcon">⛅</div>
-      </div>
-
-      <div id="active-car-display" class="active-car-badge mb-4" onclick="window.location.href='garage.html'">
-        <i class="fa-solid fa-car"></i>
-        <span id="car-name">Loading Car...</span>
-      </div>
-
-      <!-- Inputs -->
-      <div class="space-y-4 relative">
-      <div class="input-group">
-        <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Start Location</label>
-        <div class="relative flex items-center">
-            <i class="fa-solid fa-circle-dot text-green-500 input-icon"></i>
-            <input id="origin" class="styled-input pr-12" placeholder="Locating you..."/>
-            <button class="absolute right-2 p-2 text-slate-400 hover:text-blue-600 transition" onclick="useMyLocation()" title="Use my GPS">
-                <i class="fa-solid fa-crosshairs"></i>
-            </button>
-        </div>
-      </div>
-
-      <div class="input-group relative">
-        <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Destination</label>
-        <div class="relative">
-            <i class="fa-solid fa-location-dot text-red-500 input-icon"></i>
-            <input id="destination" class="styled-input" placeholder="Where to? (e.g. SM North)"/>
-        </div>
-        <div id="destSuggest" class="hidden suggestBox"></div>
-      </div>
-
-      <div>
-        <div class="flex justify-between items-end mb-1.5">
-             <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Current Battery</label>
-             <span id="range-est" class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">Est: -- km</span>
-        </div>
-        <div class="relative">
-            <i class="fa-solid fa-bolt text-yellow-500 input-icon"></i>
-            <input id="battery" type="number" min="1" max="100" class="styled-input" value="80"/>
-        </div>
-      </div>
-
-      <button id="calcBtn" class="w-full mt-2 py-4 rounded-2xl bg-slate-900 hover:bg-black text-white font-bold shadow-xl transition-all transform active:scale-[0.98] flex items-center justify-center gap-2">
-        <i class="fa-solid fa-paper-plane"></i> Find Best Routes
-      </button>
-    </div>
-
-    <!-- Results -->
-    <div class="mt-8">
-      <div class="flex items-center justify-between mb-3">
-        <div class="text-sm font-black text-slate-800 uppercase tracking-wide">Suggested Routes</div>
-        <div class="text-xs font-bold text-slate-400" id="debugLine"></div>
-      </div>
-      <div id="routeList" class="space-y-3">
-        <div class="text-sm text-slate-400 text-center py-4 italic">Enter destination to see routes.</div>
+      <div class="title-group">
+        <h1 id="app-title">Trip Planner</h1>
+        <p id="app-subtitle">Plan your next drive</p>
       </div>
     </div>
+  </header>
 
-    <div id="startWrap" class="mt-6 hidden pb-4">
-      <button type="button" class="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-200 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2" onclick="startNavigation()">
-        <i class="fa-solid fa-location-arrow"></i> Start Navigation
-      </button>
-      <div class="text-[10px] text-center text-slate-400 mt-2 font-semibold">Opens Live Simulation Mode</div>
-    </div>
+  <div class="app-shell">
+    <div id="map" aria-label="Map"></div>
+
+    <aside id="panel" class="side-panel">
+      <div class="sheet-handle" id="sheet-handle" aria-hidden="true"></div>
+
+      <div class="panel-top">
+        <h3 id="panel-title">Trip Controls</h3>
+        <div class="mode-pill" id="mode-pill">Ready</div>
+      </div>
+
+      <div class="panel-scroll" id="panel-scroll">
+        <!-- Battery -->
+        <section class="battery-input-box" id="battery-box">
+          <div class="battery-ring-wrap">
+            <div class="battery-ring" aria-label="Battery level">
+              <svg class="ring-svg" viewBox="0 0 120 120" aria-hidden="true">
+                <circle class="ring-track" cx="60" cy="60" r="52"></circle>
+                <circle class="ring-progress" cx="60" cy="60" r="52"></circle>
+              </svg>
+
+              <div class="ring-center">
+                <i data-lucide="zap" class="ring-icon"></i>
+                <div class="ring-value">
+                  <span id="bat-display" class="bat-display">75</span>
+                  <span class="ring-percent">%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="battery-input-row">
+            <input id="bat-input" type="number" min="0" max="100" inputmode="numeric" aria-label="Battery percentage" />
+          </div>
+
+          <div id="bat-error" class="battery-error">Battery must be between 0 and 100.</div>
+
+          <div class="battery-stats">
+            <div class="stat-item"><span>Available Energy</span><strong id="energy-txt">—</strong></div>
+            <div class="stat-item"><span>Estimated Range</span><strong id="range-txt">—</strong></div>
+          </div>
+        </section>
+
+        <!-- Trip inputs -->
+        <section>
+          <label>FROM</label>
+          <div class="suggest-wrap">
+            <div class="input-icon-box" id="from-box">
+              <i data-lucide="map-pin"></i>
+              <input id="from-input" placeholder="Search starting location…" value="" autocomplete="off" />
+            </div>
+            <div id="from-suggest" class="suggest-list"></div>
+          </div>
+
+          <div class="connector"><i data-lucide="arrow-down"></i></div>
+
+          <label>TO</label>
+          <div class="suggest-wrap">
+            <div class="input-icon-box" id="to-box">
+              <i data-lucide="map-pin"></i>
+              <input id="to-input" placeholder="Search destination…" value="" autocomplete="off" />
+            </div>
+            <div id="to-suggest" class="suggest-list"></div>
+          </div>
+
+          <p class="tip">Tip: type “SM” to see options, or click the field.</p>
+        </section>
+
+        <!-- Loading AFTER Start -->
+        <div id="after-start-loading" class="panel-loading" role="status" aria-live="polite">
+          <div class="spinner" aria-hidden="true"></div>
+          <div class="loading-text">Preparing navigation…</div>
+        </div>
+
+        <!-- Results -->
+        <section id="results-section" class="results-section hidden">
+          <div class="routes-list" id="routes-list" aria-label="Suggested list"></div>
+
+          <div class="route-details" id="route-details">
+            <div class="rd-title" id="rd-title">Select an item</div>
+            <div class="rd-note" id="rd-note">Details will appear here.</div>
+            <div class="rd-grid">
+              <div class="rd-metric"><span id="rd-m1-label">Energy</span><b id="rd-energy">—</b></div>
+              <div class="rd-metric"><span id="rd-m2-label">Arrival</span><b id="rd-arrival">—</b></div>
+              <div class="rd-metric"><span id="rd-m3-label">ETA</span><b id="rd-eta">—</b></div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="panel-footer">
+        <div class="routes-actions">
+          <button id="recalc-btn" class="btn-main btn-secondary" style="display:none;">
+            <span class="btn-row"><i data-lucide="refresh-ccw"></i> Recalculate</span>
+          </button>
+          <button id="start-nav" class="btn-main" disabled>
+            <span class="btn-row"><i data-lucide="navigation"></i> Start Navigation</span>
+          </button>
+        </div>
+      </div>
+    </aside>
   </div>
-</div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mapbox-polyline/1.1.1/polyline.min.js"></script>
-
-<script>
-  const BASE_API = "http://localhost/WEBPROG_PROJ/BACKEND/API";
-  let myLat = 14.5995, myLng = 120.9842; 
-  let hasUserLocation = false;
-  let carSafeRange = 300; 
-  
-  // UNIT PREFERENCES
-  const PREF_UNIT = localStorage.getItem('pref_units') || 'KM';
-  const DIST_FACTOR = PREF_UNIT === 'MILES' ? 0.621371 : 1;
-  const DIST_LABEL = PREF_UNIT === 'MILES' ? 'mi' : 'km';
-
-  document.addEventListener("DOMContentLoaded", () => {
-     if(!localStorage.getItem("user_id")) window.location.href = "login.html";
-
-     // SYNC BATTERY FROM DASHBOARD
-     const savedBatt = localStorage.getItem('user_battery_level');
-     if(savedBatt) {
-         document.getElementById('battery').value = savedBatt;
-     }
-
-     loadActiveCar();
-     checkBatteryGate();
-  });
-
-  document.getElementById("origin").addEventListener("input", () => { selectedOrigin = null; });
-  document.getElementById("destination").addEventListener("input", () => { selectedDest = null; });
-
-  function toast(msg){ 
-      const t = document.getElementById("toast"); 
-      document.getElementById("toast-msg").textContent = msg; 
-      t.classList.add("show"); 
-      setTimeout(()=>t.classList.remove("show"), 2500); 
-  }
-
-  function loadActiveCar() {
-      const activeCar = JSON.parse(localStorage.getItem('active_car') || "null");
-      const nameSpan = document.getElementById('car-name');
-      const badge = document.getElementById('active-car-display');
-      
-      if (activeCar) {
-          nameSpan.innerText = `${activeCar.brand} ${activeCar.model}`;
-          badge.classList.remove('no-car');
-          
-          // Calculate Range from Specs (Capacity / Efficiency)
-          let maxRange = activeCar.range_km || 300;
-          if (activeCar.battery_kwh && activeCar.efficiency_whkm) {
-              const kwh = parseFloat(activeCar.battery_kwh);
-              const eff = parseInt(activeCar.efficiency_whkm);
-              if (eff > 0) maxRange = (kwh * 1000) / eff;
-          }
-          const safeRange = Math.round(maxRange * 0.85); // 85% Real-World Buffer
-          carSafeRange = safeRange;
-          updateRangeDisplay();
-      } else {
-          nameSpan.innerText = "Select Car (Go to Garage)";
-          badge.classList.add('no-car');
-          carSafeRange = 0;
-      }
-  }
-
-  function updateRangeDisplay() {
-      const batt = document.getElementById('battery').value;
-      const currentRange = Math.round(carSafeRange * (batt / 100) * DIST_FACTOR);
-      document.getElementById('range-est').innerText = `Est: ${currentRange} ${DIST_LABEL}`;
-  }
-
-  navigator.geolocation.getCurrentPosition(
-      (pos) => {
-          myLat = pos.coords.latitude; myLng = pos.coords.longitude; hasUserLocation = true;
-          document.getElementById("origin").value = `${myLat.toFixed(5)}, ${myLng.toFixed(5)} (My Location)`;
-          selectedOrigin = { lat: myLat, lng: myLng, label: "My Location" };
-          map.setView([myLat, myLng], 14); loadWeather(myLat, myLng, "My Location");
-          L.circleMarker([myLat, myLng], { radius: 8, fillColor: "#3b82f6", color: "#fff", weight: 2, fillOpacity: 1 }).addTo(map).bindPopup("You are here");
-      },
-      (err) => { console.warn("GPS denied"); }
-  );
-
-  async function postJSON(url, payload){
-    const res = await fetch(url, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(payload) });
-    const raw = await res.text();
-    let data; 
-    try { data = JSON.parse(raw); } 
-    catch { 
-        console.error("Bad JSON Response:", raw); 
-        throw new Error("Server returned invalid data. Check console.");
-    }
-    if(!data) throw new Error("Invalid Response"); if(!res.ok || data.ok === false) throw new Error(data.error || "Request failed");
-    return data;
-  }
-
-  const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 });
-  const satellite = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19 });
-  const map = L.map("map", { zoomControl:false, layers:[osm] }).setView([myLat, myLng], 11);
-  L.control.zoom({ position:"bottomright" }).addTo(map); L.control.layers({ "Map": osm, "Satellite": satellite }, null, { position:"topright" }).addTo(map);
-
-  let routeLayers = []; let originMarker = null, destMarker = null; let selectedRouteObject = null; let selectedOrigin = null, selectedDest = null; 
-
-  function clearRoutesOnly(){ routeLayers.forEach(l => map.removeLayer(l)); routeLayers = []; }
-  function addMarker(lat, lng, label, isStart){
-    const color = isStart ? '#16a34a' : '#dc2626'; 
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" stroke="white" stroke-width="2" style="filter:drop-shadow(0 3px 3px rgba(0,0,0,0.5))"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5" fill="white"/></svg>`;
-    const icon = L.divIcon({ html: svg, className: '', iconSize: [40, 40], iconAnchor: [20, 40], popupAnchor: [0, -40] });
-    const m = L.marker([lat, lng], {icon}).addTo(map).bindPopup(label);
-    m.on('click', () => { map.flyTo([lat, lng], 16, { animate: true, duration: 1.5 }); m.openPopup(); });
-    return m;
-  }
-  function drawRoute(encoded, isSelected, idx){
-    if (typeof polyline === 'undefined') {
-        console.error("Polyline library missing. Ensure script tag is loaded.");
-        return;
-    }
-    const pts = polyline.decode(encoded); const color = isSelected ? "#2563eb" : "#94a3b8";
-    const line = L.polyline(pts, { color, weight: isSelected?6:4, opacity: isSelected?1:0.6 }).addTo(map);
-    line.routeId = idx; if(isSelected) { line.bringToFront(); map.fitBounds(line.getBounds().pad(0.1)); } routeLayers.push(line);
-  }
-  function highlightRoute(idx){ routeLayers.forEach(l => { const isSel = (l.routeId === idx); l.setStyle({ color: isSel ? "#2563eb" : "#9ca3af", weight: isSel?6:4, opacity: isSel?1:0.6 }); if(isSel) l.bringToFront(); }); }
-
-  async function loadWeather(lat, lng, label){
-    try {
-      const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`);
-      const data = await res.json(); const c = data.current_weather;
-      let icon = "☀️"; if(c.weathercode > 3) icon = "☁️"; if(c.weathercode > 50) icon = "🌧️";
-      
-      let desc = "Clear Sky";
-      if(c.weathercode > 0) desc = "Mainly Clear";
-      if(c.weathercode > 2) desc = "Overcast";
-      if(c.weathercode > 40) desc = "Foggy";
-      if(c.weathercode > 50) desc = "Drizzle";
-      if(c.weathercode > 60) desc = "Rainy";
-      if(c.weathercode > 80) desc = "Showers";
-      if(c.weathercode > 90) desc = "Thunderstorm";
-
-      document.getElementById("weatherTemp").innerText = Math.round(c.temperature) + "°";
-      document.getElementById("weatherIcon").innerText = icon;
-      document.getElementById("weatherDesc").innerText = desc;
-      document.getElementById("weatherLoc").innerHTML = `<i class="fa-solid fa-location-dot"></i> ` + (label || "Current Loc");
-    } catch(e) { document.getElementById("weatherDesc").innerText = "Offline"; }
-  }
-
-  function getDistanceKm(lat1, lon1, lat2, lon2) {
-      const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
-      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  }
-
-  async function smartSearch(query) {
-      if(!query || query.length < 2) return [];
-      let qMain = query.toLowerCase().replace(/\bsjdm\b/g, "san jose del monte").replace(/\bqc\b/g, "quezon city").replace(/\bbgc\b/g, "bonifacio global city").replace(/\bncr\b/g, "metro manila");
-      const injectedResults = [];
-      if((qMain.includes("national") && qMain.includes("fairview")) || qMain.includes("nu fairview") || qMain.includes("nu-fairview")) {
-          injectedResults.push({
-              properties: { name: "National University - Fairview", street: "Quirino Highway", city: "Quezon City", district: "SM City Fairview Complex", country: "Philippines" },
-              geometry: { coordinates: [121.0570, 14.7338] }, _score: 9999, _distance: getDistanceKm(myLat, myLng, 14.7338, 121.0570)
-          });
-      }
-      const strategies = [qMain];
-      const words = qMain.split(" ");
-      if(words.length >= 2) strategies.push(words.slice(0, 2).join(" "));
-      const promises = strategies.map(q => fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&lat=${myLat}&lon=${myLng}&limit=30&bbox=116.8,4.5,126.7,21.2`).then(res => res.json()).then(data => data.features || []).catch(() => []));
-      const resultsArrays = await Promise.all(promises);
-      const allFeatures = resultsArrays.flat();
-      const uniqueResults = [...injectedResults]; 
-      const seenKeys = new Set();
-      injectedResults.forEach(i => seenKeys.add((i.properties.name || "") + i.geometry.coordinates.join(",")));
-      allFeatures.forEach(f => {
-          const key = (f.properties.name || "") + f.geometry.coordinates.join(",");
-          if (!seenKeys.has(key)) {
-              seenKeys.add(key);
-              const dist = getDistanceKm(myLat, myLng, f.geometry.coordinates[1], f.geometry.coordinates[0]);
-              f._distance = dist; 
-              let score = 0;
-              const propsStr = JSON.stringify(f.properties).toLowerCase();
-              if (f.properties.name && f.properties.name.toLowerCase().includes(qMain)) score += 100;
-              words.forEach(w => { if(w.length > 3 && propsStr.includes(w)) score += 20; });
-              f._score = score;
-              uniqueResults.push(f);
-          }
-      });
-      uniqueResults.sort((a, b) => { if (Math.abs(b._score - a._score) > 20) return b._score - a._score; return a._distance - b._distance; });
-      return uniqueResults.slice(0, 15);
-  }
-
-  let destDebounce;
-  document.getElementById("destination").addEventListener("input", (e) => {
-    clearTimeout(destDebounce);
-    const box = document.getElementById("destSuggest");
-    destDebounce = setTimeout(async()=>{
-      const q = e.target.value;
-      if(q.length < 2) return box.classList.add("hidden");
-      const results = await smartSearch(q);
-      box.innerHTML = "";
-      if(results.length === 0) { box.classList.add("hidden"); return; }
-      results.forEach(r => {
-           const p = r.properties; const g = r.geometry;
-           const addressParts = [ p.name, p.street, p.district, p.suburb, p.city || p.town || p.municipality, p.county ];
-           const fullLabel = [...new Set(addressParts.filter(Boolean))].join(", ");
-           const distLabel = (r._distance * DIST_FACTOR).toFixed(1) + " " + DIST_LABEL;
-           const div = document.createElement("div");
-           div.className = "suggestItem flex justify-between items-center"; 
-           div.innerHTML = `<div style="flex:1; overflow:hidden;"><div class="font-bold text-slate-800 text-sm truncate">${p.name || fullLabel.split(",")[0]}</div><div class="text-xs text-slate-500 truncate">${fullLabel}</div></div><div class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-md ml-2 whitespace-nowrap">${distLabel}</div>`;
-           div.onclick = () => { document.getElementById("destination").value = fullLabel; selectedDest = { lat: g.coordinates[1], lng: g.coordinates[0] }; box.classList.add("hidden"); };
-           box.appendChild(div);
-      });
-      box.classList.remove("hidden");
-    }, 300);
-  });
-
-  document.getElementById("calcBtn").addEventListener("click", async () => {
-    if (checkBatteryGate()) return; 
-    const btn = document.getElementById("calcBtn"); const list = document.getElementById("routeList"); const startWrap = document.getElementById("startWrap");
-    const origTxt = document.getElementById("origin").value.trim(); const destTxt = document.getElementById("destination").value.trim(); const batt = document.getElementById("battery").value;
-    if(!origTxt || !destTxt) return alert("Enter Start/End");
-    btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...'; list.innerHTML = '<div class="text-center py-4 text-slate-400"><i class="fa-solid fa-spinner fa-spin"></i> Calculating...</div>'; startWrap.classList.add("hidden");
-    try {
-      clearRoutesOnly(); if(originMarker) map.removeLayer(originMarker); if(destMarker) map.removeLayer(destMarker);
-      let orig = selectedOrigin || await resolveSmart(origTxt); let dest = selectedDest || await resolveSmart(destTxt);
-      originMarker = addMarker(orig.lat, orig.lng, "Start", true); destMarker = addMarker(dest.lat, dest.lng, "End", false);
-      map.fitBounds(L.latLngBounds([orig.lat, orig.lng], [dest.lat, dest.lng]), { padding: [50, 50] });
-      const userId = localStorage.getItem("user_id");
-      const data = await postJSON(`${BASE_API}/TRIPS/calculate.php`, { user_id: userId, battery_percent: batt, origin: orig, destination: dest });
-      const routes = data.routes || []; if(!routes.length) throw new Error("No routes found");
-      list.innerHTML = "";
-      routes.forEach((r, idx) => {
-        const isBest = (idx === 0); drawRoute(r.geometry, isBest, idx);
-        const card = document.createElement("div"); card.className = `route-card ${isBest?'selected':''}`;
-        card.innerHTML = `
-           <div class="flex justify-between items-start mb-2">
-               <span class="badge ${isBest?'rec':'alt'}">${isBest?'Recommended':'Alternative'}</span>
-               <div class="text-right">
-                   <div class="text-xs font-bold text-slate-400 uppercase">Battery</div>
-                   <div class="text-sm font-black ${r.end_battery<20?'text-red-600':'text-green-600'}">${r.end_battery}%</div>
-               </div>
-           </div>
-           <div class="flex justify-between items-end">
-               <div>
-                   <div class="font-black text-lg text-slate-800">${(r.distance_km * DIST_FACTOR).toFixed(1)} ${DIST_LABEL}</div>
-                   <div class="text-xs font-bold text-slate-500"><i class="fa-regular fa-clock"></i> ${r.duration_min} min</div>
-               </div>
-               <div class="text-xs font-bold text-red-500 bg-red-50 px-2 py-1 rounded-lg">-${r.est_usage}%</div>
-           </div>`;
-        card.onclick = () => { 
-            document.querySelectorAll(".route-card").forEach(c => c.classList.remove("selected")); 
-            card.classList.add("selected"); 
-            highlightRoute(idx); 
-            // Save Origin/Dest for History Logs
-            selectedRouteObject = { route: r, origin: origTxt, destination: destTxt }; 
-            startWrap.classList.remove("hidden"); 
-        };
-        list.appendChild(card);
-      });
-      selectedRouteObject = { route: routes[0], origin: origTxt, destination: destTxt }; 
-      startWrap.classList.remove("hidden"); toast(`Found ${routes.length} routes!`);
-    } catch(e){ console.error(e); list.innerHTML = `<div class="text-red-500 font-bold text-center p-4 bg-red-50 rounded-xl border border-red-100">Error: ${e.message}</div>`; } 
-    finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Find Best Routes'; }
-  });
-
-  async function resolveSmart(txt) {
-      const m = txt.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/); if(m) return { lat:Number(m[1]), lng:Number(m[2]) };
-      const res = await smartSearch(txt); if(!res.length) throw new Error(`Location not found: ${txt}`);
-      return { lat: res[0].geometry.coordinates[1], lng: res[0].geometry.coordinates[0] };
-  }
-  function useMyLocation(){ navigator.geolocation.getCurrentPosition(p => { myLat = p.coords.latitude; myLng = p.coords.longitude; document.getElementById("origin").value = `${myLat.toFixed(5)}, ${myLng.toFixed(5)} (My Location)`; selectedOrigin = { lat: myLat, lng: myLng, label: "My Location" }; loadWeather(myLat, myLng, "My Location"); map.flyTo([myLat, myLng], 15); }, err => alert("GPS Error")); }
-  
-  const battInput = document.getElementById("battery");
-  battInput.addEventListener("input", function() {
-      let val = parseInt(this.value);
-      if (val > 100) this.value = 100;
-      if (val < 0) this.value = 0;
-      updateRangeDisplay(); 
-  });
-  battInput.addEventListener("blur", function() { checkBatteryGate(); });
-
-  function checkBatteryGate() {
-      const val = parseInt(battInput.value) || 0;
-      if (val <= 20) {
-          alert("⛔ BATTERY LOW (≤20%)\n\nYou cannot start a trip.\nRedirecting to Charging Station...");
-          localStorage.setItem("forceCharging", "1");
-          localStorage.setItem("ev_lock_status", "critical");
-          localStorage.setItem("last_known_battery", val);
-          window.location.href = "charging.html";
-          return true; 
-      }
-      return false;
-  }
-
-  function startNavigation(){ 
-      if (checkBatteryGate()) return;
-      
-      const activeCar = JSON.parse(localStorage.getItem('active_car') || "null");
-      if (!activeCar) return alert("Please select an active vehicle from your Garage to proceed.");
-
-      if (!selectedRouteObject) return alert("Select a route first.");
-      localStorage.setItem("activeTrip", JSON.stringify(selectedRouteObject));
-      window.location.href = "test_navigation.html"; 
-  }
-
-document.addEventListener("DOMContentLoaded", () => {
-    // 1. Existing logic for Car and Battery
-    loadActiveCar();
-    checkBatteryGate();
-
-    // 2. NEW: Retrieve the saved destination from localStorage (sent from hubs.html)
-    const navDest = JSON.parse(localStorage.getItem('nav_destination'));
-
-    if (navDest) {
-        console.log("Auto-filling destination:", navDest.name);
-
-        // 3. Auto-fill the destination input (ID is "destination" in your HTML)
-        const destInput = document.getElementById('destination'); 
-        if (destInput) {
-            destInput.value = navDest.name;
-            
-            // 4. Set the global variable so the calculation uses coordinates instead of text search
-            selectedDest = { lat: navDest.lat, lng: navDest.lng };
-
-            // 5. Automatically trigger the "Find Routes" button click
-            // This waits 500ms to ensure the map and GPS are ready before calculating
-            setTimeout(() => {
-                toast(`Navigating to ${navDest.name}`);
-                document.getElementById('calcBtn').click();
-            }, 500);
-        }
-
-        // 6. IMPORTANT: Clear it after use so it doesn't trigger on every visit
-        localStorage.removeItem('nav_destination');
-    }
-});
-
-
-</script>
+  <script src="../JS/trip_planner.js"></script>
 </body>
 </html>
