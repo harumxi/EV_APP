@@ -84,15 +84,18 @@
     }
 
     /* Toast (Ported from hubs.css) */
-    #toast {
-        position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px);
-        z-index: 2000; background: #1e293b; color: white; padding: 12px 24px;
-        border-radius: 99px; font-weight: 700; font-size: 13px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2); opacity: 0;
-        transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); pointer-events: none;
-        display: flex; align-items: center; gap: 8px;
+    #toast, #nav-toast {
+        position: fixed; top: 85px; left: 50%; transform: translateX(-50%) translateY(-20px);
+        z-index: 10000; background: white; color: #111827; padding: 12px 24px;
+        border-radius: 99px; font-weight: 600; font-size: 14px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        border: 1px solid #f3f4f6;
+        opacity: 0;
+        max-width: 90vw;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); pointer-events: none;
+        display: flex; align-items: center; gap: 10px;
     }
-    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #toast.show, #nav-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
     .search-section { padding-bottom: 10px; }
     .sidebar { display: none; } /* Hide legacy sidebar if CSS leaks */
@@ -236,7 +239,19 @@
     </div>
   </div>
 
-  <div id="toast"><i class="fa-solid fa-circle-info text-blue-400"></i> <span id="toast-msg">Notification</span></div>
+  <div id="toast">
+    <div class="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+      <i class="fa-solid fa-heart text-red-500 text-sm"></i>
+    </div>
+    <span id="toast-msg">Added to favorites</span>
+  </div>
+
+  <div id="nav-toast">
+    <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+      <i class="fa-solid fa-location-arrow text-blue-600 text-sm"></i>
+    </div>
+    <span id="nav-toast-msg" class="text-sm leading-tight">Ready to navigate to SM City Sta. Mesa e-Vehicle Station. Opening Trip Planner...</span>
+  </div>
 
 <nav class="fixed bottom-0 left-0 w-screen bg-white/50 backdrop-blur-xl shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-[5000]">
   <div class="mx-auto max-w-6xl px-4 py-1">
