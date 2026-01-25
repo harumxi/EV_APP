@@ -1,0 +1,37 @@
+.drawer-backdrop {
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(2px);
+}
+
+.drawer-panel {
+  transform: translateX(100%);
+  transition: transform 220ms ease;
+}
+
+.drawer-panel[data-open="true"] {
+  transform: translateX(0);
+}
+
+/* FAQ accordion */
+.faq-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px hsl(var(--border));
+}
+
+.faq-answer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 220ms ease;
+}
+
+.faq-item[data-open="true"] .faq-answer {
+  max-height: 220px;
+}
+
+.faq-chevron {
+  transition: transform 200ms ease;
+}
+
+.faq-item[data-open="true"] .faq-chevron {
+  transform: rotate(180deg);
+}
