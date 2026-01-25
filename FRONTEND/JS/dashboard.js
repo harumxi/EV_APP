@@ -125,13 +125,14 @@ function renderTable() {
         const savings = (trip.dist * 0.192).toFixed(1);
         
         const div = document.createElement('div');
-        div.className = "flex items-center justify-between rounded-xl border border-black/10 bg-white p-3";
+        // Glass List Item: Frosted strip, lighter border, soft shadow
+        div.className = "flex items-center justify-between rounded-[20px] border border-white/40 bg-white/40 backdrop-blur-md p-4 shadow-sm mb-3 last:mb-0 transition-all hover:bg-white/60 hover:shadow-md hover:-translate-y-0.5";
         div.innerHTML = `
             <div>
-              <div class="text-sm font-semibold">${trip.to}</div>
-              <div class="text-xs text-black/60">${trip.date} · ${(trip.dist * DIST_FACTOR).toFixed(1)} ${DIST_LABEL}</div>
+              <div class="text-sm font-bold text-gray-900">${trip.to}</div>
+              <div class="text-xs text-gray-500 mt-1.5">${trip.date} · ${(trip.dist * DIST_FACTOR).toFixed(1)} ${DIST_LABEL}</div>
             </div>
-            <div class="text-xs font-semibold text-green-600">${savings} kg saved</div>
+            <div class="px-3 py-1.5 rounded-full bg-white/60 border border-white/50 text-xs font-bold text-emerald-600 shadow-sm backdrop-blur-sm">${savings} kg saved</div>
         `;
         container.appendChild(div);
     });
@@ -203,11 +204,13 @@ function renderCharts() {
                 plugins: { 
                     legend: { display: false },
                     tooltip: {
-                        backgroundColor: '#1f2937',
-                        titleColor: '#f3f4f6',
-                        bodyColor: '#fff',
+                        backgroundColor: 'rgba(255, 255, 255, 0.8)', // More transparent glass tooltip
+                        titleColor: '#111827',
+                        bodyColor: '#6B7280',
+                        borderColor: 'rgba(255, 255, 255, 0.5)',
+                        borderWidth: 1,
                         padding: 12,
-                        cornerRadius: 8,
+                        cornerRadius: 16,
                         displayColors: false,
                         callbacks: {
                             label: (context) => `${context.parsed.y} kg CO₂ Saved`
