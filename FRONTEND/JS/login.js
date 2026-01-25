@@ -8,54 +8,57 @@ let tempEmail = null;
 
 // AUTO-REDIRECT: If user is already logged in, go to dashboard
 document.addEventListener("DOMContentLoaded", () => {
-    if (localStorage.getItem("user_id")) {
-        window.location.href = "dashboard.html";
-    }
+    // If you want to stay on the login page for testing, clear your localStorage 
+    // or comment out the lines below:
+    // if (localStorage.getItem("user_id")) {
+    //     window.location.href = "dashboard.html";
+    // }
 });
 
-// ===== UI TOGGLE FUNCTIONS =====
-function showSignup() {
-    const loginForm = document.getElementById("loginForm");
-    const signupForm = document.getElementById("signupForm");
-    document.getElementById("otpForm").classList.add("hidden");
+// ===== UI TOGGLE FUNCTIONS (User's UI Logic) =====
+
+function switchPanel(fromId, toId) {
+    const from = document.getElementById(fromId);
+    const to = document.getElementById(toId);
+
+    if (!from || !to) return;
+
     clearErrors();
-    loginForm.classList.add("slide-out-left");
+
+    from.classList.add('slide-out-left');
+
     setTimeout(() => {
-        loginForm.classList.add("hidden");
-        signupForm.classList.remove("hidden");
-        signupForm.classList.add("slide-in-right");
+        from.classList.add('hidden');
+        from.classList.remove('slide-out-left'); // Clean up
+        to.classList.remove('hidden');
+        to.classList.add('slide-in-right');
+        setTimeout(() => to.classList.remove('slide-in-right'), 600); // Match CSS transition time
     }, 300);
 }
 
+function showSignup() {
+    switchPanel('loginForm', 'signupForm');
+}
+
 function showLogin() {
-    const loginForm = document.getElementById("loginForm");
-    const signupForm = document.getElementById("signupForm");
-    document.getElementById("otpForm").classList.add("hidden");
-    const forgotForm = document.getElementById("forgotForm");
+    // Determine which panel is currently visible to switch back from
+    const currentPanel = ['signupForm', 'otpForm', 'forgotPanel1', 'forgotPanel2', 'forgotPanel3']
+        .find(id => {
+            const el = document.getElementById(id);
+            return el && !el.classList.contains('hidden');
+        });
     
-    if(forgotForm) forgotForm.classList.add("hidden");
-    clearErrors();
-    
-    if (!signupForm.classList.contains("hidden")) {
-        signupForm.classList.add("slide-out-left");
-        setTimeout(() => {
-            signupForm.classList.add("hidden");
-            signupForm.classList.remove("slide-out-left"); 
-            loginForm.classList.remove("hidden");
-            loginForm.classList.add("slide-in-right");
-            setTimeout(() => loginForm.classList.remove("slide-in-right"), 300);
-        }, 300);
+    if (currentPanel) {
+        switchPanel(currentPanel, 'loginForm');
     } else {
-        loginForm.classList.remove("hidden");
-        loginForm.classList.add("slide-in-right");
-        setTimeout(() => loginForm.classList.remove("slide-in-right"), 300);
+        document.getElementById('loginForm').classList.remove('hidden');
     }
 }
 
 function showOTP(userId, purpose, email = "") {
-    document.getElementById("loginForm").classList.add("hidden");
-    document.getElementById("signupForm").classList.add("hidden");
-    document.getElementById("otpForm").classList.remove("hidden");
+    // If coming from signup
+    const from = document.getElementById('signupForm').classList.contains('hidden') ? 'loginForm' : 'signupForm';
+    switchPanel(from, 'otpForm');
     
     document.getElementById("otpUserId").value = userId;
     document.getElementById("otpPurpose").value = purpose;
@@ -68,11 +71,38 @@ function showOTP(userId, purpose, email = "") {
     startOtpTimer();
 }
 
+function backToSignup() {
+    switchPanel('otpForm', 'signupForm');
+}
+
 function showForgot() {
-    document.getElementById("loginForm").classList.add("hidden");
-    document.getElementById("signupForm").classList.add("hidden");
-    document.getElementById("forgotForm").classList.remove("hidden");
-    switchForgotStep(1);
+    switchPanel('loginForm', 'forgotPanel1');
+}
+
+function cancelForgotFlow() {
+    const currentStep = ['forgotPanel1', 'forgotPanel2', 'forgotPanel3']
+        .find(id => !document.getElementById(id).classList.contains('hidden'));
+    if (currentStep) switchPanel(currentStep, 'loginForm');
+}
+
+function switchForgotStep(step) {
+    const prevStep = step > 1 ? `forgotPanel${step - 1}` : 'loginForm';
+    switchPanel(prevStep, `forgotPanel${step}`);
+}
+
+function togglePassword(fieldId, toggleElement) {
+    const field = document.getElementById(fieldId);
+    const icon = toggleElement.querySelector('.eye-icon');
+
+    if (field.type === 'password') {
+        field.type = 'text';
+        icon.classList.add('active');
+        icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+    } else {
+        field.type = 'password';
+        icon.classList.remove('active');
+        icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+    }
 }
 
 // ===== UI HELPERS =====
@@ -266,7 +296,7 @@ document.getElementById("otpFormElement")?.addEventListener("submit", async func
 });
 
 // ===== FORGOT PASSWORD FLOW =====
-async function handleForgotRequest(e) {
+document.getElementById("forgotStep1")?.addEventListener("submit", async function(e) {
     e.preventDefault();
     const btn = e.target.querySelector("button");
     setLoading(btn, true, "Sending...");
@@ -287,9 +317,9 @@ async function handleForgotRequest(e) {
         }
     } catch(err) { showSuccess("Error"); }
     finally { setLoading(btn, false); }
-}
+});
 
-async function handleForgotVerify(e) {
+document.getElementById("forgotStep2")?.addEventListener("submit", async function(e) {
     e.preventDefault();
     const btn = e.target.querySelector("button");
     setLoading(btn, true, "Verifying...");
@@ -309,9 +339,9 @@ async function handleForgotVerify(e) {
         }
     } catch(err) { showSuccess("Error"); }
     finally { setLoading(btn, false); }
-}
+});
 
-async function handleNewPassword(e) {
+document.getElementById("forgotStep3")?.addEventListener("submit", async function(e) {
     e.preventDefault();
     const btn = e.target.querySelector("button");
     setLoading(btn, true, "Updating...");
@@ -336,12 +366,7 @@ async function handleNewPassword(e) {
         }
     } catch(err) { showSuccess("Error"); }
     finally { setLoading(btn, false); }
-}
-
-function switchForgotStep(step) {
-    document.querySelectorAll('[id^="forgotStep"]').forEach(el => el.classList.add("hidden"));
-    document.getElementById(`forgotStep${step}`).classList.remove("hidden");
-}
+});
 
 // ===== OTP TIMER & RESEND =====
 function startOtpTimer() {
@@ -358,16 +383,18 @@ function startOtpTimer() {
     }, 1000);
 
     let cooldown = 60;
-    resendBtn.disabled = true;
-    if (window.resendInterval) clearInterval(window.resendInterval);
-    window.resendInterval = setInterval(() => {
-        resendBtn.innerText = `Resend in ${--cooldown}s`;
-        if (cooldown <= 0) {
-            clearInterval(window.resendInterval);
-            resendBtn.disabled = false;
-            resendBtn.innerText = "Resend Code";
-        }
-    }, 1000);
+    if (resendBtn) {
+        resendBtn.disabled = true;
+        if (window.resendInterval) clearInterval(window.resendInterval);
+        window.resendInterval = setInterval(() => {
+            resendBtn.innerText = `Resend in ${--cooldown}s`;
+            if (cooldown <= 0) {
+                clearInterval(window.resendInterval);
+                resendBtn.disabled = false;
+                resendBtn.innerText = "Resend Code";
+            }
+        }, 1000);
+    }
 }
 
 async function sendOtpAsync(userId, purpose) {
@@ -379,3 +406,18 @@ async function sendOtpAsync(userId, purpose) {
         });
     } catch (e) { console.error(e); }
 }
+
+// Input focus animations
+document.querySelectorAll('.input-field').forEach(input => {
+    input.addEventListener('focus', function() {
+        const label = this.parentElement.parentElement.querySelector('.input-label');
+        if (label) label.style.color = 'var(--racing-red)';
+    });
+
+    input.addEventListener('blur', function() {
+        if (!this.value) {
+            const label = this.parentElement.parentElement.querySelector('.input-label');
+            if (label) label.style.color = 'var(--steel-grey)';
+        }
+    });
+});
