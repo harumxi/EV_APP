@@ -13,6 +13,12 @@
 
     <!-- Link to CSS file -->
     <link rel="stylesheet" href="../CSS/login.css">
+    <style>
+        /* Speed up all transitions for "quicker" feel */
+        * { transition-duration: 0.15s !important; }
+        .form-panel { animation-duration: 0.2s !important; }
+        .bg-image { content-visibility: auto; }
+    </style>
 </head>
 <body>
     <div class="success-message" id="successMessage">Welcome to EnerGo!</div>
@@ -288,10 +294,6 @@
 
         <!-- Right Panel with Background -->
         <div class="right-panel">
-            <img src="bg.jpg" class="bg-image" alt="City Background">
-            <div class="car-container">
-                <img src="car.png" alt="Electric Car">
-            </div>
         </div>
     </div>
 

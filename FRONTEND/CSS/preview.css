@@ -20,7 +20,7 @@ body {
 #intro-screen {
   position: fixed;
   inset: 0;
-  background: radial-gradient(circle at center, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.6) 100%), url("../IMAGES/darkbg.png") no-repeat center center;
+  background: url("../IMAGES/darkbg.png") no-repeat center center;
   background-size: cover;
   display: flex;
   flex-direction: column;
@@ -31,7 +31,8 @@ body {
   padding: 50px 40px;
 
   cursor: pointer;
-  transition: opacity 0.8s ease, transform 1s cubic-bezier(0.19, 1, 0.22, 1);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  will-change: opacity, transform;
 }
 
 /* BRAND */
@@ -92,7 +93,7 @@ body {
   background: radial-gradient(ellipse at center, rgba(0,0,0,0.8) 0%, transparent 70%);
   z-index: -1;
   filter: blur(8px);
-  animation: shadow-pulse 7s ease-in-out infinite;
+  animation: shadow-pulse 1s ease-in-out infinite;
 }
 
 /* HERO CAR (no border/frame) */
@@ -111,55 +112,22 @@ body {
   box-shadow: none;
   background-color: transparent;
 
-  animation: float 7s ease-in-out infinite;
+  animation: float 1s ease-in-out infinite;
+  will-change: transform;
 
   /* For positioning and clipping reflections */
   position: relative;
   overflow: hidden;
-
-  /* ✅ Mask reflections to car shape */
-  -webkit-mask-image: url("../IMAGES/nobgcar.png");
-  mask-image: url("../IMAGES/nobgcar.png");
-  -webkit-mask-size: contain;
-  mask-size: contain;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-position: center center;
-  mask-position: center center;
 }
 
 /* Ambient Reflections (Cliffs/Road) */
 .car-placeholder::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    170deg,
-    rgba(10, 10, 15, 0.5) 20%, /* Dark cliff reflection */
-    rgba(180, 180, 180, 0.15) 48%, /* Wet road highlight */
-    rgba(180, 180, 180, 0.15) 52%,
-    rgba(10, 10, 15, 0.5) 80%
-  );
-  mix-blend-mode: overlay;
-  opacity: 0.6;
-  animation: ambient-reflection 15s ease-in-out infinite alternate;
+  display: none;
 }
 
 /* Lightning Flash Reflection */
 .car-placeholder::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    ellipse at 40% 30%,
-    rgba(200, 220, 255, 0.7) 0%,
-    transparent 50%
-  );
-  mix-blend-mode: color-dodge;
-  opacity: 0;
-  /* Stuttering flash effect */
-  animation: lightning-flash 6s ease-out infinite;
-  animation-delay: 1.5s;
+  display: none;
 }
 
 /* SHADOW ANIMATION */
@@ -170,8 +138,8 @@ body {
 
 /* FLOAT */
 @keyframes float {
-  0%, 100% { transform: translateY(0) scale(1.35); }
-  50% { transform: translateY(-18px) scale(1.35); }
+  0%, 100% { transform: translateY(0) scale(1.1); }
+  50% { transform: translateY(-8px) scale(1.1); }
 }
 
 /* REFLECTION ANIMATIONS */

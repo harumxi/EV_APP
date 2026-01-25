@@ -61,7 +61,8 @@ body {
 .logo-icon {
     width: 40px;
     height: 40px;
-    background: linear-gradient(135deg, var(--energy-green) 0%, var(--energy-blue) 100%);
+    background: url('../IMAGES/logo.png') center center / contain no-repeat !important;
+    color: transparent !important;
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -326,8 +327,14 @@ body {
 .right-panel {
     width: 50%;
     position: relative;
+    z-index: 0;
     overflow: hidden;
-    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    min-height: 100vh;
+    background-image: linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,.55)), url('../IMAGES/login.png');
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    background: linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)), url('../IMAGES/login.png') center center / cover no-repeat !important;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -339,7 +346,8 @@ body {
     height: 100%;
     object-fit: cover;
     object-position: center;
-    z-index: 0;
+    z-index: -1;
+    background: transparent !important;
 }
 
 .right-panel::before {
@@ -349,12 +357,8 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: radial-gradient(
-        ellipse at center,
-        transparent 0%,
-        rgba(0, 0, 0, 0.2) 100%
-    );
-    z-index: 1;
+    background: transparent !important;
+    z-index: -1;
     pointer-events: none;
 }
 
@@ -362,7 +366,8 @@ body {
     position: relative;
     width: 80%;
     max-width: 700px;
-    z-index: 5;
+    z-index: 1;
+    background: transparent !important;
     animation: carFloat 4s ease-in-out infinite;
 }
 
@@ -684,7 +689,8 @@ body {
 .logo-icon {
     width: 40px;
     height: 40px;
-    background: linear-gradient(135deg, var(--energy-green) 0%, var(--energy-blue) 100%);
+    background: url('../IMAGES/logo.png') center center / contain no-repeat !important;
+    color: transparent !important;
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -947,8 +953,14 @@ body {
 .right-panel {
     width: 50%;
     position: relative;
+    z-index: 0;
     overflow: hidden;
-    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    min-height: 100vh;
+    background-image: linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,.55)), url('../IMAGES/login.png');
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    background: linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)), url('../IMAGES/login.png') center center / cover no-repeat !important;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -960,7 +972,8 @@ body {
     height: 100%;
     object-fit: cover;
     object-position: center;
-    z-index: 0;
+    z-index: -1;
+    background: transparent !important;
 }
 
 .right-panel::before {
@@ -970,12 +983,8 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: radial-gradient(
-        ellipse at center,
-        transparent 0%,
-        rgba(0, 0, 0, 0.2) 100%
-    );
-    z-index: 1;
+    background: transparent !important;
+    z-index: -1;
     pointer-events: none;
 }
 
@@ -983,7 +992,8 @@ body {
     position: relative;
     width: 80%;
     max-width: 700px;
-    z-index: 5;
+    z-index: 1;
+    background: transparent !important;
     animation: carFloat 4s ease-in-out infinite;
 }
 
