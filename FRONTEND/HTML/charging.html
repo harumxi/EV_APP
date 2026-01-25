@@ -82,6 +82,13 @@
         .battery-ring-wrap { padding-bottom: 0; }
         .battery-stats { margin-top: 12px; }
 
+        /* Toast Styles */
+        #toast {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0; transform: translate(-50%, -20px); pointer-events: none;
+        }
+        #toast.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+
         /* Mobile Compact Overrides */
         @media (max-width: 768px) {
             .station-card { padding: 10px 12px; margin-bottom: 6px; }
@@ -196,6 +203,12 @@
             Continue Journey
         </button>
     </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed top-6 left-1/2 bg-white border border-gray-100 text-gray-800 px-5 py-3 rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.12)] font-bold z-[10000] flex items-center gap-3">
+      <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-500 fill-amber-50"></i>
+      <span id="toast-msg" class="text-sm">--</span>
   </div>
 
 <nav class="fixed bottom-0 left-0 w-screen bg-white/50 backdrop-blur-xl shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-[5000]">
@@ -469,9 +482,8 @@
             
             // Allow viewing details but warn if too far
             if(!station.reachable) { 
-                alert("⚠️ Warning: This station is beyond your estimated range.");
-                // We let them proceed but with a warning, or return; to block
-                // return; 
+                showToast("Warning: This station is beyond your estimated range.");
+                return;
             }
             
             selectedStation = station;
@@ -637,6 +649,16 @@
         function openCancelModal() {
             localStorage.removeItem('ev_charging_mode');
             window.location.reload();
+        }
+        
+        function showToast(msg) {
+            const t = document.getElementById("toast");
+            const tm = document.getElementById("toast-msg");
+            if (t && tm) {
+                tm.textContent = msg;
+                t.classList.add("show");
+                setTimeout(() => t.classList.remove("show"), 3000);
+            }
         }
 
         function getDistance(lat1, lon1, lat2, lon2) {
