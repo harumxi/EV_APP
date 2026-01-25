@@ -15,7 +15,7 @@
 </head>
 
 <body>
-  <div id="intro-screen">
+  <div id="intro-screen" onclick="startApp()">
 
     <div class="brand-section">
       <h1 class="brand-name">ENERGO</h1>
@@ -37,6 +37,13 @@
 
   </div>
 
-  <script src="../JS/preview.js"></script>
+  <script>
+    function startApp() {
+      document.getElementById('intro-screen').classList.add('fade-out-up');
+      setTimeout(() => {
+        window.location.href = 'login.html';
+      }, 200);
+    }
+  </script>
 </body>
 </html>
