@@ -115,28 +115,25 @@
                                 <div class="text-2xl font-bold text-gray-900 mt-1" id="eta-large">--</div>
                                 <div class="text-gray-500 text-[10px] mt-1">Updated</div>
                             </div>
-                            <div class="bg-gray-50 rounded-2xl p-3">
+                            <div class="bg-gray-50 rounded-2xl p-3 flex flex-col justify-center">
                                 <div class="text-gray-500 text-xs font-semibold">Distance</div>
-                                <div class="text-2xl font-bold text-gray-900 mt-1" id="dist-large">--</div>
-                                <div class="text-gray-500 text-[10px] mt-1">Remaining</div>
+                                <div class="text-xl font-black text-gray-900 mt-0.5 leading-tight" id="dist-large">--</div>
+                                <div class="text-gray-500 text-[10px] mt-0.5">Remaining</div>
                             </div>
                             
                             <!-- Battery Ring -->
-                            <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 relative overflow-hidden">
-                                <div class="text-gray-600 text-xs font-semibold">Battery at Arrival</div>
-                                <div class="mt-2 flex items-center justify-center">
-                                    <div class="relative w-28 h-28">
-                                        <svg class="w-28 h-28 -rotate-90" viewBox="0 0 120 120">
-                                            <circle cx="60" cy="60" r="46" stroke="rgba(0,0,0,0.08)" stroke-width="12" fill="none"></circle>
-                                            <circle id="batt-ring-circle" cx="60" cy="60" r="46" stroke="rgba(34,197,94,1)" stroke-width="12" fill="none" stroke-linecap="round" stroke-dasharray="289.02" stroke-dashoffset="0"></circle>
+                            <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-2 relative overflow-hidden flex flex-col justify-center h-[130px]">
+                                <div class="text-gray-600 text-[10px] font-bold uppercase tracking-wide text-center mb-1">Arrival Battery</div>
+                                <div class="flex items-center justify-center">
+                                    <div class="relative w-20 h-20">
+                                        <svg class="w-20 h-20 -rotate-90" viewBox="0 0 120 120">
+                                            <circle cx="60" cy="60" r="52" stroke="rgba(0,0,0,0.05)" stroke-width="12" fill="none"></circle>
+                                            <circle id="batt-ring-circle" cx="60" cy="60" r="52" stroke="rgba(16,185,129,1)" stroke-width="12" fill="none" stroke-linecap="round" stroke-dasharray="326.72" stroke-dashoffset="0"></circle>
                                         </svg>
                                         <div class="absolute inset-0 flex items-center justify-center">
-                                            <div class="text-center">
-                                                <div class="text-lg">⚡</div>
-                                                <div class="text-3xl font-black text-gray-900 leading-none">
-                                                    <span id="batt-percent">--</span>
-                                                    <span class="text-lg font-bold text-gray-600">%</span>
-                                                </div>
+                                            <div class="flex items-baseline justify-center">
+                                                <span id="batt-percent" class="text-xl font-black text-gray-900 tracking-tighter leading-none">--</span>
+                                                <span class="text-[10px] font-bold text-gray-500 ml-0.5">%</span>
                                             </div>
                                         </div>
                                     </div>
@@ -297,16 +294,16 @@
                 document.getElementById('batt-percent').innerText = endBatt;
                 
                 // SVG Ring Calculation
-                // r=46, Circumference = 2 * PI * 46 ≈ 289.02
+                // r=52, Circumference = 2 * PI * 52 ≈ 326.72
                 const circle = document.getElementById('batt-ring-circle');
-                const circumference = 2 * Math.PI * 46;
+                const circumference = 2 * Math.PI * 52;
                 const offset = circumference * (1 - (endBatt / 100));
                 circle.style.strokeDashoffset = offset;
                 
                 // Color logic
                 if(endBatt < 20) circle.style.stroke = "#ef4444"; // Red
                 else if(endBatt < 50) circle.style.stroke = "#eab308"; // Yellow
-                else circle.style.stroke = "#22c55e"; // Green
+                else circle.style.stroke = "#10b981"; // Emerald
 
                 // 2. DRAW MAP
                 const coords = polyline.decode(route.geometry);
