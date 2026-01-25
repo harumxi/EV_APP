@@ -27,10 +27,15 @@ document.addEventListener("DOMContentLoaded", () => {
              socket.on("connect", () => socket.emit("register", localStorage.getItem("user_id")));
         }
     } catch(e) { console.error("Socket error", e); }
+
+    // Initial Fetch for Location & Weather
+    fetchDashboardData();
+    setInterval(fetchDashboardData, 5 * 60 * 1000); // Refresh every 5 mins
 });
 
 async function fetchTripHistory() {
     const userId = localStorage.getItem("user_id");
+    const list = document.getElementById('recent-trips-list');
     try {
         const res = await fetch(`${API_BASE}/BATTERY/logs.php?user_id=${userId}`);
         const data = await res.json();
@@ -46,8 +51,13 @@ async function fetchTripHistory() {
                 drained: parseFloat(log.battery_drained || 0)
             }));
             updateDashboard();
+        } else {
+            if(list) list.innerHTML = `<div class="p-4 text-center text-xs text-black/40">No recent trips found.</div>`;
         }
-    } catch(e) { console.error("Failed to fetch trips", e); }
+    } catch(e) { 
+        console.error("Failed to fetch trips", e);
+        if(list) list.innerHTML = `<div class="p-4 text-center text-xs text-red-400">Unable to load trips.</div>`;
+    }
 }
 
 function loadActiveCar() {
@@ -273,4 +283,113 @@ async function triggerSOS() {
             alert("SOS Signal Sent");
         } catch (e) { alert("Connection Error"); }
     });
+}
+
+// ===== WEATHER & LOCATION INTEGRATION =====
+
+async function fetchDashboardData() {
+    setLoadingState(true);
+
+    try {
+        let lat = 14.5995, lng = 120.9842; // Default to Manila if GPS fails
+        try {
+            const pos = await getCurrentPosition();
+            lat = pos.coords.latitude;
+            lng = pos.coords.longitude;
+        } catch(e) { console.warn("GPS error, using default", e); }
+        
+        // Weather
+        const weatherRes = await fetch(`${API_BASE}/WEATHER/current.php`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lat, lng })
+        });
+        const weatherData = await weatherRes.json();
+
+        if (weatherData.ok && weatherData.weather) {
+            updateWeatherCard(weatherData.weather);
+        } else {
+            throw new Error("Weather data unavailable");
+        }
+
+        // Location (Using Nominatim)
+        const locRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+        const locData = await locRes.json();
+
+        if (locData && locData.display_name) {
+             updateLocationCard({
+                address: locData.display_name.split(',').slice(0, 2).join(','),
+                details: `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+            });
+        } else {
+             throw new Error("Location data unavailable");
+        }
+
+        setLoadingState(false);
+
+    } catch (error) {
+        console.error("Dashboard Data Error:", error);
+        setErrorState();
+    }
+}
+
+function getCurrentPosition() {
+    return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+            reject(new Error("Geolocation not supported"));
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        });
+    });
+}
+
+function updateWeatherCard(data) {
+    const cityEl = document.getElementById('weather-city');
+    const tempEl = document.getElementById('weather-temp');
+    const condEl = document.getElementById('weather-condition');
+    const feelsEl = document.getElementById('weather-feels');
+    const humEl = document.getElementById('weather-humidity');
+    const windEl = document.getElementById('weather-wind');
+
+    if(cityEl) cityEl.textContent = data.city || 'Local';
+    if(tempEl) tempEl.textContent = `${Math.round(data.temp)}°C`;
+    if(condEl) condEl.textContent = data.condition || data.description || '--';
+    
+    if(feelsEl) feelsEl.textContent = `Feels: ${Math.round(data.feels_like || data.temp)}°C`;
+    if(humEl) humEl.textContent = `Humidity: ${data.humidity}%`;
+    if(windEl) windEl.textContent = `Wind: ${data.wind_speed || 0} kph`;
+}
+
+function updateLocationCard(data) {
+    const addrEl = document.getElementById('loc-address');
+    const detEl = document.getElementById('loc-details');
+    
+    if(addrEl) addrEl.textContent = data.address;
+    if(detEl) detEl.textContent = data.details;
+}
+
+function setLoadingState(isLoading) {
+    const ids = ['loc-address', 'weather-temp', 'weather-condition'];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            if (isLoading) el.classList.add('animate-pulse', 'opacity-50');
+            else el.classList.remove('animate-pulse', 'opacity-50');
+        }
+    });
+}
+
+function setErrorState() {
+    setLoadingState(false);
+    const addrEl = document.getElementById('loc-address');
+    const tempEl = document.getElementById('weather-temp');
+    const condEl = document.getElementById('weather-condition');
+
+    if(addrEl) addrEl.innerHTML = '<span class="text-red-500">Unable to load</span> <button onclick="fetchDashboardData()" class="text-xs underline ml-2">Retry</button>';
+    if(tempEl) tempEl.innerHTML = '<span class="text-lg text-red-500">Error</span>';
+    if(condEl) condEl.innerHTML = '<button onclick="fetchDashboardData()" class="text-xs underline">Retry</button>';
 }

@@ -90,8 +90,8 @@
       <div class="mt-4 h-44 rounded-[20px] bg-black/5 border border-white/20 relative overflow-hidden">
         <div class="absolute left-3 top-3 w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center text-sm">📍</div>
         <div class="absolute bottom-3 left-3 right-3 rounded-[18px] bg-white/80 backdrop-blur-md border border-white/50 p-3 shadow-sm">
-          <div class="text-sm font-semibold">52 Sardinia St, London WC2A 3LZ</div>
-          <div class="mt-1 text-xs text-blue-600 font-semibold">370m · 7mins</div>
+          <div class="text-sm font-semibold" id="loc-address">Loading location...</div>
+          <div class="mt-1 text-xs text-blue-600 font-semibold" id="loc-details">--</div>
         </div>
       </div>
     </div>
@@ -102,16 +102,16 @@
           <div class="text-lg font-semibold tracking-tight">Weather</div>
           <div class="text-sm text-black/60 mt-0.5">Today</div>
         </div>
-        <span class="inline-flex items-center rounded-full border border-white/40 bg-white/40 px-2.5 py-1 text-xs text-black/70 shadow-sm backdrop-blur-md">Manila</span>
+        <span id="weather-city" class="inline-flex items-center rounded-full border border-white/40 bg-white/40 px-2.5 py-1 text-xs text-black/70 shadow-sm backdrop-blur-md">--</span>
       </div>
 
-      <div class="mt-4 text-5xl font-extrabold tracking-tight">30°C</div>
-      <div class="mt-1 text-sm text-black/60">Partly cloudy</div>
+      <div class="mt-4 text-5xl font-extrabold tracking-tight" id="weather-temp">--</div>
+      <div class="mt-1 text-sm text-black/60" id="weather-condition">--</div>
 
       <div class="mt-4 flex flex-wrap gap-2">
-        <span class="inline-flex items-center rounded-full border border-white/40 bg-white/40 px-2.5 py-1 text-xs text-black/70 shadow-sm backdrop-blur-md">Feels: 33°C</span>
-        <span class="inline-flex items-center rounded-full border border-white/40 bg-white/40 px-2.5 py-1 text-xs text-black/70 shadow-sm backdrop-blur-md">Humidity: 72%</span>
-        <span class="inline-flex items-center rounded-full border border-white/40 bg-white/40 px-2.5 py-1 text-xs text-black/70 shadow-sm backdrop-blur-md">Wind: 14 kph</span>
+        <span id="weather-feels" class="inline-flex items-center rounded-full border border-white/40 bg-white/40 px-2.5 py-1 text-xs text-black/70 shadow-sm backdrop-blur-md">Feels: --</span>
+        <span id="weather-humidity" class="inline-flex items-center rounded-full border border-white/40 bg-white/40 px-2.5 py-1 text-xs text-black/70 shadow-sm backdrop-blur-md">Humidity: --</span>
+        <span id="weather-wind" class="inline-flex items-center rounded-full border border-white/40 bg-white/40 px-2.5 py-1 text-xs text-black/70 shadow-sm backdrop-blur-md">Wind: --</span>
       </div>
     </div>
       </div>
