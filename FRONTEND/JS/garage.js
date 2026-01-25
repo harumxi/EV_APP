@@ -1,325 +1,285 @@
-// Sample EV database
-const evDatabase = [
-  {
-    id: "tesla-model-3-rwd-2024",
-    brand: "Tesla",
-    model: "Model 3 RWD",
-    year: 2024,
-    officialRangeKm: 513,
-    realWorldKm: 436,
-    batteryKwh: 60,
-    plugType: "Type 2 / CCS2",
-    heroImage:
-      "https://images.unsplash.com/photo-1614200187524-dc4b892acf16?auto=format&fit=crop&w=1400&q=80"
-  },
-  {
-    id: "nissan-leaf-2024",
-    brand: "Nissan",
-    model: "LEAF",
-    year: 2024,
-    officialRangeKm: 311,
-    realWorldKm: 260,
-    batteryKwh: 40,
-    plugType: "Type 2 / CHAdeMO",
-    heroImage:
-      "https://images.unsplash.com/photo-1619767886558-efdc259cde1b?auto=format&fit=crop&w=1400&q=80"
-  },
-  {
-    id: "byd-seal-2024",
-    brand: "BYD",
-    model: "Seal",
-    year: 2024,
-    officialRangeKm: 570,
-    realWorldKm: 480,
-    batteryKwh: 82,
-    plugType: "Type 2 / CCS2",
-    heroImage:
-      "https://images.unsplash.com/photo-1604014237800-1c9102c219da?auto=format&fit=crop&w=1400&q=80"
-  }
-];
+// ===== AUTH GUARD =====
+const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+if (!currentUser || !currentUser.id) {
+  window.location.href = "login.html";
+}
 
-// Garage state
-let garage = [
-  {
-    garageId: crypto.randomUUID(),
-    evId: "tesla-model-3-rwd-2024",
-    nickname: null,
-    isActive: true
-  }
-];
+const USER_ID = currentUser.id;
+const API_URL = "http://localhost/WEBPROG_PROJ/BACKEND/API/GARAGE";
 
-let pendingDeleteGarageId = null;
-let openSpecsGarageId = null;
-
-// DOM
-const searchInput = document.getElementById("searchInput");
-const resultsWrap = document.getElementById("resultsWrap");
-const vehiclesGrid = document.getElementById("vehiclesGrid");
-const emptyState = document.getElementById("emptyState");
-const carCount = document.getElementById("carCount");
-
-const specsModal = document.getElementById("specsModal");
-const closeSpecs = document.getElementById("closeSpecs");
-const specsHero = document.getElementById("specsHero");
-const specsBrand = document.getElementById("specsBrand");
-const specsModel = document.getElementById("specsModel");
-const specsYear = document.getElementById("specsYear");
-const specsOfficial = document.getElementById("specsOfficial");
-const specsReal = document.getElementById("specsReal");
-const specsBattery = document.getElementById("specsBattery");
-const specsPlug = document.getElementById("specsPlug");
-const setActiveBtn = document.getElementById("setActiveBtn");
-const activeBtnText = document.getElementById("activeBtnText");
-
+// ===== ELEMENTS =====
+const addCarBtn = document.getElementById("addCarBtn");
+const addModal = document.getElementById("addModal");
 const deleteModal = document.getElementById("deleteModal");
+
+const closeAddModal = document.getElementById("closeAddModal");
+const cancelAdd = document.getElementById("cancelAdd");
+
+const searchCarBtn = document.getElementById("searchCarBtn");
+const searchCarInput = document.getElementById("searchCarInput");
+const ownerNameInput = document.getElementById("ownerName");
+const searchResults = document.getElementById("searchResults");
+
+const vehicleGrid = document.getElementById("vehicleGrid");
+const emptyState = document.getElementById("emptyState");
+
 const cancelDelete = document.getElementById("cancelDelete");
 const confirmDelete = document.getElementById("confirmDelete");
 
-function findEVById(evId) {
-  return evDatabase.find((e) => e.id === evId);
+let pendingDeleteGarageId = null;
+
+// ===== MODALS =====
+addCarBtn?.addEventListener("click", () => {
+  addModal.style.display = "flex";
+});
+
+closeAddModal?.addEventListener("click", closeAdd);
+cancelAdd?.addEventListener("click", closeAdd);
+
+function closeAdd() {
+  addModal.style.display = "none";
+  searchResults.innerHTML = `<div class="text-center text-sm text-gray-500 py-4">Results will appear here...</div>`;
+  searchCarInput.value = "";
+  ownerNameInput.value = "";
 }
 
-function normalize(s) {
-  return (s || "").toString().toLowerCase().trim();
-}
+cancelDelete?.addEventListener("click", () => {
+  pendingDeleteGarageId = null;
+  deleteModal.style.display = "none";
+});
 
-function searchEVs(query) {
-  const q = normalize(query);
-  if (!q) return [];
-  return evDatabase
-    .filter((ev) => normalize(ev.brand + " " + ev.model).includes(q))
-    .slice(0, 6);
-}
+confirmDelete?.addEventListener("click", async () => {
+  if (!pendingDeleteGarageId) return;
+  await removeCar(pendingDeleteGarageId);
+  pendingDeleteGarageId = null;
+  deleteModal.style.display = "none";
+});
 
-function isInGarage(evId) {
-  return garage.some((g) => g.evId === evId);
-}
-
-function addToGarage(evId) {
-  if (isInGarage(evId)) return;
-  garage.push({
-    garageId: crypto.randomUUID(),
-    evId,
-    nickname: null,
-    isActive: garage.length === 0
-  });
-  renderGarage();
-}
-
-function removeFromGarage(garageId) {
-  garage = garage.filter((g) => g.garageId !== garageId);
-  if (garage.length > 0 && !garage.some((g) => g.isActive)) {
-    garage[0].isActive = true;
-  }
-  renderGarage();
-}
-
-function setActive(garageId) {
-  garage = garage.map((g) => ({ ...g, isActive: g.garageId === garageId }));
-  renderGarage();
-}
-
-// --- Search results (COMPACT) ---
-function renderResults(list) {
-  if (!searchInput.value.trim()) {
-    resultsWrap.classList.add("hidden");
-    resultsWrap.innerHTML = "";
-    return;
-  }
-
-  resultsWrap.classList.remove("hidden");
-
-  if (list.length === 0) {
-    resultsWrap.innerHTML = `
-      <div class="result-row rounded-xl px-4 py-3 text-left">
-        <p class="text-gray-700 font-medium text-sm">No matches found.</p>
-        <p class="text-gray-500 text-xs mt-1">Try searching “Tesla”, “Nissan”, “BYD”, etc.</p>
-      </div>
-    `;
-    return;
-  }
-
-  resultsWrap.innerHTML = list
-    .map((ev) => {
-      const disabled = isInGarage(ev.id);
-      return `
-        <div class="result-row rounded-xl px-4 py-3 flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-xs font-semibold text-gray-600">
-              EV
-            </div>
-            <div class="text-left leading-tight">
-              <div class="text-base font-bold text-gray-900">${ev.brand} ${ev.model}</div>
-              <div class="text-xs text-gray-500">${ev.year} • ${ev.officialRangeKm} km</div>
-            </div>
-          </div>
-
-          <button
-            data-evid="${ev.id}"
-            class="addBtn text-sm font-semibold text-gray-900 hover:text-black disabled:text-gray-300 disabled:cursor-not-allowed"
-            ${disabled ? "disabled" : ""}
-            title="${disabled ? "Already in your garage" : "Add to garage"}"
-          >
-            Add +
-          </button>
-        </div>
-      `;
-    })
-    .join("");
-
-  document.querySelectorAll(".addBtn").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      const evId = e.currentTarget.getAttribute("data-evid");
-      addToGarage(evId);
-      renderResults(searchEVs(searchInput.value));
-    });
-  });
-}
-
-// --- Garage cards (three dots -> opens specs modal; NO Specs button) ---
-function renderGarage() {
-  carCount.textContent = String(garage.length);
-
-  if (garage.length === 0) {
-    vehiclesGrid.innerHTML = "";
-    emptyState.classList.remove("hidden");
-    return;
-  }
+// ===== LOAD GARAGE =====
+async function loadGarage() {
+  vehicleGrid.innerHTML = "";
   emptyState.classList.add("hidden");
 
-  vehiclesGrid.innerHTML = garage
-    .map((g) => {
-      const ev = findEVById(g.evId);
-      const activePill = g.isActive
-        ? `<div class="absolute top-3 left-3 px-3 py-1 rounded-full bg-gray-900 text-white text-xs font-bold shadow-soft">
-             Active
-           </div>`
-        : "";
+  try {
+    const res = await fetch(`${API_URL}/list.php`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: USER_ID }),
+    });
 
-      return `
-        <div class="rounded-3xl overflow-hidden bg-white border border-gray-200/70 shadow-soft ${g.isActive ? "card-border" : ""}">
-          <div class="relative">
-            ${activePill}
+    const data = await res.json();
 
-            <!-- three dots -->
-            <button class="menuBtn absolute top-3 right-3 w-10 h-10 rounded-full bg-white/85 hover:bg-white border border-gray-200 flex items-center justify-center"
-                    data-gid="${g.garageId}"
-                    title="More">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>
-              </svg>
-            </button>
+    if (!data.ok) {
+      vehicleGrid.innerHTML = `<div class="text-red-500">Failed to load garage</div>`;
+      return;
+    }
 
-            <img src="${ev.heroImage}" alt="${ev.brand} ${ev.model}" class="h-52 w-full object-cover"/>
+    const cars = data.cars || [];
+    if (cars.length === 0) {
+      emptyState.classList.remove("hidden");
+      return;
+    }
+
+    let activeCarData = null;
+    cars.forEach((car) => {
+      const isActive = parseInt(car.is_active) === 1;
+      if (isActive) {
+        activeCarData = {
+          brand: car.brand_name,
+          model: car.model_name,
+          battery_kwh: car.battery_capacity_kwh,
+          range_km: car.range_km || Math.round((car.battery_capacity_kwh * 1000) / car.efficiency_wh_per_km),
+          efficiency: car.efficiency_wh_per_km,
+          plug_type: car.plug_type
+        };
+      }
+
+      const title =
+        car.nickname && car.nickname.trim() !== ""
+          ? car.nickname
+          : `${car.brand_name} ${car.model_name} ${car.variant_name}`;
+
+      const sub = `${car.brand_name} ${car.model_name} • ${car.variant_name}`;
+      const specs = `${car.battery_capacity_kwh} kWh • ${car.efficiency_wh_per_km} Wh/km`;
+
+      const card = document.createElement("div");
+      card.className =
+        "bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center justify-between";
+
+      card.innerHTML = `
+        <div>
+          <div class="flex items-center gap-2">
+            <h3 class="text-lg font-semibold text-gray-800">${escapeHtml(title)}</h3>
+            ${
+              isActive
+                ? `<span class="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 font-bold">ACTIVE</span>`
+                : ""
+            }
           </div>
+          <div class="text-sm text-gray-500 mt-1">${escapeHtml(sub)}</div>
+          <div class="text-xs text-gray-400 mt-1">${escapeHtml(specs)}</div>
+        </div>
 
-          <div class="p-5 bg-gray-50/60">
-            <div class="flex items-end justify-between">
-              <div>
-                <div class="text-xs font-bold text-gray-500 uppercase tracking-wide">${ev.brand}</div>
-                <div class="text-2xl font-extrabold leading-tight">${ev.model}</div>
-              </div>
-              <div class="text-right">
-                <div class="text-3xl font-extrabold">${ev.officialRangeKm}</div>
-                <div class="text-xs font-bold text-gray-600 -mt-1">KM RANGE</div>
-              </div>
-            </div>
-
-            <div class="mt-4 flex gap-2">
-              <button class="deleteBtn flex-1 h-11 rounded-2xl bg-white hover:bg-gray-50 border border-gray-200 text-gray-900 font-bold"
-                      data-gid="${g.garageId}">
-                Delete
-              </button>
-              <button class="activeBtn flex-1 h-11 rounded-2xl bg-gray-900 hover:bg-black text-white font-bold"
-                      data-gid="${g.garageId}">
-                Set Active
-              </button>
-            </div>
-          </div>
+        <div class="flex items-center gap-2">
+          ${
+            !isActive
+              ? `<button data-action="active" data-id="${car.garage_id}" class="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700">Set Active</button>`
+              : ""
+          }
+          <button data-action="delete" data-id="${car.garage_id}" class="px-3 py-2 text-sm rounded-lg bg-red-50 text-red-600 hover:bg-red-100 border border-red-100">Delete</button>
         </div>
       `;
-    })
-    .join("");
 
-  document.querySelectorAll(".deleteBtn").forEach((b) =>
-    b.addEventListener("click", (e) => openDelete(e.currentTarget.dataset.gid))
-  );
-  document.querySelectorAll(".activeBtn").forEach((b) =>
-    b.addEventListener("click", (e) => setActive(e.currentTarget.dataset.gid))
-  );
-  document.querySelectorAll(".menuBtn").forEach((b) =>
-    b.addEventListener("click", (e) => openSpecs(e.currentTarget.dataset.gid))
-  );
-}
+      card.addEventListener("click", (e) => {
+        const btn = e.target.closest("button");
+        if (!btn) return;
 
-// --- Specs modal open/close ---
-function openSpecs(garageId) {
-  openSpecsGarageId = garageId;
-  const g = garage.find((x) => x.garageId === garageId);
-  if (!g) return;
-  const ev = findEVById(g.evId);
+        const action = btn.dataset.action;
+        const id = parseInt(btn.dataset.id);
 
-  specsHero.innerHTML = `<img src="${ev.heroImage}" class="w-full h-full object-cover" alt="${ev.brand} ${ev.model}" />`;
+        if (action === "active") setActive(id);
+        if (action === "delete") openDeleteModal(id);
+      });
 
-  specsBrand.textContent = ev.brand.toUpperCase();
-  specsModel.textContent = ev.model;
-  specsYear.textContent = String(ev.year);
-  specsOfficial.textContent = String(ev.officialRangeKm);
-  specsReal.textContent = String(ev.realWorldKm);
-  specsBattery.textContent = String(ev.batteryKwh);
-  specsPlug.textContent = ev.plugType;
+      vehicleGrid.appendChild(card);
+    });
 
-  activeBtnText.textContent = g.isActive ? "Currently Active" : "Set as Active";
-  specsModal.classList.add("active");
-}
-
-function closeSpecsModal() {
-  specsModal.classList.remove("active");
-  openSpecsGarageId = null;
-}
-
-setActiveBtn.addEventListener("click", () => {
-  if (!openSpecsGarageId) return;
-  setActive(openSpecsGarageId);
-  closeSpecsModal();
-});
-
-closeSpecs.addEventListener("click", closeSpecsModal);
-
-specsModal.addEventListener("click", (e) => {
-  if (e.target === specsModal) closeSpecsModal();
-});
-
-// --- Delete modal ---
-function openDelete(garageId) {
-  pendingDeleteGarageId = garageId;
-  deleteModal.classList.add("active");
-}
-function closeDelete() {
-  pendingDeleteGarageId = null;
-  deleteModal.classList.remove("active");
-}
-cancelDelete.addEventListener("click", closeDelete);
-confirmDelete.addEventListener("click", () => {
-  if (pendingDeleteGarageId) removeFromGarage(pendingDeleteGarageId);
-  closeDelete();
-});
-deleteModal.addEventListener("click", (e) => {
-  if (e.target === deleteModal) closeDelete();
-});
-
-// --- Search wiring ---
-searchInput.addEventListener("input", () => {
-  renderResults(searchEVs(searchInput.value));
-});
-
-// escape key closes modals
-window.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") {
-    closeSpecsModal();
-    closeDelete();
+    if (activeCarData) {
+      localStorage.setItem('active_car', JSON.stringify(activeCarData));
+    } else {
+      localStorage.removeItem('active_car');
+    }
+  } catch (err) {
+    console.error(err);
+    vehicleGrid.innerHTML = `<div class="text-red-500">Connection error</div>`;
   }
+}
+
+function openDeleteModal(garageId) {
+  pendingDeleteGarageId = garageId;
+  deleteModal.style.display = "flex";
+}
+
+// ===== SEARCH =====
+searchCarBtn?.addEventListener("click", doSearch);
+searchCarInput?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") doSearch();
 });
 
-// initial render
-renderGarage();
+async function doSearch() {
+  const q = searchCarInput.value.trim();
+  if (!q) return;
+
+  searchResults.innerHTML = `<div class="text-center text-sm text-gray-500 py-4">Searching...</div>`;
+
+  try {
+    const res = await fetch(`${API_URL}/garage_search.php`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ search: q }),
+    });
+
+    const data = await res.json();
+
+    if (!data.ok) {
+      searchResults.innerHTML = `<div class="text-center text-sm text-red-500 py-4">Search failed</div>`;
+      return;
+    }
+
+    const results = data.results || [];
+    if (results.length === 0) {
+      searchResults.innerHTML = `<div class="text-center text-sm text-gray-500 py-4">No results found.</div>`;
+      return;
+    }
+
+    searchResults.innerHTML = "";
+    results.forEach((r) => {
+      const row = document.createElement("div");
+      row.className =
+        "flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:bg-gray-50";
+
+      row.innerHTML = `
+        <div>
+          <div class="font-semibold text-gray-800">${escapeHtml(r.brand_name)} ${escapeHtml(r.model_name)}</div>
+          <div class="text-xs text-gray-500">${escapeHtml(r.variant_name)} • ${r.battery_capacity_kwh} kWh • ${r.efficiency_wh_per_km} Wh/km</div>
+        </div>
+        <button class="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-black text-sm">Add</button>
+      `;
+
+      row.querySelector("button").addEventListener("click", async () => {
+        await addCar(r.variant_id);
+      });
+
+      searchResults.appendChild(row);
+    });
+  } catch (err) {
+    console.error(err);
+    searchResults.innerHTML = `<div class="text-center text-sm text-red-500 py-4">Connection error</div>`;
+  }
+}
+
+// ===== ADD =====
+async function addCar(variantId) {
+  const nickname = ownerNameInput.value.trim();
+
+  try {
+    const res = await fetch(`${API_URL}/add.php`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: USER_ID, variant_id: variantId, nickname }),
+    });
+
+    const data = await res.json();
+
+    if (!data.ok) {
+      alert(data.error || "Failed to add vehicle");
+      return;
+    }
+
+    closeAdd();
+    await loadGarage();
+  } catch (err) {
+    console.error(err);
+    alert("Connection error");
+  }
+}
+
+// ===== SET ACTIVE =====
+async function setActive(garageId) {
+  try {
+    await fetch(`${API_URL}/set_active.php`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: USER_ID, garage_id: garageId }),
+    });
+    await loadGarage();
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+// ===== REMOVE =====
+async function removeCar(garageId) {
+  try {
+    await fetch(`${API_URL}/remove.php`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: USER_ID, garage_id: garageId }),
+    });
+    await loadGarage();
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function escapeHtml(str) {
+  return String(str ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+// INIT
+loadGarage();

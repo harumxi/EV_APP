@@ -1,5 +1,3 @@
-// c:\Users\Alexa\Documents\GitHub\EV_APP\FRONTEND\UI_JS\trip_planner.js
-
 // ===== CONFIG & BACKEND API =====
 const BASE_API = "http://localhost/WEBPROG_PROJ/BACKEND/API";
 const USER_ID = localStorage.getItem("user_id");
@@ -207,8 +205,7 @@ batInput.addEventListener("input", () => {
   const n = readBatteryRaw();
   if (isBatteryValid(n)) {
     setBatteryError(false);
-    setRing(n);
-    batDisplay.textContent = String(n);
+    applyBatteryUI(n);
   } else {
     if (Number.isFinite(n) && (n < 0 || n > 100)) setBatteryError(true);
   }
@@ -501,12 +498,23 @@ document.addEventListener("DOMContentLoaded", () => {
     
     // Load Active Car (Logic only)
     activeCar = JSON.parse(localStorage.getItem('active_car') || "null");
+
+    // Update UI for Active Car
+    const carDisplay = document.getElementById('active-car-info');
+    const carName = document.getElementById('car-name-display');
+    if (activeCar && carDisplay && carName) {
+        carName.textContent = `${activeCar.brand} ${activeCar.model}`;
+        carDisplay.style.display = 'block';
+    }
     
     // Sync Battery
     const savedBatt = localStorage.getItem('user_battery_level');
     if(savedBatt) {
         batInput.value = savedBatt;
         applyBatteryUI(parseInt(savedBatt));
+    } else {
+        batInput.value = lastValidBattery;
+        applyBatteryUI(lastValidBattery);
     }
 
     // GPS
