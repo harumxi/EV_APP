@@ -93,6 +93,24 @@ function setInputsLocked(locked) {
   document.getElementById("to-suggest").style.display = "none";
 }
 
+/* Inline Alert & Validation Helpers */
+function showInlineAlert(msg) {
+    const el = document.getElementById("inline-alert");
+    const txt = document.getElementById("inline-alert-msg");
+    if(el && txt) {
+        txt.textContent = msg;
+        el.classList.remove("hidden");
+    }
+}
+function hideInlineAlert() {
+    const el = document.getElementById("inline-alert");
+    if(el) el.classList.add("hidden");
+}
+function setInputError(id, active) {
+    const el = document.getElementById(id);
+    if(el) el.classList.toggle("error", active);
+}
+
 /* Map */
 const map = L.map("map", { zoomControl: true }).setView([14.5547, 121.0244], 12);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -232,6 +250,8 @@ function mountSuggest(inputEl, listEl, isOrigin) {
     if(isOrigin) selectedOrigin = null; else selectedDest = null;
     selectedRouteObject = null;
     updateStartButtonState();
+    hideInlineAlert();
+    setInputError(isOrigin ? "from-box" : "to-box", false);
 
     clearTimeout(debounce);
     debounce = setTimeout(async () => {
@@ -418,6 +438,38 @@ async function fetchWeather(lat, lng) {
     }
 }
 
+/* Low Battery Modal Logic */
+const lowBattModal = document.getElementById("low-batt-modal");
+const modalBattLevel = document.getElementById("modal-batt-level");
+
+function showLowBattModal(val) {
+    if(modalBattLevel) modalBattLevel.textContent = val;
+    if(lowBattModal) lowBattModal.classList.add("active");
+}
+
+window.closeLowBattModal = function() {
+    if(lowBattModal) lowBattModal.classList.remove("active");
+}
+
+window.proceedToCharging = function() {
+    const val = modalBattLevel ? parseInt(modalBattLevel.textContent) : 0;
+    localStorage.setItem("user_battery_level", val);
+    localStorage.setItem("forceCharging", "1");
+    localStorage.setItem("ev_lock_status", "critical");
+    window.location.href = "charging.html";
+}
+
+/* Toast Helper */
+function showToast(msg) {
+    const t = document.getElementById("toast");
+    const tm = document.getElementById("toast-msg");
+    if (t && tm) {
+        tm.textContent = msg;
+        t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 3000);
+    }
+}
+
 /* Calculate Logic */
 async function calculateRoutes() {
     const battRes = validateAndCommitBattery();
@@ -425,11 +477,7 @@ async function calculateRoutes() {
     
     // Battery Gate
     if(battRes.value <= 20) {
-        alert("⛔ BATTERY LOW (≤20%)\n\nYou cannot start a trip.\nRedirecting to Charging Station...");
-        localStorage.setItem("user_battery_level", battRes.value);
-        localStorage.setItem("forceCharging", "1");
-        localStorage.setItem("ev_lock_status", "critical");
-        window.location.href = "charging.html";
+        showLowBattModal(battRes.value);
         return;
     }
 
@@ -492,6 +540,10 @@ async function calculateRoutes() {
 
 /* Start Navigation */
 startNavBtn.addEventListener("click", async () => {
+  hideInlineAlert();
+  setInputError("from-box", false);
+  setInputError("to-box", false);
+
   if (!selectedRouteObject) {
       // Attempt to resolve locations if text is present but no route selected
       if (!selectedOrigin && fromInput.value.trim()) {
@@ -507,7 +559,17 @@ startNavBtn.addEventListener("click", async () => {
           await calculateRoutes();
           return;
       } else {
-          alert("Please select valid locations.");
+          let msg = "Please select valid locations";
+          if (!selectedOrigin) {
+              setInputError("from-box", true);
+              if(!fromInput.value.trim()) msg = "Please enter a starting point";
+          }
+          if (!selectedDest) {
+              setInputError("to-box", true);
+              if(!toInput.value.trim()) msg = "Please enter a destination";
+          }
+          
+          showInlineAlert(msg);
           return;
       }
   }
@@ -546,6 +608,12 @@ document.addEventListener("DOMContentLoaded", () => {
         carName.textContent = `${activeCar.brand} ${activeCar.model}`;
         carDisplay.style.display = 'block';
     }
+
+    // Update Header User/Car
+    const headerUser = document.getElementById('header-user-name');
+    const headerCar = document.getElementById('header-car-name');
+    if(headerUser) headerUser.textContent = localStorage.getItem('full_display_name') || 'User';
+    if(headerCar && activeCar) headerCar.textContent = `${activeCar.brand} ${activeCar.model}`;
     
     // Sync Battery
     const savedBatt = localStorage.getItem('user_battery_level');

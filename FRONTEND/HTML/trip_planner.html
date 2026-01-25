@@ -30,18 +30,100 @@
 
   <!-- CSS -->
   <link rel="stylesheet" href="../CSS/trip_planner.css" />
+
+  <style>
+    /* Hide scrollbar for clean panel */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    /* 1. Transparent Labels */
+    #from-box::before, #to-box::before {
+      background: transparent !important; 
+      z-index: 20;
+    }
+
+    /* 2. Custom Border with Notch (using ::after) */
+    #from-box::after, #to-box::after {
+      content: "";
+      position: absolute;
+      inset: -1px; /* Align with original border */
+      border-radius: 18px;
+      border: 1px solid rgba(0,0,0,0.1);
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    #from-box:focus-within::after, #to-box:focus-within::after {
+      border-color: rgba(0,0,0,0.4);
+      border-width: 1.5px;
+    }
+
+    /* Mask for FROM notch (approx 12px to 45px) */
+    #from-box::after {
+      -webkit-mask: 
+        linear-gradient(to right, #000 10px, transparent 10px, transparent 50px, #000 50px) top / 100% 10px no-repeat,
+        linear-gradient(#000, #000) bottom / 100% calc(100% - 10px) no-repeat;
+      mask: 
+        linear-gradient(to right, #000 10px, transparent 10px, transparent 50px, #000 50px) top / 100% 10px no-repeat,
+        linear-gradient(#000, #000) bottom / 100% calc(100% - 10px) no-repeat;
+    }
+
+    /* Mask for TO notch (approx 12px to 35px) */
+    #to-box::after {
+      -webkit-mask: 
+        linear-gradient(to right, #000 10px, transparent 10px, transparent 35px, #000 35px) top / 100% 10px no-repeat,
+        linear-gradient(#000, #000) bottom / 100% calc(100% - 10px) no-repeat;
+      mask: 
+        linear-gradient(to right, #000 10px, transparent 10px, transparent 35px, #000 35px) top / 100% 10px no-repeat,
+        linear-gradient(#000, #000) bottom / 100% calc(100% - 10px) no-repeat;
+    }
+
+    /* Modal Styles */
+    .modal-bg {
+        background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+        position: fixed; inset: 0; z-index: 9999;
+        display: flex; align-items: center; justify-content: center;
+        opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+    }
+    .modal-bg.active { opacity: 1; pointer-events: all; }
+    
+    .success-card {
+        background: white; width: 90%; max-width: 400px;
+        border-radius: 24px; padding: 32px;
+        text-align: center; transform: scale(0.95); transition: transform 0.3s ease;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    .modal-bg.active .success-card { transform: scale(1); }
+
+    /* Toast Styles */
+    #toast {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        opacity: 0; transform: translate(-50%, -20px); pointer-events: none;
+    }
+    #toast.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+
+    /* Error State for Inputs */
+    #from-box.error::after, #to-box.error::after {
+        border-color: #ef4444 !important;
+        border-width: 1.5px;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+    }
+  </style>
 </head>
 
 <body class="overflow-x-hidden">
-  <header class="app-header" style="border-bottom: none; box-shadow: none;">
-    <div class="header-inner">
-      <a href="dashboard.html" class="header-icon" aria-hidden="true">
-        <i data-lucide="arrow-left"></i>
-      </a>
+  <header class="fixed top-0 left-0 right-0 z-[5000] bg-white/30 backdrop-blur-[20px] border-b border-white/40 shadow-[0_10px_30px_rgba(0,0,0,0.06)]">
+    <div class="mx-auto max-w-6xl h-[68px] px-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="text-2xl font-bold text-gray-900 tracking-tight">Trip Planner</div>
+      </div>
 
-      <div class="title-group">
-        <h1 id="app-title">Trip Planner</h1>
-        <p id="app-subtitle">Plan your next drive</p>
+      <div class="flex items-center gap-3">
+        <div class="text-right hidden sm:block">
+          <div class="text-sm font-semibold text-gray-900 leading-tight" id="header-user-name">User</div>
+          <div class="text-xs font-medium text-gray-500 mt-0.5" id="header-car-name">No Car Selected</div>
+        </div>
+        <img src="https://i.pravatar.cc/256?img=12" alt="Profile" class="h-10 w-10 rounded-full border border-white/60 shadow-sm object-cover" />
       </div>
     </div>
   </header>
@@ -49,74 +131,90 @@
   <div class="app-shell">
     <div id="map" aria-label="Map"></div>
 
-    <aside id="panel" class="side-panel">
+    <aside id="panel" class="side-panel !bg-white/60 !backdrop-blur-xl !border !border-white/50 !shadow-[0_20px_40px_-10px_rgba(0,0,0,0.05)] !rounded-[28px] overflow-hidden flex flex-col transition-transform duration-300 !p-0">
       <div class="sheet-handle" id="sheet-handle" aria-hidden="true"></div>
 
-      <div class="panel-top">
-        <h3 id="panel-title">Trip Controls</h3>
-        <div id="weather-widget" style="display: none; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #4b5563; background-color: #f3f4f6; padding: 4px 10px; border-radius: 99px; border: 1px solid #e5e7eb;"></div>
+      <div class="panel-top flex items-center justify-between gap-3 px-5 pt-5 pb-3 border-b border-black/5 shrink-0">
+        <h3 id="panel-title" class="text-lg font-bold text-gray-900 tracking-tight">Trip Controls</h3>
+        <div id="weather-widget" class="hidden items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/40 border border-white/30 text-[11px] font-semibold text-gray-600 shadow-sm backdrop-blur-md"></div>
       </div>
 
-      <div class="panel-scroll" id="panel-scroll">
+      <div class="panel-scroll no-scrollbar px-5 pb-4 space-y-4" id="panel-scroll">
         <!-- Battery -->
-        <section class="battery-input-box" id="battery-box">
-          <div class="battery-ring-wrap">
-            <div class="battery-ring" aria-label="Battery level">
+        <section class="battery-input-box !bg-transparent !border-0 !p-0 flex flex-col items-center justify-center py-2" id="battery-box">
+          <div class="battery-ring-wrap !p-0">
+            <div class="battery-ring w-36 h-36" aria-label="Battery level">
               <svg class="ring-svg" viewBox="0 0 120 120" aria-hidden="true">
-                <circle class="ring-track" cx="60" cy="60" r="52"></circle>
-                <circle class="ring-progress" cx="60" cy="60" r="52"></circle>
+                <circle class="ring-track text-black/5" cx="60" cy="60" r="52" stroke-width="6" fill="none"></circle>
+                <circle class="ring-progress text-emerald-500" cx="60" cy="60" r="52" stroke-width="6" fill="none" stroke-linecap="round"></circle>
               </svg>
 
               <div class="ring-center">
-                <i data-lucide="zap" class="ring-icon"></i>
-                <div class="ring-value">
-                  <span id="bat-display" class="bat-display">75</span>
-                  <span class="ring-percent">%</span>
+                <i data-lucide="zap" class="w-4 h-4 text-emerald-500 mb-0.5 fill-current"></i>
+                <div class="flex items-baseline">
+                  <span id="bat-display" class="text-3xl font-black text-gray-900 tracking-tighter">75</span>
+                  <span class="text-sm font-bold text-gray-400 ml-0.5">%</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="battery-input-row">
-            <input id="bat-input" type="number" min="0" max="100" inputmode="numeric" aria-label="Battery percentage" />
+          <div class="battery-input-row mt-1">
+            <input id="bat-input" type="number" min="0" max="100" inputmode="numeric" aria-label="Battery percentage" class="!bg-transparent !border-b !border-black/10 !text-lg !font-bold !text-gray-800 focus:!border-emerald-500 !w-20 !p-1" />
           </div>
 
           <div id="bat-error" class="battery-error">Battery must be between 0 and 100.</div>
 
-          <div id="active-car-info" style="text-align: center; margin-bottom: 16px; margin-top: 24px; display: none; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; background-color: #f9fafb;">
-            <div style="font-size: 10px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em;">Active Vehicle</div>
-            <div id="car-name-display" style="font-size: 14px; font-weight: 700; color: #1f2937; margin-top: 2px;">--</div>
+          <div id="active-car-info" class="hidden mt-2 w-full rounded-[18px] bg-white/40 border border-white/50 p-3 flex items-center justify-between shadow-sm backdrop-blur-sm">
+            <div class="flex items-center gap-3">
+               <div class="relative w-9 h-9 rounded-xl bg-white/60 flex items-center justify-center text-gray-600 shadow-sm">
+                 <i data-lucide="car" class="w-5 h-5"></i>
+                 <div class="absolute -bottom-1 -right-1 h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)] border-2 border-white"></div>
+               </div>
+               <div>
+                 <div class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Active Vehicle</div>
+                 <div id="car-name-display" class="text-sm font-bold text-gray-900 leading-tight">--</div>
+               </div>
+            </div>
           </div>
 
-          <div class="battery-stats">
-            <div class="stat-item"><span>Available Energy</span><strong id="energy-txt">—</strong></div>
-            <div class="stat-item"><span>Estimated Range</span><strong id="range-txt">—</strong></div>
+          <div class="grid grid-cols-2 gap-3 w-full mt-2">
+            <div class="bg-white/40 border border-white/50 rounded-[18px] p-3 text-center">
+                <div class="text-[10px] font-semibold text-gray-500 uppercase">Energy</div>
+                <strong id="energy-txt" class="text-sm font-bold text-gray-900 block mt-0.5">—</strong>
+            </div>
+            <div class="bg-white/40 border border-white/50 rounded-[18px] p-3 text-center">
+                <div class="text-[10px] font-semibold text-gray-500 uppercase">Range</div>
+                <strong id="range-txt" class="text-sm font-bold text-gray-900 block mt-0.5">—</strong>
+            </div>
           </div>
         </section>
 
+        <!-- Inline Alert -->
+        <div id="inline-alert" class="hidden sticky top-0 z-30 mb-2 p-3 rounded-xl bg-red-50 border border-red-100 flex items-center gap-3 shadow-sm backdrop-blur-md mx-1">
+            <i data-lucide="alert-circle" class="w-5 h-5 text-red-600 shrink-0"></i>
+            <span id="inline-alert-msg" class="text-xs font-bold text-red-700">Please select valid locations</span>
+        </div>
+
         <!-- Trip inputs -->
-        <section>
-          <label>FROM</label>
+        <section class="space-y-3 mt-6">
           <div class="suggest-wrap">
-            <div class="input-icon-box" id="from-box">
+            <div class="input-icon-box !bg-transparent !border !border-transparent !rounded-[18px] !shadow-none focus-within:!bg-white/40 transition-all" id="from-box">
               <i data-lucide="map-pin"></i>
               <input id="from-input" placeholder="Search starting location…" value="" autocomplete="off" />
             </div>
             <div id="from-suggest" class="suggest-list"></div>
           </div>
 
-          <div class="connector"><i data-lucide="arrow-down"></i></div>
+          <div class="connector !my-4"><i data-lucide="arrow-down" class="text-emerald-500"></i></div>
 
-          <label>TO</label>
           <div class="suggest-wrap">
-            <div class="input-icon-box" id="to-box">
+            <div class="input-icon-box !bg-transparent !border !border-transparent !rounded-[18px] !shadow-none focus-within:!bg-white/40 transition-all" id="to-box">
               <i data-lucide="map-pin"></i>
               <input id="to-input" placeholder="Search destination…" value="" autocomplete="off" />
             </div>
             <div id="to-suggest" class="suggest-list"></div>
           </div>
-
-          <p class="tip">Tip: type “SM” to see options, or click the field.</p>
         </section>
 
         <!-- Loading AFTER Start -->
@@ -141,17 +239,44 @@
         </section>
       </div>
 
-      <div class="panel-footer">
-        <div class="routes-actions">
-          <button id="recalc-btn" class="btn-main btn-secondary" style="display:none;">
-            <span class="btn-row"><i data-lucide="refresh-ccw"></i> Recalculate</span>
+      <div class="panel-footer !sticky !bottom-0 !bg-transparent !backdrop-blur-none !border-t-0 !p-3">
+        <div class="routes-actions flex w-full gap-3">
+          <button id="recalc-btn" class="btn-main btn-secondary flex-1 !h-[56px] !rounded-[18px] !bg-white/40 !border !border-white/50 !text-gray-800 !font-bold !text-[15px] hover:!bg-white transition shadow-sm" style="display:none;">
+            <span class="btn-row justify-center gap-2"><i data-lucide="refresh-ccw"></i> Recalculate</span>
           </button>
-          <button id="start-nav" class="btn-main" disabled>
-            <span class="btn-row"><i data-lucide="navigation"></i> Start Navigation</span>
+          <button id="start-nav" class="btn-main flex-1 w-full !h-[56px] !rounded-[18px] !bg-slate-900 !text-white !font-bold !text-[15px] !shadow-xl hover:!bg-black disabled:!opacity-50 disabled:!cursor-not-allowed transition-all active:scale-[0.98] flex items-center justify-center gap-2" disabled>
+            <span class="btn-row justify-center gap-2"><i data-lucide="navigation"></i> Start Navigation</span>
           </button>
         </div>
       </div>
     </aside>
+  </div>
+
+  <!-- Low Battery Modal -->
+  <div id="low-batt-modal" class="modal-bg">
+    <div class="success-card">
+        <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fa-solid fa-battery-quarter text-2xl text-red-600"></i>
+        </div>
+        <h2 class="text-2xl font-black text-gray-900 mb-2">Low Battery</h2>
+        <p class="text-gray-500 mb-6 text-sm">
+            Your battery is at <span id="modal-batt-level" class="font-bold text-gray-900">--</span><span class="font-bold text-gray-900">%</span>. We recommend charging before your trip.
+        </p>
+        <div class="flex gap-3">
+            <button onclick="closeLowBattModal()" class="flex-1 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-50 transition">
+                Dismiss
+            </button>
+            <button onclick="proceedToCharging()" class="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-sm shadow-lg transition">
+                Find Chargers
+            </button>
+        </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed top-6 left-1/2 bg-white border border-gray-100 text-gray-800 px-5 py-3 rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.12)] font-bold z-[10000] flex items-center gap-3">
+      <i data-lucide="alert-circle" class="w-5 h-5 text-red-500 fill-red-50"></i>
+      <span id="toast-msg" class="text-sm">--</span>
   </div>
 
 <nav class="fixed bottom-0 left-0 w-screen bg-white/50 backdrop-blur-xl shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-[5000]">
