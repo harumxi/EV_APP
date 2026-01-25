@@ -330,11 +330,7 @@ body {
     z-index: 0;
     overflow: hidden;
     min-height: 100vh;
-    background-image: linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,.55)), url('../IMAGES/login.png');
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: cover;
-    background: linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)), url('../IMAGES/login.png') center center / cover no-repeat !important;
+    background: transparent !important;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -346,8 +342,10 @@ body {
     height: 100%;
     object-fit: cover;
     object-position: center;
-    z-index: -1;
+    z-index: -2;
     background: transparent !important;
+    filter: blur(4px);
+    transform: scale(1.1);
 }
 
 .right-panel::before {
@@ -357,7 +355,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: transparent !important;
+    background: linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)) !important;
     z-index: -1;
     pointer-events: none;
 }
@@ -956,11 +954,7 @@ body {
     z-index: 0;
     overflow: hidden;
     min-height: 100vh;
-    background-image: linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,.55)), url('../IMAGES/login.png');
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: cover;
-    background: linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)), url('../IMAGES/login.png') center center / cover no-repeat !important;
+    background: transparent !important;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -972,8 +966,10 @@ body {
     height: 100%;
     object-fit: cover;
     object-position: center;
-    z-index: -1;
+    z-index: -2;
     background: transparent !important;
+    filter: blur(4px);
+    transform: scale(1.1);
 }
 
 .right-panel::before {
@@ -983,7 +979,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: transparent !important;
+    background: linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)) !important;
     z-index: -1;
     pointer-events: none;
 }
