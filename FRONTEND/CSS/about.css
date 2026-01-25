@@ -1,0 +1,13 @@
+.drawer-backdrop {
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(2px);
+}
+
+.drawer-panel {
+  transform: translateX(100%);
+  transition: transform 220ms ease;
+}
+
+.drawer-panel[data-open="true"] {
+  transform: translateX(0);
+}
