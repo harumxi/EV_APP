@@ -96,6 +96,29 @@
 
     .search-section { padding-bottom: 10px; }
     .sidebar { display: none; } /* Hide legacy sidebar if CSS leaks */
+
+    /* Modal Styles from Trip Planner */
+    .modal-bg {
+        background: rgba(0,0,0,0.6) !important; backdrop-filter: blur(4px) !important;
+    }
+    
+    .success-card {
+        background: white !important;
+        width: 90% !important;
+        max-width: 400px !important;
+        border-radius: 24px !important;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        max-height: 80vh !important;
+    }
+
+    /* Force Start Navigation button to be black */
+    #detail-content button {
+        background-color: #111827 !important;
+        color: white !important;
+    }
   </style>
 </head>
 
@@ -155,16 +178,16 @@
   </div>
 
   <!-- REVIEWS MODAL -->
-  <div id="reviews-modal" class="hidden fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-    <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
-      <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+  <div id="reviews-modal" class="hidden fixed inset-0 z-[9999] flex items-center justify-center p-4 modal-bg">
+    <div class="success-card">
+      <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-white">
         <h3 class="font-black text-lg text-gray-800 truncate pr-4" id="review-station-name">Station Reviews</h3>
         <button onclick="closeReviewsModal()" class="w-8 h-8 rounded-full bg-white hover:bg-gray-200 flex items-center justify-center transition text-gray-500">
           <i class="fa-solid fa-times"></i>
         </button>
       </div>
 
-      <div class="p-5 bg-blue-50 flex items-center justify-between">
+      <div class="p-5 bg-white flex items-center justify-between">
         <div>
           <div class="text-4xl font-black text-blue-600 tracking-tighter" id="review-avg">--</div>
           <div class="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Average Rating</div>
@@ -177,7 +200,7 @@
         </div>
       </div>
 
-      <div id="review-form-box" class="hidden p-5 bg-gray-50 border-b border-gray-100 transition-all">
+      <div id="review-form-box" class="hidden p-5 bg-white border-b border-gray-100 transition-all">
         <div class="flex gap-2 mb-4 justify-center" id="star-container">
           <i class="fa-solid fa-star text-3xl cursor-pointer text-gray-200 hover:text-yellow-400 transition" onclick="setRating(1)"></i>
           <i class="fa-solid fa-star text-3xl cursor-pointer text-gray-200 hover:text-yellow-400 transition" onclick="setRating(2)"></i>
@@ -200,9 +223,9 @@
   </div>
 
   <!-- STATION DETAILS MODAL -->
-  <div id="details-modal" class="hidden fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-    <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-      <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+  <div id="details-modal" class="hidden fixed inset-0 z-[9999] flex items-center justify-center p-4 modal-bg">
+    <div class="success-card">
+      <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-white">
         <h3 class="font-black text-lg text-gray-800 truncate pr-4" id="detail-title">Station Details</h3>
         <button onclick="closeDetailsModal()" class="w-8 h-8 rounded-full bg-white hover:bg-gray-200 flex items-center justify-center transition text-gray-500">
           <i class="fa-solid fa-times"></i>
