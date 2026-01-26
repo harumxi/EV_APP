@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // If you want to stay on the login page for testing, clear your localStorage 
     // or comment out the lines below:
     // if (localStorage.getItem("user_id")) {
-    //     window.location.href = "dashboard.html";
+    //     window.location.href = "garage.html";
     // }
 });
 
@@ -181,7 +181,7 @@ document.getElementById("loginFormElement")?.addEventListener("submit", async fu
             localStorage.setItem("full_display_name", fullName || data.user.full_name || "");
 
             showSuccess("Login Successful!");
-            setTimeout(() => window.location.href = "dashboard.html", 500);
+            setTimeout(() => window.location.href = "garage.html", 500);
         } else if (data.require_verification) {
             tempUserId = data.user_id;
             tempEmail = data.email;
@@ -283,7 +283,7 @@ document.getElementById("otpFormElement")?.addEventListener("submit", async func
                 const fullName = `${fName} ${lName}`.trim();
                 localStorage.setItem("full_display_name", fullName || data.user.full_name || "");
 
-                window.location.href = "dashboard.html";
+                window.location.href = "garage.html";
             }
         } else {
             showSuccess(data.error || "Invalid Code");

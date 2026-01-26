@@ -11,7 +11,7 @@ if (!intro.querySelector(".touch-hint")) {
 function closeIntro() {
   intro.classList.add("fade-out-up");
   setTimeout(() => {
-    intro.style.display = "none";
+    window.location.href = "login.html";
   }, 800);
 }
 
