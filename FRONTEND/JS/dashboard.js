@@ -321,10 +321,34 @@ async function triggerSOS() {
                         lng: pos.coords.longitude
                     });
                 }
-                alert("SOS Signal Sent");
+                showSOSSuccessModal();
             } catch (e) { alert("Connection Error"); }
         });
     };
+}
+
+function showSOSSuccessModal() {
+    const html = `
+        <div id="sos-success-modal" class="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm">
+            <div class="bg-white/90 backdrop-blur-xl rounded-[32px] max-w-sm w-full overflow-hidden shadow-2xl border border-white/40 animate-in fade-in zoom-in duration-300">
+                <div class="bg-emerald-600 p-6 text-white text-center">
+                    <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    </div>
+                    <h2 class="text-2xl font-black uppercase tracking-tight">Signal Sent</h2>
+                    <p class="mt-1 font-bold opacity-90">Help is on the way</p>
+                </div>
+                <div class="p-6 space-y-3">
+                    <p class="text-gray-600 text-sm text-center px-2 text-gray-600">Your emergency contacts have been notified with your current location.</p>
+                    <button id="close-sos-success" class="w-full py-3 bg-gray-900 hover:bg-black text-white rounded-2xl font-bold transition-all active:scale-95 shadow-lg shadow-gray-900/10">
+                        Got it
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+    document.getElementById('close-sos-success').onclick = () => document.getElementById('sos-success-modal').remove();
 }
 
 // ===== WEATHER & LOCATION INTEGRATION =====

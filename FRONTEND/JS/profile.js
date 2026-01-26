@@ -640,3 +640,122 @@ async function loadGaragePreview() {
         garageList.innerHTML = '<div class="text-center text-xs text-red-500">Failed to load garage.</div>';
     }
 }
+
+// --- Emergency Accordion Logic ---
+const emergencyAccordion = document.getElementById("emergencyAccordion");
+const emergencyTrigger = document.getElementById("emergencyTrigger");
+const emergencyList = document.getElementById("emergencyList");
+const emergencyEmailInput = document.getElementById("emergencyEmailInput");
+const addEmergencyBtn = document.getElementById("addEmergencyBtn");
+
+if (emergencyTrigger && emergencyAccordion) {
+  emergencyTrigger.addEventListener("click", () => {
+    const isOpen = emergencyAccordion.classList.toggle("acc-open");
+    if (isOpen) {
+      renderEmergencyContacts();
+    }
+  });
+}
+
+function renderEmergencyContacts() {
+  if (!emergencyList) return;
+  const contacts = JSON.parse(localStorage.getItem("emergency_contacts_") || "[]");
+  
+  if (contacts.length === 0) {
+    emergencyList.innerHTML = '<div class="text-center text-xs text-gray-500 py-2">No emergency contacts added.</div>';
+    return;
+  }
+
+  emergencyList.innerHTML = contacts.map((email, index) => `
+    <div class="flex items-center justify-between bg-white p-2.5 rounded-xl border border-gray-200 dark:bg-slate-900 dark:border-slate-800">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="h-9 w-9 rounded-full bg-red-50 flex items-center justify-center text-red-500 shrink-0 dark:bg-red-900/20 dark:text-red-400">
+          <i data-lucide="mail" class="h-4 w-4"></i>
+        </div>
+        <div class="min-w-0">
+          <div class="truncate text-sm font-semibold text-gray-900 dark:text-slate-200">${email}</div>
+          <div class="flex items-center gap-1 mt-0.5">
+            <span class="h-1.5 w-1.5 rounded-full bg-green-500"></span>
+            <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider dark:text-slate-400">Active</span>
+          </div>
+        </div>
+      </div>
+      <button onclick="removeEmergencyContact(${index})" class="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all dark:hover:bg-red-900/20">
+        <i data-lucide="trash-2" class="h-4 w-4"></i>
+      </button>
+    </div>
+  `).join('');
+  
+  if (window.lucide) lucide.createIcons();
+}
+
+if (addEmergencyBtn) {
+  addEmergencyBtn.addEventListener("click", () => {
+    const email = emergencyEmailInput.value.trim();
+    if (!email || !email.includes('@')) return;
+
+    let contacts = JSON.parse(localStorage.getItem("emergency_contacts_") || "[]");
+    if (contacts.includes(email)) return;
+
+    contacts.push(email);
+    localStorage.setItem("emergency_contacts_", JSON.stringify(contacts));
+    emergencyEmailInput.value = "";
+    renderEmergencyContacts();
+    
+    const toast = document.createElement("div");
+    toast.className = "fixed bottom-20 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-5 py-2.5 rounded-2xl text-xs font-bold shadow-2xl z-[100]";
+    toast.textContent = "Contact invited & saved";
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2000);
+  });
+}
+
+window.removeEmergencyContact = (index) => {
+  const backdrop = document.createElement("div");
+  backdrop.className = "fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 transition-opacity duration-200";
+  
+  const modal = document.createElement("div");
+  modal.className = "w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl transform transition-all scale-100 dark:bg-slate-900 dark:border dark:border-slate-800";
+  
+  modal.innerHTML = `
+    <div class="text-center">
+      <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
+        <i data-lucide="trash-2" class="h-6 w-6 text-red-600 dark:text-red-400"></i>
+      </div>
+      <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Remove Contact?</h3>
+      <p class="mt-2 text-sm text-gray-500 dark:text-slate-400">
+        Are you sure you want to remove this emergency contact?
+      </p>
+    </div>
+    <div class="mt-6 grid grid-cols-2 gap-3">
+      <button id="cancelDeleteContact" class="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700">
+        Cancel
+      </button>
+      <button id="confirmDeleteContact" class="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 transition-colors shadow-sm">
+        Remove
+      </button>
+    </div>
+  `;
+
+  backdrop.appendChild(modal);
+  document.body.appendChild(backdrop);
+  if (window.lucide) lucide.createIcons();
+
+  const close = () => {
+    backdrop.style.opacity = "0";
+    setTimeout(() => backdrop.remove(), 200);
+  };
+
+  document.getElementById("cancelDeleteContact").addEventListener("click", close);
+  document.getElementById("confirmDeleteContact").addEventListener("click", () => {
+    let contacts = JSON.parse(localStorage.getItem("emergency_contacts_") || "[]");
+    contacts.splice(index, 1);
+    localStorage.setItem("emergency_contacts_", JSON.stringify(contacts));
+    renderEmergencyContacts();
+    close();
+  });
+
+  backdrop.addEventListener("click", (e) => {
+    if (e.target === backdrop) close();
+  });
+};
