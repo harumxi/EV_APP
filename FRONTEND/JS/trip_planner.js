@@ -112,7 +112,7 @@ function setInputError(id, active) {
 }
 
 /* Map */
-const map = L.map("map", { zoomControl: true }).setView([14.5547, 121.0244], 12);
+const map = L.map("map", { zoomControl: false }).setView([14.5547, 121.0244], 12);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 19,
   attribution: "&copy; OpenStreetMap"
