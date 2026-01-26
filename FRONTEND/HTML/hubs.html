@@ -140,6 +140,19 @@
     </div>
   </header>
 
+<!-- MAP CONTROLS -->
+<div class="absolute top-[84px] left-4 z-[4000] flex flex-col gap-2">
+    <button onclick="map.zoomIn()" class="w-10 h-10 bg-white/80 backdrop-blur-md border border-white/40 rounded-xl shadow-lg flex items-center justify-center text-gray-700 hover:bg-white transition-all active:scale-95" title="Zoom In">
+        <i class="fa-solid fa-plus"></i>
+    </button>
+    <button onclick="map.zoomOut()" class="w-10 h-10 bg-white/80 backdrop-blur-md border border-white/40 rounded-xl shadow-lg flex items-center justify-center text-gray-700 hover:bg-white transition-all active:scale-95" title="Zoom Out">
+        <i class="fa-solid fa-minus"></i>
+    </button>
+    <button onclick="toggleMapLayer()" class="w-10 h-10 bg-white/80 backdrop-blur-md border border-white/40 rounded-xl shadow-lg flex items-center justify-center text-gray-700 hover:bg-white transition-all active:scale-95 mt-2" title="Toggle Layer">
+        <i class="fa-solid fa-layer-group"></i>
+    </button>
+</div>
+
   <div class="app-shell">
     <div id="map" aria-label="Map"></div>
 
