@@ -169,8 +169,30 @@ async function fetchChargers(lat, lon) {
 function triggerNavigation(name, lat, lng) {
     const destination = { name, lat, lng };
     localStorage.setItem('nav_destination', JSON.stringify(destination));
-    alert(`Ready to navigate to ${name}. Opening Trip Planner...`);
-    window.location.href = 'trip_planner.html';
+
+    const html = `
+        <div id="nav-confirm-modal" class="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm">
+            <div class="bg-white/90 backdrop-blur-xl rounded-[32px] max-w-sm w-full overflow-hidden shadow-2xl border border-white/40 animate-in fade-in zoom-in duration-300">
+                <div class="bg-blue-600 p-6 text-white text-center">
+                    <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fa-solid fa-route text-2xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-black uppercase tracking-tight">Route Ready</h2>
+                    <p class="mt-1 font-bold opacity-90">Navigation</p>
+                </div>
+                <div class="p-6 space-y-3">
+                    <p class="text-gray-600 text-sm text-center px-2">Ready to navigate to <br><b class="text-gray-900">${name}</b>.<br>Opening Trip Planner...</p>
+                    <button id="confirm-nav-btn" class="w-full py-3 bg-black text-white rounded-2xl font-bold transition-all active:scale-95 shadow-lg shadow-black/10">
+                        Start Planning
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+    document.getElementById('confirm-nav-btn').onclick = () => {
+        window.location.href = 'trip_planner.html';
+    };
 }
 
 function renderList(stations) {
@@ -377,7 +399,7 @@ function openDetailsModal(st) {
                 <div class="text-xs text-gray-400 mt-1">Lat/Long: ${st.location.latitude.toFixed(6)}, ${st.location.longitude.toFixed(6)}</div>
             </div>
 
-            <button onclick="triggerNavigation('${st.name.replace(/'/g, "\\'")}', ${st.location.latitude}, ${st.location.longitude})" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 transition transform active:scale-95">
+            <button onclick="triggerNavigation('${st.name.replace(/'/g, "\\'")}', ${st.location.latitude}, ${st.location.longitude})" class="w-full py-4 bg-black hover:bg-gray-900 text-white rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 transition transform active:scale-95">
                 <i class="fa-solid fa-location-arrow"></i> Navigate Here
             </button>
         </div>

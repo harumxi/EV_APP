@@ -340,7 +340,7 @@ function showSOSSuccessModal() {
                 </div>
                 <div class="p-6 space-y-3">
                     <p class="text-gray-600 text-sm text-center px-2 text-gray-600">Your emergency contacts have been notified with your current location.</p>
-                    <button id="close-sos-success" class="w-full py-3 bg-gray-900 hover:bg-black text-white rounded-2xl font-bold transition-all active:scale-95 shadow-lg shadow-gray-900/10">
+                    <button id="close-sos-success" class="w-full py-3 bg-black text-white rounded-2xl font-bold transition-all active:scale-95 shadow-lg shadow-black/10">
                         Got it
                     </button>
                 </div>
