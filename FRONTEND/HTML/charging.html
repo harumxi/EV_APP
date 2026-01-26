@@ -121,6 +121,19 @@
     <div id="map" aria-label="Map"></div>
     <div id="nav-status" class="nav-overlay"><i class="fa-solid fa-circle-notch fa-spin"></i> Navigating...</div>
 
+    <!-- MAP CONTROLS -->
+    <div class="absolute top-[84px] left-4 z-[4000] flex flex-col gap-2">
+        <button onclick="map.zoomIn()" class="w-10 h-10 bg-white/80 backdrop-blur-md border border-white/40 rounded-xl shadow-lg flex items-center justify-center text-gray-700 hover:bg-white transition-all active:scale-95" title="Zoom In">
+            <i class="fa-solid fa-plus"></i>
+        </button>
+        <button onclick="map.zoomOut()" class="w-10 h-10 bg-white/80 backdrop-blur-md border border-white/40 rounded-xl shadow-lg flex items-center justify-center text-gray-700 hover:bg-white transition-all active:scale-95" title="Zoom Out">
+            <i class="fa-solid fa-minus"></i>
+        </button>
+        <button onclick="toggleMapLayer()" class="w-10 h-10 bg-white/80 backdrop-blur-md border border-white/40 rounded-xl shadow-lg flex items-center justify-center text-gray-700 hover:bg-white transition-all active:scale-95 mt-2" title="Toggle Layer">
+            <i class="fa-solid fa-layer-group"></i>
+        </button>
+    </div>
+
     <aside id="panel" class="side-panel !bg-white/50 !backdrop-blur-[20px] !border !border-white/40 !shadow-xl !rounded-[28px] overflow-hidden flex flex-col transition-transform duration-300 !p-0">
       <div class="sheet-handle" id="sheet-handle" aria-hidden="true"></div>
 
@@ -354,7 +367,10 @@
             const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
 
             map = L.map('map', { zoomControl: false, layers: [streetLayer] }).setView([14.5995, 120.9842], 13);
-            L.control.layers({ "Street View": streetLayer, "Satellite View": satelliteLayer }).addTo(map);
+            
+            // Store layers for custom toggle
+            map.layers = { street: streetLayer, satellite: satelliteLayer };
+            map.currentLayer = 'street';
             
             if(navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(pos => {
@@ -367,6 +383,18 @@
                     userLat = 14.5995; userLng = 120.9842;
                     fetchAndFilterStations();
                 });
+            }
+        }
+
+        function toggleMapLayer() {
+            if (map.currentLayer === 'street') {
+                map.removeLayer(map.layers.street);
+                map.addLayer(map.layers.satellite);
+                map.currentLayer = 'satellite';
+            } else {
+                map.removeLayer(map.layers.satellite);
+                map.addLayer(map.layers.street);
+                map.currentLayer = 'street';
             }
         }
 

@@ -11,6 +11,7 @@
 
   <!-- Fonts + Icons -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 
   <!-- Leaflet (Map) -->
@@ -128,6 +129,19 @@
 
   <div class="app-shell">
     <div id="map" aria-label="Map"></div>
+
+    <!-- MAP CONTROLS -->
+    <div class="absolute top-[84px] left-4 z-[4000] flex flex-col gap-2">
+        <button onclick="map.zoomIn()" class="w-10 h-10 bg-white/80 backdrop-blur-md border border-white/40 rounded-xl shadow-lg flex items-center justify-center text-gray-700 hover:bg-white transition-all active:scale-95" title="Zoom In">
+            <i class="fa-solid fa-plus"></i>
+        </button>
+        <button onclick="map.zoomOut()" class="w-10 h-10 bg-white/80 backdrop-blur-md border border-white/40 rounded-xl shadow-lg flex items-center justify-center text-gray-700 hover:bg-white transition-all active:scale-95" title="Zoom Out">
+            <i class="fa-solid fa-minus"></i>
+        </button>
+        <button onclick="toggleMapLayer()" class="w-10 h-10 bg-white/80 backdrop-blur-md border border-white/40 rounded-xl shadow-lg flex items-center justify-center text-gray-700 hover:bg-white transition-all active:scale-95 mt-2" title="Toggle Layer">
+            <i class="fa-solid fa-layer-group"></i>
+        </button>
+    </div>
 
     <aside id="panel" class="side-panel !bg-white/50 !backdrop-blur-[20px] !border !border-white/40 !shadow-xl !rounded-[28px] overflow-hidden flex flex-col transition-transform duration-300 !p-0">
       <div class="sheet-handle" id="sheet-handle" aria-hidden="true"></div>
@@ -323,5 +337,26 @@
 </nav>
 
   <script src="../JS/trip_planner.js"></script>
+  <script>
+    function toggleMapLayer() {
+        if (!map.customLayers) {
+            map.customLayers = {
+                street: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }),
+                satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 })
+            };
+            map.currentLayerType = 'street';
+        }
+
+        if (map.currentLayerType === 'street') {
+            map.eachLayer(l => { if(l instanceof L.TileLayer) map.removeLayer(l); });
+            map.addLayer(map.customLayers.satellite);
+            map.currentLayerType = 'satellite';
+        } else {
+            map.eachLayer(l => { if(l instanceof L.TileLayer) map.removeLayer(l); });
+            map.addLayer(map.customLayers.street);
+            map.currentLayerType = 'street';
+        }
+    }
+  </script>
 </body>
 </html>

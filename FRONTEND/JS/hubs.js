@@ -63,9 +63,12 @@ function initMap() {
     const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Esri Satellite' });
 
     map = L.map('map', { zoomControl: false, layers: [streetLayer] }).setView([14.5995, 120.9842], 12);
-    const baseMaps = { "Street Map": streetLayer, "Satellite": satelliteLayer };
-    L.control.layers(baseMaps, null, { position: 'topleft' }).addTo(map);
-    L.control.zoom({ position: 'bottomleft' }).addTo(map);
+    
+    // Store layers for custom toggle
+    map.layers = { street: streetLayer, satellite: satelliteLayer };
+    map.currentLayer = 'street';
+
+    injectMapControls();
 
     if(navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(pos => {
@@ -73,6 +76,39 @@ function initMap() {
             map.setView([latitude, longitude], 14);
             fetchChargers(latitude, longitude);
         });
+    }
+}
+
+function injectMapControls() {
+    const controls = document.createElement('div');
+    controls.className = "absolute top-[84px] left-4 z-[4000] flex flex-col gap-2";
+    controls.innerHTML = `
+        <button id="zoom-in-btn" class="w-10 h-10 bg-white/80 backdrop-blur-md border border-white/40 rounded-xl shadow-lg flex items-center justify-center text-gray-700 hover:bg-white transition-all active:scale-95" title="Zoom In">
+            <i class="fa-solid fa-plus"></i>
+        </button>
+        <button id="zoom-out-btn" class="w-10 h-10 bg-white/80 backdrop-blur-md border border-white/40 rounded-xl shadow-lg flex items-center justify-center text-gray-700 hover:bg-white transition-all active:scale-95" title="Zoom Out">
+            <i class="fa-solid fa-minus"></i>
+        </button>
+        <button id="layer-toggle-btn" class="w-10 h-10 bg-white/80 backdrop-blur-md border border-white/40 rounded-xl shadow-lg flex items-center justify-center text-gray-700 hover:bg-white transition-all active:scale-95 mt-2" title="Toggle Layer">
+            <i class="fa-solid fa-layer-group"></i>
+        </button>
+    `;
+    (document.querySelector('.app-shell') || document.body).appendChild(controls);
+    
+    document.getElementById('zoom-in-btn').onclick = () => map.zoomIn();
+    document.getElementById('zoom-out-btn').onclick = () => map.zoomOut();
+    document.getElementById('layer-toggle-btn').onclick = toggleMapLayer;
+}
+
+function toggleMapLayer() {
+    if (map.currentLayer === 'street') {
+        map.removeLayer(map.layers.street);
+        map.addLayer(map.layers.satellite);
+        map.currentLayer = 'satellite';
+    } else {
+        map.removeLayer(map.layers.satellite);
+        map.addLayer(map.layers.street);
+        map.currentLayer = 'street';
     }
 }
 
