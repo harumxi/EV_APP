@@ -31,6 +31,15 @@ document.addEventListener("DOMContentLoaded", () => {
     // Initial Fetch for Location & Weather
     fetchDashboardData();
     setInterval(fetchDashboardData, 5 * 60 * 1000); // Refresh every 5 mins
+
+    // Add SOS Button (Right Bottom, Red, Alert Icon)
+    const sosBtn = document.createElement("button");
+    sosBtn.id = "sos-trigger-btn";
+    sosBtn.className = "fixed bottom-20 right-6 w-16 h-16 bg-red-600/80 backdrop-blur-md text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-red-700 transition-all active:scale-95 z-[100]";
+    sosBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`;
+    sosBtn.title = "Emergency SOS";
+    sosBtn.onclick = triggerSOS;
+    document.body.appendChild(sosBtn);
 });
 
 async function fetchTripHistory() {
@@ -252,37 +261,70 @@ function renderCharts() {
 
 // SOS Function (Preserved but not bound to UI)
 async function triggerSOS() {
-    if (!confirm("🚨 ARE YOU SURE?")) return;
-    if (!navigator.geolocation) return alert("GPS not supported.");
+    if (document.getElementById('sos-confirm-modal')) return;
 
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-        try {
-            const userId = localStorage.getItem("user_id");
-            let contacts = JSON.parse(localStorage.getItem(`emergency_contacts_`) || "[]");
-            
-            if (contacts.length === 0) return alert("No emergency contacts saved.");
+    const html = `
+        <div id="sos-confirm-modal" class="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm">
+            <div class="bg-white/90 backdrop-blur-xl rounded-[32px] max-w-sm w-full overflow-hidden shadow-2xl border border-white/40 animate-in fade-in zoom-in duration-300">
+                <div class="bg-red-600 p-6 text-white text-center">
+                    <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                    </div>
+                    <h2 class="text-2xl font-black uppercase tracking-tight">Emergency SOS</h2>
+                    <p class="mt-1 font-bold opacity-90">Are you sure?</p>
+                </div>
+                <div class="p-6 space-y-3">
+                    <p class="text-gray-600 text-sm text-center px-2">This will send your current location to all emergency contacts and signal nearby hubs.</p>
+                    
+                    <div class="flex gap-3 pt-2">
+                        <button id="cancel-sos" class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl font-bold transition-all active:scale-95">
+                            Cancel
+                        </button>
+                        <button id="confirm-sos" class="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold shadow-lg shadow-red-600/20 transition-all active:scale-95">
+                            Send SOS
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
 
-            await fetch(`${API_BASE}/SOS/trigger.php`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    user_id: userId,
-                    contact_emails: contacts,
-                    lat: pos.coords.latitude,
-                    lng: pos.coords.longitude
-                })
-            });
+    document.getElementById('cancel-sos').onclick = () => document.getElementById('sos-confirm-modal').remove();
+    document.getElementById('confirm-sos').onclick = async () => {
+        document.getElementById('sos-confirm-modal').remove();
+        
+        if (!navigator.geolocation) return alert("GPS not supported.");
 
-            if(socket && socket.connected) {
-                socket.emit("sos_signal", {
-                    name: localStorage.getItem("user_name") || "User",
-                    lat: pos.coords.latitude,
-                    lng: pos.coords.longitude
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+            try {
+                const userId = localStorage.getItem("user_id");
+                let contacts = JSON.parse(localStorage.getItem(`emergency_contacts_`) || "[]");
+                
+                if (contacts.length === 0) return alert("No emergency contacts saved.");
+
+                await fetch(`${API_BASE}/SOS/trigger.php`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        contact_emails: contacts,
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude
+                    })
                 });
-            }
-            alert("SOS Signal Sent");
-        } catch (e) { alert("Connection Error"); }
-    });
+
+                if(socket && socket.connected) {
+                    socket.emit("sos_signal", {
+                        name: localStorage.getItem("user_name") || "User",
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude
+                    });
+                }
+                alert("SOS Signal Sent");
+            } catch (e) { alert("Connection Error"); }
+        });
+    };
 }
 
 // ===== WEATHER & LOCATION INTEGRATION =====
