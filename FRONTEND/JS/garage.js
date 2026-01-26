@@ -80,19 +80,8 @@ async function loadGarage() {
       return;
     }
 
-    let activeCarData = null;
     cars.forEach((car) => {
       const isActive = parseInt(car.is_active) === 1;
-      if (isActive) {
-        activeCarData = {
-          brand: car.brand_name,
-          model: car.model_name,
-          battery_kwh: car.battery_capacity_kwh,
-          range_km: car.range_km || Math.round((car.battery_capacity_kwh * 1000) / car.efficiency_wh_per_km),
-          efficiency: car.efficiency_wh_per_km,
-          plug_type: car.plug_type
-        };
-      }
 
       const title =
         car.nickname && car.nickname.trim() !== ""
@@ -143,12 +132,6 @@ async function loadGarage() {
 
       vehicleGrid.appendChild(card);
     });
-
-    if (activeCarData) {
-      localStorage.setItem('active_car', JSON.stringify(activeCarData));
-    } else {
-      localStorage.removeItem('active_car');
-    }
   } catch (err) {
     console.error(err);
     vehicleGrid.innerHTML = `<div class="text-red-500">Connection error</div>`;

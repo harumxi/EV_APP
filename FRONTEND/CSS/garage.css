@@ -1,55 +1,9 @@
-/* =========================
-   MONOCHROME THEME (FULL)
-   ========================= */
-
-.page-bg {
-  background:
-    radial-gradient(1200px 500px at 50% -10%, rgba(0,0,0,.04), transparent 55%),
-    radial-gradient(900px 420px at 20% 10%, rgba(0,0,0,.03), transparent 60%),
-    radial-gradient(900px 420px at 80% 20%, rgba(0,0,0,.03), transparent 55%),
-    #f6f7f9;
-}
-
-.glass {
-  background: rgba(255,255,255,.85);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border: 1px solid rgba(0,0,0,.08);
-  box-shadow: 0 24px 70px rgba(0,0,0,.08);
-}
-
-.shadow-soft { box-shadow: 0 18px 50px rgba(0,0,0,.10); }
-
 .modal {
   display: none;
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,.55);
-  z-index: 50;
-  align-items: center;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.5);
   justify-content: center;
-  padding: 18px;
-}
-.modal.active { display:flex; }
-
-.pill {
-  background: rgba(0,0,0,.06);
-  color: rgba(0,0,0,.75);
-  border: 1px solid rgba(0,0,0,.08);
-}
-
-.card-border {
-  border: 2px solid rgba(0,0,0,.85);
-  box-shadow: 0 18px 50px rgba(0,0,0,.12);
-}
-
-.result-row {
-  background: rgba(255,255,255,.95);
-  border: 1px solid rgba(0,0,0,.08);
-  box-shadow: 0 12px 36px rgba(0,0,0,.08);
-}
-
-/* neutral tiles in specs modal */
-.tile {
-  background: #f3f4f6;
-  border: 1px solid rgba(0,0,0,.08);
+  align-items: center;
+  z-index: 9999;
 }
