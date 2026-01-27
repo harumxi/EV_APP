@@ -61,6 +61,9 @@ document.addEventListener('DOMContentLoaded', () => {
     getWeather();
     if (window.lucide) lucide.createIcons();
     updateBatteryStats(batteryInput); // Initial calculation
+
+    mountSuggest('from-loc');
+    mountSuggest('to-loc');
 });
 
 // =======================================================
@@ -387,3 +390,82 @@ function useMyLocation() {
         document.getElementById('from-loc').value = `${pos.coords.latitude}, ${pos.coords.longitude}`;
     });
 }
+
+// =======================================================
+// 7. SMART SEARCH (Performance Optimized)
+// =======================================================
+const searchCache = new Map();
+
+async function smartSearch(query, signal) {
+    if(!query || query.length < 2) return [];
+    if(searchCache.has(query)) return searchCache.get(query);
+
+    try {
+        // Use map center for bias if available
+        let lat = 14.5995, lng = 120.9842;
+        if(typeof map !== 'undefined' && map.getCenter) {
+            const c = map.getCenter();
+            lat = c.lat; lng = c.lng;
+        }
+
+        const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&lat=${lat}&lon=${lng}&limit=5&bbox=116.8,4.5,126.7,21.2`, { signal });
+        const data = await res.json();
+        const results = data.features || [];
+        
+        searchCache.set(query, results);
+        if(searchCache.size > 50) searchCache.delete(searchCache.keys().next().value);
+        return results;
+    } catch(e) { return []; }
+}
+
+function mountSuggest(inputId) {
+    const input = document.getElementById(inputId);
+    if(!input) return;
+
+    // Dynamically create suggestion list if missing
+    let list = document.getElementById(inputId + '-suggest');
+    if(!list) {
+        list = document.createElement('div');
+        list.id = inputId + '-suggest';
+        list.className = 'absolute z-[1000] bg-white border border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto w-full mt-1 hidden left-0';
+        if(input.parentNode) {
+            input.parentNode.style.position = 'relative';
+            input.parentNode.appendChild(list);
+        }
+    }
+
+    let debounce;
+    let abortCtrl;
+
+    input.addEventListener('input', () => {
+        clearTimeout(debounce);
+        if(abortCtrl) abortCtrl.abort();
+        
+        const q = input.value.trim();
+        if(q.length < 2) { list.classList.add('hidden'); return; }
+
+        debounce = setTimeout(async () => {
+            abortCtrl = new AbortController();
+            const results = await smartSearch(q, abortCtrl.signal);
+            
+            if(results.length === 0) { list.classList.add('hidden'); return; }
+
+            list.innerHTML = results.map(r => {
+                const p = r.properties;
+                const name = p.name || p.street || "Unknown";
+                const details = [p.city, p.state].filter(Boolean).join(", ");
+                return `<div class="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0 text-left" onclick="selectSuggestion('${inputId}', '${name.replace(/'/g, "\\'")}')"><div class="font-bold text-sm text-gray-900">${name}</div><div class="text-xs text-gray-500">${details}</div></div>`;
+            }).join('');
+            list.classList.remove('hidden');
+        }, 300);
+    });
+
+    document.addEventListener('click', (e) => { if(!input.contains(e.target) && !list.contains(e.target)) list.classList.add('hidden'); });
+}
+
+window.selectSuggestion = function(inputId, name) {
+    const input = document.getElementById(inputId);
+    if(input) input.value = name;
+    const list = document.getElementById(inputId + '-suggest');
+    if(list) list.classList.add('hidden');
+};

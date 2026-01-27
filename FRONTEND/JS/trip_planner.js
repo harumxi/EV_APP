@@ -237,8 +237,15 @@ async function smartSearch(query, signal) {
     if(searchCache.has(query)) return searchCache.get(query);
 
     try {
+        // Bias towards Map Center if available, else User Location
+        let lat = myLat, lng = myLng;
+        if (typeof map !== 'undefined' && map.getCenter) {
+            const c = map.getCenter();
+            lat = c.lat; lng = c.lng;
+        }
+
         // Bias towards Philippines
-        const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&lat=${myLat}&lon=${myLng}&limit=5&bbox=116.8,4.5,126.7,21.2`, { signal });
+        const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&lat=${lat}&lon=${lng}&limit=5&bbox=116.8,4.5,126.7,21.2`, { signal });
         const data = await res.json();
         const results = data.features || [];
         searchCache.set(query, results);

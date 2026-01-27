@@ -432,8 +432,14 @@ async function fetchSuggestions(query) {
     }
 
     try {
-        // Bias towards Philippines
-        const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5&bbox=116.8,4.5,126.7,21.2`, {
+        // Bias towards Philippines & Map Center
+        let lat = 14.5995, lng = 120.9842;
+        if(typeof map !== 'undefined' && map.getCenter) {
+            const c = map.getCenter();
+            lat = c.lat; lng = c.lng;
+        }
+
+        const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&lat=${lat}&lon=${lng}&limit=5&bbox=116.8,4.5,126.7,21.2`, {
             signal: searchAbortCtrl.signal
         });
         const data = await res.json();
