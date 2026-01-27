@@ -8,9 +8,10 @@ let selectedDest = null;
 let selectedRouteObject = null;
 
 // UNIT PREFERENCES
-const PREF_UNIT = localStorage.getItem('pref_units') || 'KM';
-const DIST_FACTOR = PREF_UNIT === 'MILES' ? 0.621371 : 1;
-const DIST_LABEL = PREF_UNIT === 'MILES' ? 'mi' : 'km';
+const RAW_UNIT = localStorage.getItem('units') || localStorage.getItem('pref_units') || 'metric';
+const IS_MILES = RAW_UNIT === 'imperial' || RAW_UNIT === 'MILES';
+const DIST_FACTOR = IS_MILES ? 0.621371 : 1;
+const DIST_LABEL = IS_MILES ? 'mi' : 'km';
 
 // ===== UI HELPERS =====
 lucide.createIcons();

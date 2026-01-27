@@ -288,6 +288,8 @@ if (unitsSelect) {
   unitsSelect.value = localStorage.getItem("units") || "metric";
   unitsSelect.addEventListener("change", (e) => {
     localStorage.setItem("units", e.target.value);
+    // Sync for other pages
+    localStorage.setItem("pref_units", e.target.value === 'imperial' ? 'MILES' : 'KM');
   });
 }
 

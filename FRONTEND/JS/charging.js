@@ -11,6 +11,12 @@ const EV_SPECS = {
     efficiency_wh_km: 160 
 };
 
+// UNIT PREFERENCES
+const RAW_UNIT = localStorage.getItem('units') || localStorage.getItem('pref_units') || 'metric';
+const IS_MILES = RAW_UNIT === 'imperial' || RAW_UNIT === 'MILES';
+const DIST_FACTOR = IS_MILES ? 0.621371 : 1;
+const DIST_LABEL = IS_MILES ? 'mi' : 'km';
+
 // =======================================================
 // 2. INITIALIZATION (Runs on Load)
 // =======================================================
@@ -65,18 +71,12 @@ document.addEventListener('DOMContentLoaded', () => {
 function updateBatteryStats(inputElement) {
     const val = parseInt(inputElement.value) || 0;
     const energy = (val / 100) * EV_SPECS.capacity_kwh;
-    const range = Math.round(energy / (EV_SPECS.efficiency_wh_km / 1000));
-
-    if(document.getElementById('energy-val')) 
-        document.getElementById('energy-val').innerText = energy.toFixed(1) + " kWh";
+    const range = Math.round(lnmnergy-val').innerText = energy.toFixed(1) + " kWh";
     
     if(document.getElementById('range-val')) 
-        document.getElementById('range-val').innerText = range + " km";
-}
-
-// MONITOR: Checks Battery Level on every input change
-function monitorBatteryStatus(inputElement) {
-    const currentSoc = parseInt(inputElement.value) || 0;
+        document.getElementById('range-val'
+n
+function monitorBatteryStatus(inputElement)t
     
     // 1. HEALTHY (>20%) - Release Lock
     if (currentSoc > 20) {

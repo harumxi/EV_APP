@@ -3,9 +3,10 @@ const API_BASE = "http://localhost/WEBPROG_PROJ/BACKEND/API";
 const USER_ID = localStorage.getItem("user_id");
 
 // UNIT PREFERENCES
-const PREF_UNIT = localStorage.getItem('pref_units') || 'KM';
-const DIST_FACTOR = PREF_UNIT === 'MILES' ? 0.621371 : 1;
-const DIST_LABEL = PREF_UNIT === 'MILES' ? 'mi' : 'km';
+const RAW_UNIT = localStorage.getItem('units') || localStorage.getItem('pref_units') || 'metric';
+const IS_MILES = RAW_UNIT === 'imperial' || RAW_UNIT === 'MILES';
+const DIST_FACTOR = IS_MILES ? 0.621371 : 1;
+const DIST_LABEL = IS_MILES ? 'mi' : 'km';
 
 let trips = [];
 let isDeleteMode = false;

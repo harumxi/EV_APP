@@ -11,9 +11,10 @@ const searchCache = new Map();
 let searchAbortCtrl = null;
 
 // UNIT PREFERENCES
-const PREF_UNIT = localStorage.getItem('pref_units') || 'KM';
-const DIST_FACTOR = PREF_UNIT === 'MILES' ? 0.621371 : 1;
-const DIST_LABEL = PREF_UNIT === 'MILES' ? 'mi' : 'km';
+const RAW_UNIT = localStorage.getItem('units') || localStorage.getItem('pref_units') || 'metric';
+const IS_MILES = RAW_UNIT === 'imperial' || RAW_UNIT === 'MILES';
+const DIST_FACTOR = IS_MILES ? 0.621371 : 1;
+const DIST_LABEL = IS_MILES ? 'mi' : 'km';
 
 const thunderIcon = L.divIcon({
     html: '<div style="background: white; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 8px rgba(0,0,0,0.3); border: 2px solid #eab308;"><i class="fa-solid fa-bolt text-yellow-500 text-xl"></i></div>',
