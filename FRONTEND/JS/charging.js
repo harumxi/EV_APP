@@ -71,12 +71,17 @@ document.addEventListener('DOMContentLoaded', () => {
 function updateBatteryStats(inputElement) {
     const val = parseInt(inputElement.value) || 0;
     const energy = (val / 100) * EV_SPECS.capacity_kwh;
-    const range = Math.round(lnmnergy-val').innerText = energy.toFixed(1) + " kWh";
+    const range = Math.round((energy / (EV_SPECS.efficiency_wh_km / 1000)) * DIST_FACTOR);
+
+    if(document.getElementById('energy-val')) 
+        document.getElementById('energy-val').innerText = energy.toFixed(1) + " kWh";
     
     if(document.getElementById('range-val')) 
-        document.getElementById('range-val'
-n
-function monitorBatteryStatus(inputElement)t
+        document.getElementById('range-val').innerText = range + " " + DIST_LABEL;
+}
+
+function monitorBatteryStatus(inputElement) {
+    const currentSoc = parseInt(inputElement.value) || 0;
     
     // 1. HEALTHY (>20%) - Release Lock
     if (currentSoc > 20) {
