@@ -32,14 +32,28 @@ document.addEventListener("DOMContentLoaded", () => {
     fetchDashboardData();
     setInterval(fetchDashboardData, 5 * 60 * 1000); // Refresh every 5 mins
 
-    // Add SOS Button (Right Bottom, Red, Alert Icon)
-    const sosBtn = document.createElement("button");
-    sosBtn.id = "sos-trigger-btn";
-    sosBtn.className = "fixed bottom-20 right-6 w-16 h-16 bg-red-600/80 backdrop-blur-md text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-red-700 transition-all active:scale-95 z-[100]";
-    sosBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`;
-    sosBtn.title = "Emergency SOS";
-    sosBtn.onclick = triggerSOS;
-    document.body.appendChild(sosBtn);
+    // Add Warning/SOS Button to Header (Right Cluster)
+    const headerUser = document.getElementById('header-user-name');
+    const headerRightGroup = headerUser ? headerUser.closest('.flex') : null;
+
+    if (headerRightGroup) {
+        const sosBtn = document.createElement("button");
+        sosBtn.id = "header-warning-btn";
+        sosBtn.className = "relative p-2 rounded-xl text-red-600 hover:bg-red-50 hover:text-red-700 transition-all mr-1 active:scale-95";
+        sosBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-pulse"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+            <span id="warning-badge" class="absolute top-2 right-2 flex h-2.5 w-2.5 hidden">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+            </span>
+        `;
+        sosBtn.title = "Warnings";
+        sosBtn.setAttribute("aria-label", "Open warnings");
+        sosBtn.onclick = triggerSOS;
+        
+        // Insert before the profile section to sit in the cluster
+        headerRightGroup.insertBefore(sosBtn, headerRightGroup.firstChild);
+    }
 });
 
 async function fetchTripHistory() {
