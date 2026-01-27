@@ -7,6 +7,8 @@ let currentStations = [];
 let favoriteIds = new Set();
 let currentReviewStationId = null;
 let debounceTimer;
+const searchCache = new Map();
+let searchAbortCtrl = null;
 
 // UNIT PREFERENCES
 const PREF_UNIT = localStorage.getItem('pref_units') || 'KM';
@@ -410,4 +412,57 @@ function openDetailsModal(st) {
 
 function closeDetailsModal() {
     document.getElementById('details-modal').classList.add('hidden');
+}
+
+// --- SEARCH SUGGESTIONS ---
+async function fetchSuggestions(query) {
+    const list = document.getElementById('search-suggest');
+    if (!query || query.length < 2) {
+        if(list) list.style.display = 'none';
+        return;
+    }
+
+    if (searchAbortCtrl) searchAbortCtrl.abort();
+    searchAbortCtrl = new AbortController();
+
+    if (searchCache.has(query)) {
+        renderSuggestions(searchCache.get(query));
+        return;
+    }
+
+    try {
+        // Bias towards Philippines
+        const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5&bbox=116.8,4.5,126.7,21.2`, {
+            signal: searchAbortCtrl.signal
+        });
+        const data = await res.json();
+        const results = data.features || [];
+        
+        searchCache.set(query, results);
+        if (searchCache.size > 50) searchCache.delete(searchCache.keys().next().value);
+        
+        renderSuggestions(results);
+    } catch (e) { /* Ignore abort */ }
+}
+
+function renderSuggestions(results) {
+    const list = document.getElementById('search-suggest');
+    if(!list) return;
+    if (results.length === 0) { list.style.display = 'none'; return; }
+
+    list.innerHTML = results.map(r => {
+        const p = r.properties;
+        const name = p.name || p.street || "Unknown";
+        const details = [p.city, p.state, p.country].filter(Boolean).join(", ");
+        return `<div class="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0 transition-colors" onclick="selectLocation(${r.geometry.coordinates[1]}, ${r.geometry.coordinates[0]}, '${name.replace(/'/g, "\\'")}')"><div class="font-bold text-sm text-gray-900">${name}</div><div class="text-xs text-gray-500">${details}</div></div>`;
+    }).join("");
+    list.style.display = 'block';
+}
+
+function selectLocation(lat, lng, name) {
+    const input = document.getElementById('search-input');
+    if(input) input.value = name;
+    document.getElementById('search-suggest').style.display = 'none';
+    map.setView([lat, lng], 14);
+    fetchChargers(lat, lng);
 }

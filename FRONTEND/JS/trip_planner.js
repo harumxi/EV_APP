@@ -229,12 +229,21 @@ batInput.addEventListener("input", () => {
 });
 
 /* Suggestions (Photon API) */
-async function smartSearch(query) {
+const searchCache = new Map();
+
+async function smartSearch(query, signal) {
     if(!query || query.length < 2) return [];
-    // Bias towards Philippines
-    const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&lat=${myLat}&lon=${myLng}&limit=5&bbox=116.8,4.5,126.7,21.2`);
-    const data = await res.json();
-    return data.features || [];
+    if(searchCache.has(query)) return searchCache.get(query);
+
+    try {
+        // Bias towards Philippines
+        const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&lat=${myLat}&lon=${myLng}&limit=5&bbox=116.8,4.5,126.7,21.2`, { signal });
+        const data = await res.json();
+        const results = data.features || [];
+        searchCache.set(query, results);
+        if(searchCache.size > 100) searchCache.delete(searchCache.keys().next().value);
+        return results;
+    } catch(e) { return []; }
 }
 
 function updateStartButtonState() {
@@ -245,6 +254,7 @@ function updateStartButtonState() {
 
 function mountSuggest(inputEl, listEl, isOrigin) {
   let debounce;
+  let abortCtrl;
   
   inputEl.addEventListener("input", () => {
     if(isOrigin) selectedOrigin = null; else selectedDest = null;
@@ -254,11 +264,14 @@ function mountSuggest(inputEl, listEl, isOrigin) {
     setInputError(isOrigin ? "from-box" : "to-box", false);
 
     clearTimeout(debounce);
+    if(abortCtrl) abortCtrl.abort();
+
     debounce = setTimeout(async () => {
         const q = inputEl.value;
         if(q.length < 2) { listEl.style.display = "none"; return; }
         
-        const results = await smartSearch(q);
+        abortCtrl = new AbortController();
+        const results = await smartSearch(q, abortCtrl.signal);
         if(results.length === 0) { listEl.style.display = "none"; return; }
 
         listEl.innerHTML = results.map((r) => {
