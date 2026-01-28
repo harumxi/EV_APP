@@ -19,15 +19,41 @@
 
         /* Markers */
         .car-marker { transition: all 0.1s linear; }
+        
+        /* Hide scrollbar for horizontal tabs on mobile */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body>
+
+    <!-- HEADER -->
+    <header class="fixed top-0 left-0 right-0 z-[5000] bg-white/50 backdrop-blur-[20px] border-b border-white/40 shadow-xl">
+        <div class="mx-auto max-w-6xl h-[68px] px-4 flex items-center justify-between">
+          <!-- Left: Navigation Tabs -->
+          <nav class="flex items-center gap-1 h-full overflow-x-auto no-scrollbar">
+            <a href="dashboard.html" class="h-full flex items-center border-b-[3px] border-transparent hover:border-black/20 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors px-3 whitespace-nowrap">Dashboard</a>
+            <a href="trip_planner.html" class="h-full flex items-center border-b-[3px] border-black text-sm font-bold text-gray-900 px-3 whitespace-nowrap">Trip Planner</a>
+            <a href="hubs.html" class="h-full flex items-center border-b-[3px] border-transparent hover:border-black/20 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors px-3 whitespace-nowrap">Charging Hub</a>
+            <a href="profile.html" class="h-full flex items-center border-b-[3px] border-transparent hover:border-black/20 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors px-3 whitespace-nowrap">Profile</a>
+          </nav>
+    
+          <!-- Right: User Block -->
+          <div class="flex items-center gap-3 pl-4 shrink-0">
+            <div class="text-right hidden sm:block">
+              <div class="text-sm font-semibold text-gray-900 leading-tight" id="header-user-name">User</div>
+              <div class="text-xs font-medium text-gray-500 mt-0.5" id="header-car-name">No Car Selected</div>
+            </div>
+            <img src="https://i.pravatar.cc/256?img=12" alt="Profile" class="h-10 w-10 rounded-full border border-white/60 shadow-sm object-cover" />
+          </div>
+        </div>
+    </header>
 
     <!-- Map Layer (Z-0) -->
     <div id="map"></div>
 
     <!-- TOP CONTROLS -->
-    <div class="absolute top-4 right-4 z-50 flex items-center gap-3">
+    <div class="absolute top-[84px] right-4 z-50 flex items-center gap-3">
         <!-- Map Layer Toggle -->
         <button onclick="toggleMapLayer()" class="w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center text-gray-600 hover:text-gray-900 transition">
             <i class="fa-solid fa-layer-group"></i>
@@ -401,6 +427,13 @@
             await saveTripLog();
             window.location.href = "trip_planner.html";
         }
+
+        // Populate Header User Info
+        const headerUser = document.getElementById('header-user-name');
+        const headerCar = document.getElementById('header-car-name');
+        const activeCarObj = JSON.parse(localStorage.getItem('active_car') || "null");
+        if(headerUser) headerUser.textContent = localStorage.getItem('full_display_name') || 'User';
+        if(headerCar && activeCarObj) headerCar.textContent = `${activeCarObj.brand} ${activeCarObj.model}`;
     </script>
 </body>
 </html>

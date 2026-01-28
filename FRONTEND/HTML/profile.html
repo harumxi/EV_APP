@@ -16,17 +16,41 @@
 
     <!-- Your CSS -->
     <link rel="stylesheet" href="../CSS/profile.css" />
+    <style>
+      /* Hide scrollbar for horizontal tabs on mobile */
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
   </head>
 
   <body class="h-screen bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-50 overflow-hidden flex flex-col">
     
       <!-- HEADER -->
+      <header class="flex-none z-30 bg-white/80 backdrop-blur-md border-b border-gray-200 dark:bg-slate-950/80 dark:border-slate-800">
+        <div class="mx-auto max-w-6xl h-[68px] px-4 flex items-center justify-between">
+          <!-- Left: Navigation Tabs -->
+          <nav class="flex items-center gap-1 h-full overflow-x-auto no-scrollbar">
+            <a href="dashboard.html" class="h-full flex items-center border-b-[3px] border-transparent hover:border-gray-300 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors px-3 whitespace-nowrap">Dashboard</a>
+            <a href="trip_planner.html" class="h-full flex items-center border-b-[3px] border-transparent hover:border-gray-300 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors px-3 whitespace-nowrap">Trip Planner</a>
+            <a href="hubs.html" class="h-full flex items-center border-b-[3px] border-transparent hover:border-gray-300 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors px-3 whitespace-nowrap">Charging Hub</a>
+            <a href="profile.html" class="h-full flex items-center border-b-[3px] border-black dark:border-white text-sm font-bold text-gray-900 dark:text-white px-3 whitespace-nowrap">Profile</a>
+          </nav>
+
+          <!-- Right: User Block -->
+          <div class="flex items-center gap-3 pl-4 shrink-0">
+            <div class="text-right hidden sm:block">
+              <div class="text-sm font-semibold text-gray-900 dark:text-white leading-tight" id="header-user-name">User</div>
+              <div class="text-xs font-medium text-gray-500 dark:text-gray-400 mt-0.5" id="header-car-name">No Car Selected</div>
+            </div>
+            <img src="https://i.pravatar.cc/256?img=12" alt="Profile" class="h-10 w-10 rounded-full border border-gray-200 dark:border-gray-700 shadow-sm object-cover" />
+          </div>
+        </div>
+      </header>
+
+      <!-- Page Sub-Header -->
       <div class="flex-none bg-white dark:bg-slate-950 z-20">
       <div class="mx-auto max-w-6xl px-4 sm:px-6 pt-2">
         <div class="flex items-center gap-4 py-3 dark:text-slate-100">
-            <a href="dashboard.html" class="flex h-10 w-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition">
-                <i data-lucide="arrow-left" class="h-5 w-5 text-gray-600 dark:text-gray-400"></i>
-            </a>
           <div
             class="flex h-12 w-12 items-center justify-center rounded-full border bg-white font-semibold shadow-sm dark:bg-slate-900 dark:border-slate-700"
             aria-label="Profile avatar"
@@ -407,10 +431,12 @@
       <div
         id="aboutPanel"
         class="absolute right-0 top-0 h-full w-full max-w-md border-l bg-white shadow-xl transform transition-transform duration-300 translate-x-full dark:bg-slate-900 dark:border-slate-800"
+        class="absolute right-0 top-0 h-full w-full max-w-md border-l bg-white dark:bg-slate-900 shadow-xl transform transition-transform duration-300 translate-x-full dark:border-slate-800"
       >
         <div class="flex h-full flex-col">
           <!-- header -->
           <div class="flex items-center justify-between border-b px-5 py-4 dark:border-slate-800">
+          <div class="flex items-center justify-between border-b px-5 py-4 dark:border-slate-800 bg-white dark:bg-slate-900">
             <div class="flex items-center gap-2 dark:text-white">
               <i data-lucide="info" class="h-5 w-5"></i>
               <div class="text-base font-semibold text-gray-900">About Us</div>
@@ -429,6 +455,7 @@
           <div class="flex-1 overflow-auto p-5">
             <div class="grid gap-4">
               <div class="rounded-2xl border bg-white p-4 dark:bg-slate-900 dark:border-slate-800">
+              <div class="rounded-2xl border bg-white dark:bg-slate-900 p-4 dark:border-slate-800">
                 <div class="text-sm font-semibold text-gray-900 dark:text-white">Our mission</div>
                 <p class="mt-2 text-sm text-gray-500 dark:text-slate-400">
                   We’re building a simple, friendly experience that helps people manage their profile
@@ -437,6 +464,7 @@
               </div>
 
               <div class="rounded-2xl border bg-white p-4 dark:bg-slate-900 dark:border-slate-800">
+              <div class="rounded-2xl border bg-white dark:bg-slate-900 p-4 dark:border-slate-800">
                 <div class="text-sm font-semibold text-gray-900 dark:text-white">What we do</div>
                 <ul class="mt-2 grid gap-2 text-sm text-gray-500 dark:text-slate-400">
                   <li class="flex items-start gap-2">
@@ -451,6 +479,7 @@
               </div>
 
               <div class="rounded-2xl border bg-white p-4 dark:bg-slate-900 dark:border-slate-800">
+              <div class="rounded-2xl border bg-white dark:bg-slate-900 p-4 dark:border-slate-800">
                 <div class="text-sm font-semibold text-gray-900 dark:text-white">App info</div>
                 <div class="mt-3 grid gap-2 text-sm">
                   <div class="flex items-center justify-between dark:text-slate-300">
@@ -480,8 +509,6 @@
       </div>
     </div>
 
-    <div class="flex-none h-[52px]"></div>
-
     <!-- HELP / FAQ DRAWER -->
     <div id="helpDrawer" class="fixed inset-0 z-50 hidden">
       <!-- Backdrop -->
@@ -491,10 +518,12 @@
       <div
         id="helpPanel"
         class="absolute right-0 top-0 h-full w-full max-w-md border-l bg-white shadow-xl transform transition-transform duration-300 translate-x-full dark:bg-slate-900 dark:border-slate-800"
+        class="absolute right-0 top-0 h-full w-full max-w-md border-l bg-white dark:bg-slate-900 shadow-xl transform transition-transform duration-300 translate-x-full dark:border-slate-800"
       >
         <div class="flex h-full flex-col">
           <!-- header -->
           <div class="flex items-center justify-between border-b px-5 py-4 dark:border-slate-800">
+          <div class="flex items-center justify-between border-b px-5 py-4 dark:border-slate-800 bg-white dark:bg-slate-900">
             <div class="flex items-center gap-2 dark:text-white">
               <i data-lucide="help-circle" class="h-5 w-5"></i>
               <div class="text-base font-semibold text-gray-900">Help &amp; FAQ</div>
@@ -514,6 +543,7 @@
             <div class="grid gap-4">
               <!-- Search -->
               <div class="rounded-2xl border bg-white p-4 dark:bg-slate-900 dark:border-slate-800">
+              <div class="rounded-2xl border bg-white dark:bg-slate-900 p-4 dark:border-slate-800">
                 <div class="text-sm font-semibold text-gray-900 dark:text-white">How can we help?</div>
                 <div class="mt-3 flex items-center gap-2 rounded-xl border bg-white px-3 py-2 dark:bg-slate-900 dark:border-slate-700">
                   <i data-lucide="search" class="h-4 w-4 text-gray-500"></i>
@@ -531,6 +561,7 @@
 
               <!-- Quick actions -->
               <div class="rounded-2xl border bg-white p-4 dark:bg-slate-900 dark:border-slate-800">
+              <div class="rounded-2xl border bg-white dark:bg-slate-900 p-4 dark:border-slate-800">
                 <div class="text-sm font-semibold text-gray-900 dark:text-white">Quick actions</div>
                 <div class="mt-3 grid gap-2">
                   <button class="flex items-center justify-between rounded-xl border bg-white px-3 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-50 dark:bg-slate-900 dark:border-slate-700 dark:text-white dark:hover:bg-slate-800">
@@ -546,6 +577,7 @@
 
               <!-- FAQ Accordion -->
               <div class="rounded-2xl border bg-white p-4 dark:bg-slate-900 dark:border-slate-800">
+              <div class="rounded-2xl border bg-white dark:bg-slate-900 p-4 dark:border-slate-800">
                 <div class="text-sm font-semibold text-gray-900 dark:text-white">Frequently asked questions</div>
 
                 <div id="faqList" class="mt-3 grid gap-2">
@@ -598,52 +630,15 @@
       </div>
     </div>
 
-<nav class="fixed bottom-0 left-0 w-screen bg-white/50 backdrop-blur-xl shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-[5000]">
-  <div class="mx-auto max-w-6xl px-4 py-1">
-    <div id="bottomNav" class="grid grid-cols-4 gap-2 text-center">
-
-      <button class="nav-item flex flex-col items-center gap-0.5 py-1 rounded-xl hover:bg-black/5 transition-transform active:scale-95" type="button" data-tab="dashboard" onclick="window.location.href='dashboard.html'">
-        <svg class="h-5 w-5 text-black/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="3" width="7" height="7" rx="2"></rect>
-          <rect x="14" y="3" width="7" height="7" rx="2"></rect>
-          <rect x="3" y="14" width="7" height="7" rx="2"></rect>
-          <rect x="14" y="14" width="7" height="7" rx="2"></rect>
-        </svg>
-        <span class="nav-label text-[10px] font-semibold text-black/60">Dashboard</span>
-      </button>
-
-      <button class="nav-item flex flex-col items-center gap-0.5 py-1 rounded-xl hover:bg-black/5 transition-transform active:scale-95" type="button" data-tab="trip-planner" onclick="window.location.href='trip_planner.html'">
-        <svg class="h-5 w-5 text-black/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="6" cy="6" r="2"></circle>
-          <circle cx="18" cy="18" r="2"></circle>
-          <path d="M8 6h6a2 2 0 0 1 2 2v2"></path>
-          <path d="M16 14v2a2 2 0 0 1-2 2H8"></path>
-          <path d="M8 18l-2 2"></path>
-        </svg>
-        <span class="nav-label text-[10px] font-semibold text-black/60">Trip Planner</span>
-      </button>
-
-      <button class="nav-item flex flex-col items-center gap-0.5 py-1 rounded-xl hover:bg-black/5 transition-transform active:scale-95" type="button" data-tab="charging" onclick="window.location.href='hubs.html'">
-        <svg class="h-5 w-5 text-black/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"></path>
-        </svg>
-        <span class="nav-label text-[10px] font-semibold text-black/60">Charging Hub</span>
-      </button>
-
-      <button class="nav-item relative flex flex-col items-center gap-0.5 py-1 rounded-xl hover:bg-black/5 transition-transform active:scale-95" type="button" data-tab="profile" onclick="window.location.href='profile.html'">
-        <div class="absolute top-0 h-1 w-8 bg-black rounded-b-full"></div>
-        <svg class="h-5 w-5 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20 21a8 8 0 0 0-16 0"></path>
-          <circle cx="12" cy="7" r="4"></circle>
-        </svg>
-        <span class="nav-label text-[10px] font-semibold text-black">Profile</span>
-      </button>
-
-    </div>
-  </div>
-</nav>
-
     <!-- Your JS -->
     <script src="../JS/profile.js"></script>
+    <script>
+      // Populate Header User Info
+      const headerUser = document.getElementById('header-user-name');
+      const headerCar = document.getElementById('header-car-name');
+      const activeCarObj = JSON.parse(localStorage.getItem('active_car') || "null");
+      if(headerUser) headerUser.textContent = localStorage.getItem('full_display_name') || 'User';
+      if(headerCar && activeCarObj) headerCar.textContent = `${activeCarObj.brand} ${activeCarObj.model}`;
+    </script>
   </body>
 </html>
