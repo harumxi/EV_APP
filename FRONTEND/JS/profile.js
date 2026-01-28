@@ -61,6 +61,12 @@ function setEditing(v) {
   const coverContainer = document.getElementById("coverContainer");
   const dragHint = document.getElementById("dragHint");
 
+  const coverBg = document.getElementById("coverBg");
+  if (coverBg) {
+    if (v) coverBg.classList.remove("group-hover:scale-105");
+    else coverBg.classList.add("group-hover:scale-105");
+  }
+
   coverBtn.setAttribute("aria-disabled", v ? "false" : "true");
   avatarBtn.setAttribute("aria-disabled", v ? "false" : "true");
   coverBtn.title = v ? "Change cover" : "Enable edit mode to change cover";
@@ -243,7 +249,7 @@ if (coverContainer && coverBg) {
     newPercent = Math.max(0, Math.min(100, newPercent));
 
     state.draft.coverPositionY = newPercent;
-    coverBg.style.backgroundPosition = `center %`;
+    coverBg.style.backgroundPosition = `center ${newPercent}%`;
   };
 
   const endDrag = () => {
