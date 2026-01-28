@@ -23,10 +23,10 @@
     </style>
   </head>
 
-  <body class="h-screen bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-50 overflow-hidden flex flex-col">
+  <body class="h-screen bg-gradient-to-br from-[#F0F4F8] to-[#D9E2EC] text-slate-900 dark:from-slate-950 dark:to-slate-900 dark:text-slate-50 overflow-hidden flex flex-col">
     
       <!-- HEADER -->
-      <header class="flex-none z-30 bg-white/80 backdrop-blur-md border-b border-gray-200 dark:bg-slate-950/80 dark:border-slate-800">
+      <header class="flex-none z-30 bg-white/30 backdrop-blur-[20px] border-b border-white/40 shadow-[0_10px_30px_rgba(0,0,0,0.06)] dark:bg-slate-950/50 dark:border-white/10">
         <div class="mx-auto max-w-6xl h-[68px] px-4 flex items-center justify-between">
           <!-- Left: Navigation Tabs -->
           <nav class="flex items-center gap-1 h-full overflow-x-auto no-scrollbar">
@@ -48,11 +48,11 @@
       </header>
 
       <!-- Page Sub-Header -->
-      <div class="flex-none bg-white dark:bg-slate-950 z-20">
+      <div class="flex-none z-20">
       <div class="mx-auto max-w-6xl px-4 sm:px-6 pt-2">
         <div class="flex items-center gap-4 py-3 dark:text-slate-100">
           <div
-            class="flex h-12 w-12 items-center justify-center rounded-full border bg-white font-semibold shadow-sm dark:bg-slate-900 dark:border-slate-700"
+            class="flex h-12 w-12 items-center justify-center rounded-full border border-white/50 bg-white/60 font-semibold shadow-sm backdrop-blur-md dark:bg-slate-900/60 dark:border-white/10"
             aria-label="Profile avatar"
             id="headerInitials"
           >
@@ -67,13 +67,13 @@
           </div>
         </div>
 
-        <div class="h-px w-full bg-gray-200 dark:bg-slate-800"></div>
+        <div class="h-px w-full bg-white/40 dark:bg-white/10"></div>
       </div>
       </div>
 
     <div class="flex-1 overflow-y-auto min-h-0">
     <div class="mx-auto max-w-6xl p-4 sm:p-6 pt-0">
-      <div id="coverContainer" class="fm-enter group relative mt-3 h-64 w-full overflow-hidden rounded-3xl border bg-gray-100 sm:h-80 dark:bg-slate-900 dark:border-slate-800">
+      <div id="coverContainer" class="fm-enter group relative mt-3 h-64 w-full overflow-hidden rounded-[24px] border border-white/50 bg-white/60 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.05)] backdrop-blur-xl sm:h-80 dark:bg-slate-900/60 dark:border-white/10">
         <div
           id="coverBg"
           class="absolute inset-0 bg-cover bg-no-repeat transition-transform duration-700 group-hover:scale-105"
@@ -171,7 +171,7 @@
       </div>
 
       <section id="tab-profile" class="mt-4">
-        <div class="rounded-3xl border p-6 dark:border-slate-800">
+        <div class="rounded-[24px] border border-white/50 bg-white/60 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.05)] backdrop-blur-xl p-6 dark:bg-slate-900/60 dark:border-white/10">
           <div class="grid gap-5">
             <div class="grid gap-4">
               <div>
@@ -203,12 +203,12 @@
                 </p>
               </div>
 
-              <div class="rounded-2xl border bg-white overflow-hidden dark:bg-slate-900 dark:border-slate-800">
+              <div class="rounded-2xl border border-white/40 bg-white/40 overflow-hidden dark:bg-slate-900/40 dark:border-white/10">
                 <div id="prefAccordion">
                   <button
                     type="button"
                     id="prefTrigger"
-                    class="flex w-full items-center justify-between px-4 py-3 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 dark:text-slate-200"
+                    class="flex w-full items-center justify-between px-4 py-3 text-sm hover:bg-white/50 dark:hover:bg-white/5 dark:text-slate-200"
                   >
                     <div class="flex items-center gap-2 font-medium">
                       <i data-lucide="settings-2" class="h-4 w-4"></i>
@@ -217,8 +217,8 @@
                     <i data-lucide="chevron-right" class="acc-chevron h-4 w-4 text-gray-500 dark:text-slate-400 transition-transform duration-200"></i>
                   </button>
 
-                  <div class="acc-body bg-gray-50/50 dark:bg-slate-950/50">
-                    <div class="border-t p-4 space-y-4 dark:border-slate-800">
+                  <div class="acc-body bg-white/20 dark:bg-black/20">
+                    <div class="border-t border-white/20 p-4 space-y-4 dark:border-white/10">
                       <div class="flex items-center justify-between">
                         <div class="flex flex-col">
                           <span class="text-sm font-medium dark:text-slate-200">Dark Mode</span>
@@ -244,13 +244,13 @@
                   </div>
                 </div>
 
-                <div class="h-px bg-gray-200 dark:bg-slate-800"></div>
+                <div class="h-px bg-white/40 dark:bg-white/10"></div>
 
                 <div id="pwAccordion">
                   <button
                     type="button"
                     id="pwTrigger"
-                    class="flex w-full items-center justify-between px-4 py-3 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 dark:text-slate-200"
+                    class="flex w-full items-center justify-between px-4 py-3 text-sm hover:bg-white/50 dark:hover:bg-white/5 dark:text-slate-200"
                   >
                     <div class="flex items-center gap-2 font-medium">
                       <i data-lucide="lock" class="h-4 w-4"></i>
@@ -259,8 +259,8 @@
                     <i data-lucide="chevron-right" class="acc-chevron h-4 w-4 text-gray-500 dark:text-slate-400 transition-transform duration-200"></i>
                   </button>
 
-                  <div class="acc-body bg-gray-50/50 dark:bg-slate-950/50">
-                    <div id="pwStep1" class="border-t p-4 space-y-4 dark:border-slate-800">
+                  <div class="acc-body bg-white/20 dark:bg-black/20">
+                    <div id="pwStep1" class="border-t border-white/20 p-4 space-y-4 dark:border-white/10">
                       <div>
                         <label class="text-xs font-medium text-gray-500 dark:text-slate-400">Current Password</label>
                         <div class="relative mt-1">
@@ -284,7 +284,7 @@
                       </button>
                     </div>
 
-                    <div id="pwStep2" class="hidden border-t p-4 space-y-4 dark:border-slate-800">
+                    <div id="pwStep2" class="hidden border-t border-white/20 p-4 space-y-4 dark:border-white/10">
                       <div class="text-center space-y-2">
                         <div class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/10 text-black dark:bg-white/10 dark:text-white">
                           <i data-lucide="shield-check" class="h-5 w-5"></i>
@@ -311,13 +311,13 @@
                   </div>
                 </div>
 
-                <div class="h-px bg-gray-200 dark:bg-slate-800"></div>
+                <div class="h-px bg-white/40 dark:bg-white/10"></div>
 
                 <div id="garageAccordion">
                   <button
                     type="button"
                     id="garageTrigger"
-                    class="flex w-full items-center justify-between px-4 py-3 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 dark:text-slate-200"
+                    class="flex w-full items-center justify-between px-4 py-3 text-sm hover:bg-white/50 dark:hover:bg-white/5 dark:text-slate-200"
                   >
                     <div class="flex items-center gap-2 font-medium">
                       <i data-lucide="car" class="h-4 w-4"></i>
@@ -326,11 +326,11 @@
                     <i data-lucide="chevron-right" class="acc-chevron h-4 w-4 text-gray-500 dark:text-slate-400 transition-transform duration-200"></i>
                   </button>
 
-                  <div class="acc-body bg-gray-50/50 dark:bg-slate-950/50">
-                    <div class="border-t p-4 space-y-3 dark:border-slate-800" id="garageList">
+                  <div class="acc-body bg-white/20 dark:bg-black/20">
+                    <div class="border-t border-white/20 p-4 space-y-3 dark:border-white/10" id="garageList">
                       <div class="text-center text-xs text-gray-500 py-2">Loading...</div>
                     </div>
-                    <div class="border-t p-3 bg-gray-50 dark:bg-slate-900 dark:border-slate-800">
+                    <div class="border-t border-white/20 p-3 bg-white/30 dark:bg-black/30 dark:border-white/10">
                         <a href="garage.html" class="flex items-center justify-center gap-2 w-full rounded-xl border bg-white py-2 text-xs font-semibold hover:bg-gray-100 dark:bg-slate-800 dark:border-slate-700 dark:text-white dark:hover:bg-slate-700 transition-colors">
                             Manage Garage
                         </a>
@@ -338,13 +338,13 @@
                   </div>
                 </div>
 
-                <div class="h-px bg-gray-200 dark:bg-slate-800"></div>
+                <div class="h-px bg-white/40 dark:bg-white/10"></div>
 
                 <div id="emergencyAccordion">
                   <button
                     type="button"
                     id="emergencyTrigger"
-                    class="flex w-full items-center justify-between px-4 py-3 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 dark:text-slate-200"
+                    class="flex w-full items-center justify-between px-4 py-3 text-sm hover:bg-white/50 dark:hover:bg-white/5 dark:text-slate-200"
                   >
                     <div class="flex items-center gap-2 font-medium">
                       <i data-lucide="phone-call" class="h-4 w-4"></i>
@@ -353,8 +353,8 @@
                     <i data-lucide="chevron-right" class="acc-chevron h-4 w-4 text-gray-500 dark:text-slate-400 transition-transform duration-200"></i>
                   </button>
 
-                  <div class="acc-body bg-gray-50/50 dark:bg-slate-950/50">
-                    <div class="border-t p-4 space-y-4 dark:border-slate-800">
+                  <div class="acc-body bg-white/20 dark:bg-black/20">
+                    <div class="border-t border-white/20 p-4 space-y-4 dark:border-white/10">
                       <div class="pt-2">
                         <label class="text-xs font-medium text-gray-500 dark:text-slate-400">Add New Contact Email</label>
                         <div class="flex gap-2 mt-1">
@@ -373,11 +373,11 @@
                 </div>
               </div>
 
-              <div class="rounded-2xl border bg-white overflow-hidden dark:bg-slate-900 dark:border-slate-800">
+              <div class="rounded-2xl border border-white/40 bg-white/40 overflow-hidden dark:bg-slate-900/40 dark:border-white/10">
                 <button
                   type="button"
                   id="openAboutBtn"
-                  class="flex w-full items-center justify-between px-4 py-3 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 dark:text-slate-200"
+                  class="flex w-full items-center justify-between px-4 py-3 text-sm hover:bg-white/50 dark:hover:bg-white/5 dark:text-slate-200"
                 >
                   <div class="flex items-center gap-2 font-medium">
                     <i data-lucide="info" class="h-4 w-4"></i>
@@ -386,12 +386,12 @@
                   <i data-lucide="chevron-right" class="h-4 w-4 text-gray-500 dark:text-slate-400"></i>
                 </button>
 
-                <div class="h-px bg-gray-200 dark:bg-slate-800"></div>
+                <div class="h-px bg-white/40 dark:bg-white/10"></div>
 
                 <button
                   type="button"
                   id="openHelpBtn"
-                  class="flex w-full items-center justify-between px-4 py-3 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 dark:text-slate-200"
+                  class="flex w-full items-center justify-between px-4 py-3 text-sm hover:bg-white/50 dark:hover:bg-white/5 dark:text-slate-200"
                 >
                   <div class="flex items-center gap-2 font-medium">
                     <i data-lucide="help-circle" class="h-4 w-4"></i>
@@ -400,12 +400,12 @@
                   <i data-lucide="chevron-right" class="h-4 w-4 text-gray-500 dark:text-slate-400"></i>
                 </button>
 
-                <div class="h-px bg-gray-200 dark:bg-slate-800"></div>
+                <div class="h-px bg-white/40 dark:bg-white/10"></div>
 
                 <button
                   type="button"
                   id="logoutBtn"
-                  class="flex w-full items-center justify-between px-4 py-3 text-sm hover:bg-gray-50 text-red-500 dark:hover:bg-slate-800"
+                  class="flex w-full items-center justify-between px-4 py-3 text-sm hover:bg-white/50 text-red-500 dark:hover:bg-white/5"
                 >
                   <div class="flex items-center gap-2 font-medium">
                     <i data-lucide="log-out" class="h-4 w-4"></i>
