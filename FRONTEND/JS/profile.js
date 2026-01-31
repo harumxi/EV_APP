@@ -717,7 +717,7 @@ if (addEmergencyBtn) {
         await fetch("http://localhost/WEBPROG_PROJ/BACKEND/API/SOS/invite.php", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ user_id: userId, user_name: userName, contact_email: email })
+            body: JSON.stringify({ user_id: userId, user_name: userName, email: email })
         });
     } catch (e) { console.error("Failed to send invite", e); }
 
