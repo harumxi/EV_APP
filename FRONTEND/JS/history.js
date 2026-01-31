@@ -103,7 +103,6 @@ function openConfirm({ title, message, confirmText, onConfirm }) {
 }
 
 function render() {
-  const s = computeStats();
   const ms = masterState();
 
   app.innerHTML = `
@@ -141,21 +140,6 @@ function render() {
               Manage
             </button>
           `}
-        </div>
-      </div>
-
-      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <div class="rounded-2xl border border-white/50 bg-white/40 p-3.5">
-          <div class="text-xs font-medium text-gray-500">Total reports</div>
-          <div class="mt-0.5 text-lg font-bold text-gray-900">${s.total}</div>
-        </div>
-        <div class="rounded-2xl border border-white/50 bg-white/40 p-3.5">
-          <div class="text-xs font-medium text-gray-500">Emissions saved</div>
-          <div class="mt-0.5 text-lg font-bold text-emerald-600">${s.emissions.toFixed(1)} kg</div>
-        </div>
-        <div class="rounded-2xl border border-white/50 bg-white/40 p-3.5">
-          <div class="text-xs font-medium text-gray-500">Avg efficiency</div>
-          <div class="mt-0.5 text-lg font-bold text-gray-900">${s.avgEff} Wh/km</div>
         </div>
       </div>
 
