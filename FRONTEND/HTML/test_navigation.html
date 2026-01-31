@@ -191,6 +191,20 @@
         </div>
     </div>
 
+    <!-- Arrival Modal -->
+    <div id="arrival-modal" class="fixed inset-0 z-[6000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm hidden">
+        <div class="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden p-6 text-center">
+            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+                <i class="fa-solid fa-flag-checkered text-2xl text-green-600"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">You have arrived!</h2>
+            <p class="text-gray-500 mb-6 text-sm">You have reached your destination safely.</p>
+            <button onclick="finishTrip()" class="w-full py-3 bg-gray-900 hover:bg-black text-white rounded-xl font-bold text-sm shadow-lg transition transform active:scale-95">
+                OK
+            </button>
+        </div>
+    </div>
+
     <!-- Cancel Navigation Modal -->
     <div id="cancel-modal" class="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm hidden">
         <div class="relative w-full max-w-md mx-4 bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
@@ -362,8 +376,7 @@
             async function move() {
                 if (i >= pathCoords.length) {
                     await saveTripLog(); // Save automatically on arrival
-                    alert("You have arrived! 🏁");
-                    window.location.href = "trip_planner.html";
+                    showArrivalNotification();
                     return;
                 }
                 
@@ -413,6 +426,14 @@
             } catch(e) { 
                 console.error("Failed to save trip log", e);
             }
+        }
+
+        function showArrivalNotification() {
+            document.getElementById('arrival-modal').classList.remove('hidden');
+        }
+
+        function finishTrip() {
+            window.location.href = "trip_planner.html";
         }
 
         function openCancelModal() {
