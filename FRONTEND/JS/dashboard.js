@@ -315,7 +315,10 @@ async function triggerSOS() {
                 const userId = localStorage.getItem("user_id");
                 let contacts = JSON.parse(localStorage.getItem(`emergency_contacts_`) || "[]");
                 
-                if (contacts.length === 0) return alert("No emergency contacts saved.");
+                if (contacts.length === 0) {
+                    showNoContactsModal();
+                    return;
+                }
 
                 await fetch(`${API_BASE}/SOS/trigger.php`, {
                     method: 'POST',
@@ -363,6 +366,30 @@ function showSOSSuccessModal() {
     `;
     document.body.insertAdjacentHTML('beforeend', html);
     document.getElementById('close-sos-success').onclick = () => document.getElementById('sos-success-modal').remove();
+}
+
+function showNoContactsModal() {
+    const html = `
+        <div id="no-contacts-modal" class="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm">
+            <div class="bg-white/90 backdrop-blur-xl rounded-[32px] max-w-sm w-full overflow-hidden shadow-2xl border border-white/40 animate-in fade-in zoom-in duration-300">
+                <div class="bg-orange-500 p-6 text-white text-center">
+                    <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    </div>
+                    <h2 class="text-2xl font-black uppercase tracking-tight">No Contacts</h2>
+                    <p class="mt-1 font-bold opacity-90">Emergency SOS</p>
+                </div>
+                <div class="p-6 space-y-3">
+                    <p class="text-gray-600 text-sm text-center px-2">No emergency contacts saved. Please add contacts in your profile to use this feature.</p>
+                    <button id="close-no-contacts" class="w-full py-3 bg-black text-white rounded-2xl font-bold transition-all active:scale-95 shadow-lg shadow-black/10">
+                        OK
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+    document.getElementById('close-no-contacts').onclick = () => document.getElementById('no-contacts-modal').remove();
 }
 
 // ===== WEATHER & LOCATION INTEGRATION =====
