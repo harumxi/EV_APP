@@ -699,15 +699,28 @@ function renderEmergencyContacts() {
 }
 
 if (addEmergencyBtn) {
-  addEmergencyBtn.addEventListener("click", () => {
+  addEmergencyBtn.addEventListener("click", async () => {
     const email = emergencyEmailInput.value.trim();
     if (!email || !email.includes('@')) return;
 
     let contacts = JSON.parse(localStorage.getItem("emergency_contacts_") || "[]");
     if (contacts.includes(email)) return;
 
+    // 1. Save Locally
     contacts.push(email);
     localStorage.setItem("emergency_contacts_", JSON.stringify(contacts));
+
+    // 2. Send Invite Email (Backend Call)
+    try {
+        const userId = localStorage.getItem("user_id");
+        const userName = localStorage.getItem("full_display_name") || "User";
+        await fetch("http://localhost/WEBPROG_PROJ/BACKEND/API/SOS/invite.php", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id: userId, user_name: userName, contact_email: email })
+        });
+    } catch (e) { console.error("Failed to send invite", e); }
+
     emergencyEmailInput.value = "";
     renderEmergencyContacts();
     
