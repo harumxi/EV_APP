@@ -168,36 +168,6 @@ async function fetchChargers(lat, lon) {
   }
 }
 
-// --- NEW NAVIGATION TRIGGER ---
-function triggerNavigation(name, lat, lng) {
-    const destination = { name, lat, lng };
-    localStorage.setItem('nav_destination', JSON.stringify(destination));
-
-    const html = `
-        <div id="nav-confirm-modal" class="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm">
-            <div class="bg-white/90 backdrop-blur-xl rounded-[32px] max-w-sm w-full overflow-hidden shadow-2xl border border-white/40 animate-in fade-in zoom-in duration-300">
-                <div class="bg-blue-600 p-6 text-white text-center">
-                    <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <i class="fa-solid fa-route text-2xl"></i>
-                    </div>
-                    <h2 class="text-2xl font-black uppercase tracking-tight">Route Ready</h2>
-                    <p class="mt-1 font-bold opacity-90">Navigation</p>
-                </div>
-                <div class="p-6 space-y-3">
-                    <p class="text-gray-600 text-sm text-center px-2">Ready to navigate to <br><b class="text-gray-900">${name}</b>.<br>Opening Trip Planner...</p>
-                    <button id="confirm-nav-btn" class="w-full py-3 bg-black text-white rounded-2xl font-bold transition-all active:scale-95 shadow-lg shadow-black/10">
-                        Start Planning
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', html);
-    document.getElementById('confirm-nav-btn').onclick = () => {
-        window.location.href = 'trip_planner.html';
-    };
-}
-
 function renderList(stations) {
     const container = document.getElementById('results-list');
     container.innerHTML = "";
@@ -263,7 +233,7 @@ function plotMap(stations) {
         const marker = L.marker([st.location.latitude, st.location.longitude], { icon: thunderIcon }).addTo(map);
         // Open Details Modal on Click
         marker.on('click', () => {
-            openDetailsModal(st);
+            showRouteModal(st);
         });
         markers.push(marker);
     });
@@ -379,40 +349,27 @@ async function submitReview() {
     showToast("Review posted!");
 }
 
-// --- DETAILS MODAL LOGIC ---
-function openDetailsModal(st) {
-    document.getElementById('detail-title').innerText = st.name;
+// --- ROUTE MODAL LOGIC ---
+function showRouteModal(st) {
+    document.getElementById('nav-dest-name').textContent = st.name;
+    
+    const addr = st.address;
+    const fullAddr = [addr.line1, addr.line2, addr.town, addr.state, addr.postcode].filter(Boolean).join(', ');
+    document.getElementById('nav-dest-address').textContent = fullAddr || 'Address not available';
+    
+    document.getElementById('nav-dest-coords').textContent = `LAT: ${st.location.latitude.toFixed(4)} • LNG: ${st.location.longitude.toFixed(4)}`;
+    
+    document.getElementById('confirm-nav-btn').onclick = () => {
+        const destination = { name: st.name, lat: st.location.latitude, lng: st.location.longitude };
+        localStorage.setItem('nav_destination', JSON.stringify(destination));
+        window.location.href = 'trip_planner.html';
+    };
 
-    // Station Photo
-    const imageHtml = (st.photos && st.photos.length > 0)
-        ? `<img src="${st.photos[0]}" class="w-full h-48 object-cover rounded-xl mb-4 border border-gray-100" onerror="this.style.display='none'">`
-        : '';
-
-    const content = `
-        <div class="space-y-6">
-            ${imageHtml}
-            <div>
-                <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Location Details</div>
-                <div class="font-bold text-gray-900 text-lg">${st.name}</div>
-                <div class="text-gray-600">${st.address.line1 || ''}</div>
-                ${st.address.line2 ? `<div class="text-gray-600">${st.address.line2}</div>` : ''}
-                <div class="text-gray-600">${st.address.town || ''} ${st.address.state ? ', ' + st.address.state : ''}</div>
-                <div class="text-gray-600">${st.address.postcode || ''}</div>
-                <div class="text-gray-600">${st.address.country || ''}</div>
-                <div class="text-xs text-gray-400 mt-1">Lat/Long: ${st.location.latitude.toFixed(6)}, ${st.location.longitude.toFixed(6)}</div>
-            </div>
-
-            <button onclick="triggerNavigation('${st.name.replace(/'/g, "\\'")}', ${st.location.latitude}, ${st.location.longitude})" class="w-full py-4 bg-black hover:bg-gray-900 text-white rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 transition transform active:scale-95">
-                <i class="fa-solid fa-location-arrow"></i> Navigate Here
-            </button>
-        </div>
-    `;
-    document.getElementById('detail-content').innerHTML = content;
-    document.getElementById('details-modal').classList.remove('hidden');
+    document.getElementById('nav-toast').classList.add('show');
 }
 
-function closeDetailsModal() {
-    document.getElementById('details-modal').classList.add('hidden');
+function closeNavToast() {
+    document.getElementById('nav-toast').classList.remove('show');
 }
 
 // --- SEARCH SUGGESTIONS ---
