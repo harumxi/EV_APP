@@ -93,7 +93,8 @@ function syncUI() {
   document.getElementById("nameDisplay").textContent = state.draft.name;
   document.getElementById("userDisplay").textContent = "@" + state.draft.username;
 
-  document.getElementById("headerInitials").textContent = initials(state.profile.name);
+  const headerInitials = document.getElementById("headerInitials");
+  if (headerInitials) headerInitials.textContent = initials(state.profile.name);
 
   const dirty = isDirty();
 

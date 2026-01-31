@@ -47,30 +47,6 @@
         </div>
       </header>
 
-      <!-- Page Sub-Header -->
-      <div class="flex-none z-20">
-      <div class="mx-auto max-w-6xl px-4 sm:px-6 pt-2">
-        <div class="flex items-center gap-4 py-3 dark:text-slate-100">
-          <div
-            class="flex h-12 w-12 items-center justify-center rounded-full border border-white/50 bg-white/60 font-semibold shadow-sm backdrop-blur-md dark:bg-slate-900/60 dark:border-white/10"
-            aria-label="Profile avatar"
-            id="headerInitials"
-          >
-            U
-          </div>
-
-          <div class="leading-tight">
-            <div class="text-lg font-semibold text-gray-900 dark:text-white">Profile</div>
-            <div class="text-sm text-gray-500 dark:text-gray-400">
-              Manage your personal information
-            </div>
-          </div>
-        </div>
-
-        <div class="h-px w-full bg-white/40 dark:bg-white/10"></div>
-      </div>
-      </div>
-
     <div class="flex-1 overflow-y-auto min-h-0">
     <div class="mx-auto max-w-6xl p-4 sm:p-6 pt-0">
       <div id="coverContainer" class="fm-enter group relative mt-3 h-64 w-full overflow-hidden rounded-[24px] border border-white/50 bg-white/60 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.05)] backdrop-blur-xl sm:h-80 dark:bg-slate-900/60 dark:border-white/10">
@@ -429,15 +405,13 @@
       <div
         id="aboutPanel"
         class="absolute right-0 top-0 h-full w-full max-w-md border-l bg-white shadow-xl transform transition-transform duration-300 translate-x-full dark:bg-slate-900 dark:border-slate-800"
-        class="absolute right-0 top-0 h-full w-full max-w-md border-l bg-white dark:bg-slate-900 shadow-xl transform transition-transform duration-300 translate-x-full dark:border-slate-800"
       >
         <div class="flex h-full flex-col">
           <!-- header -->
-          <div class="flex items-center justify-between border-b px-5 py-4 dark:border-slate-800">
           <div class="flex items-center justify-between border-b px-5 py-4 dark:border-slate-800 bg-white dark:bg-slate-900">
             <div class="flex items-center gap-2 dark:text-white">
               <i data-lucide="info" class="h-5 w-5"></i>
-              <div class="text-base font-semibold text-gray-900">About Us</div>
+              <div class="text-base font-semibold text-gray-900 dark:text-white">About Us</div>
             </div>
 
             <button
@@ -452,31 +426,54 @@
           <!-- content -->
           <div class="flex-1 overflow-auto p-5">
             <div class="grid gap-4">
-              <div class="rounded-2xl border bg-white p-4 dark:bg-slate-900 dark:border-slate-800">
               <div class="rounded-2xl border bg-white dark:bg-slate-900 p-4 dark:border-slate-800">
-                <div class="text-sm font-semibold text-gray-900 dark:text-white">Our mission</div>
+                <div class="text-sm font-semibold text-gray-900 dark:text-white">Our Vision</div>
                 <p class="mt-2 text-sm text-gray-500 dark:text-slate-400">
-                  We’re building a simple, friendly experience that helps people manage their profile
-                  and settings with clarity and control.
+                  To deliver a structured, data-driven, and user-centric platform that supports electric vehicle travel through accurate battery forecasting, intelligent route optimization, and real-time decision support.
                 </p>
               </div>
 
-              <div class="rounded-2xl border bg-white p-4 dark:bg-slate-900 dark:border-slate-800">
               <div class="rounded-2xl border bg-white dark:bg-slate-900 p-4 dark:border-slate-800">
-                <div class="text-sm font-semibold text-gray-900 dark:text-white">What we do</div>
-                <ul class="mt-2 grid gap-2 text-sm text-gray-500 dark:text-slate-400">
+                <div class="text-sm font-semibold text-gray-900 dark:text-white">Core Features</div>
+                <ul class="mt-2 grid gap-3 text-sm text-gray-500 dark:text-slate-400">
                   <li class="flex items-start gap-2">
-                    <span class="mt-1 h-1.5 w-1.5 rounded-full bg-gray-900 dark:bg-white"></span>
-                    Provide a clean profile & settings UI
+                    <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-gray-900 dark:bg-white"></span>
+                    <div>
+                      <span class="font-semibold text-gray-900 dark:text-white">Battery Forecasting & Range Prediction</span>
+                      <p class="mt-0.5">Estimates remaining battery level, time-to-empty, and arrival state of charge based on vehicle specifications, user inputs, and environmental factors.</p>
+                    </div>
                   </li>
                   <li class="flex items-start gap-2">
-                    <span class="mt-1 h-1.5 w-1.5 rounded-full bg-gray-900 dark:bg-white"></span>
-                    Help users personalize their experience
+                    <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-gray-900 dark:bg-white"></span>
+                    <div>
+                      <span class="font-semibold text-gray-900 dark:text-white">Route-Based Energy Estimation</span>
+                      <p class="mt-0.5">Calculates expected battery usage for selected destinations using route distance and driving assumptions.</p>
+                    </div>
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-gray-900 dark:bg-white"></span>
+                    <div>
+                      <span class="font-semibold text-gray-900 dark:text-white">Charging Support & Trip Planning</span>
+                      <p class="mt-0.5">Identifies nearby charging stations and assists users in planning trips to reduce range anxiety.</p>
+                    </div>
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-gray-900 dark:bg-white"></span>
+                    <div>
+                      <span class="font-semibold text-gray-900 dark:text-white">Safety & Trip Awareness</span>
+                      <p class="mt-0.5">Provides low-battery warnings and trip status indicators to support safer electric vehicle journeys.</p>
+                    </div>
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-gray-900 dark:bg-white"></span>
+                    <div>
+                      <span class="font-semibold text-gray-900 dark:text-white">Sustainability Insights</span>
+                      <p class="mt-0.5">Presents energy usage and environmental impact metrics to encourage efficient and responsible EV use.</p>
+                    </div>
                   </li>
                 </ul>
               </div>
 
-              <div class="rounded-2xl border bg-white p-4 dark:bg-slate-900 dark:border-slate-800">
               <div class="rounded-2xl border bg-white dark:bg-slate-900 p-4 dark:border-slate-800">
                 <div class="text-sm font-semibold text-gray-900 dark:text-white">App info</div>
                 <div class="mt-3 grid gap-2 text-sm">
@@ -516,15 +513,13 @@
       <div
         id="helpPanel"
         class="absolute right-0 top-0 h-full w-full max-w-md border-l bg-white shadow-xl transform transition-transform duration-300 translate-x-full dark:bg-slate-900 dark:border-slate-800"
-        class="absolute right-0 top-0 h-full w-full max-w-md border-l bg-white dark:bg-slate-900 shadow-xl transform transition-transform duration-300 translate-x-full dark:border-slate-800"
       >
         <div class="flex h-full flex-col">
           <!-- header -->
-          <div class="flex items-center justify-between border-b px-5 py-4 dark:border-slate-800">
           <div class="flex items-center justify-between border-b px-5 py-4 dark:border-slate-800 bg-white dark:bg-slate-900">
             <div class="flex items-center gap-2 dark:text-white">
               <i data-lucide="help-circle" class="h-5 w-5"></i>
-              <div class="text-base font-semibold text-gray-900">Help &amp; FAQ</div>
+              <div class="text-base font-semibold text-gray-900 dark:text-white">Help &amp; FAQ</div>
             </div>
 
             <button
@@ -540,7 +535,6 @@
           <div class="flex-1 overflow-auto p-5">
             <div class="grid gap-4">
               <!-- Search -->
-              <div class="rounded-2xl border bg-white p-4 dark:bg-slate-900 dark:border-slate-800">
               <div class="rounded-2xl border bg-white dark:bg-slate-900 p-4 dark:border-slate-800">
                 <div class="text-sm font-semibold text-gray-900 dark:text-white">How can we help?</div>
                 <div class="mt-3 flex items-center gap-2 rounded-xl border bg-white px-3 py-2 dark:bg-slate-900 dark:border-slate-700">
@@ -558,7 +552,6 @@
               </div>
 
               <!-- Quick actions -->
-              <div class="rounded-2xl border bg-white p-4 dark:bg-slate-900 dark:border-slate-800">
               <div class="rounded-2xl border bg-white dark:bg-slate-900 p-4 dark:border-slate-800">
                 <div class="text-sm font-semibold text-gray-900 dark:text-white">Quick actions</div>
                 <div class="mt-3 grid gap-2">
@@ -574,7 +567,6 @@
               </div>
 
               <!-- FAQ Accordion -->
-              <div class="rounded-2xl border bg-white p-4 dark:bg-slate-900 dark:border-slate-800">
               <div class="rounded-2xl border bg-white dark:bg-slate-900 p-4 dark:border-slate-800">
                 <div class="text-sm font-semibold text-gray-900 dark:text-white">Frequently asked questions</div>
 
@@ -609,6 +601,46 @@
                       Tap <span class="font-semibold text-gray-900 dark:text-white">Cancel</span> to revert back to the last saved profile.
                     </div>
                   </div>
+
+                  <div class="faq-item rounded-xl border bg-white dark:bg-slate-900 dark:border-slate-700" data-q="How does Trip Planner work?">
+                    <button type="button" class="faq-btn flex w-full items-center justify-between px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
+                      <span>How does Trip Planner work?</span>
+                      <i data-lucide="chevron-down" class="faq-chevron h-4 w-4 text-gray-500 transition-transform duration-200"></i>
+                    </button>
+                    <div class="faq-answer hidden px-3 pb-3 text-sm text-gray-500 dark:text-slate-400">
+                      It calculates routes based on your EV's current battery, efficiency, and charger locations to ensure you reach your destination safely.
+                    </div>
+                  </div>
+
+                  <div class="faq-item rounded-xl border bg-white dark:bg-slate-900 dark:border-slate-700" data-q="How do I add a vehicle?">
+                    <button type="button" class="faq-btn flex w-full items-center justify-between px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
+                      <span>How do I add a vehicle?</span>
+                      <i data-lucide="chevron-down" class="faq-chevron h-4 w-4 text-gray-500 transition-transform duration-200"></i>
+                    </button>
+                    <div class="faq-answer hidden px-3 pb-3 text-sm text-gray-500 dark:text-slate-400">
+                      Go to <span class="font-semibold text-gray-900 dark:text-white">My Garage</span> in settings, search for your car model, and tap "Add".
+                    </div>
+                  </div>
+
+                  <div class="faq-item rounded-xl border bg-white dark:bg-slate-900 dark:border-slate-700" data-q="What is Emergency Charging?">
+                    <button type="button" class="faq-btn flex w-full items-center justify-between px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
+                      <span>What is Emergency Charging?</span>
+                      <i data-lucide="chevron-down" class="faq-chevron h-4 w-4 text-gray-500 transition-transform duration-200"></i>
+                    </button>
+                    <div class="faq-answer hidden px-3 pb-3 text-sm text-gray-500 dark:text-slate-400">
+                      If your battery drops below critical levels, the app locks non-essential features and guides you to the nearest charger immediately.
+                    </div>
+                  </div>
+
+                  <div class="faq-item rounded-xl border bg-white dark:bg-slate-900 dark:border-slate-700" data-q="How accurate is range prediction?">
+                    <button type="button" class="faq-btn flex w-full items-center justify-between px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
+                      <span>How accurate is range prediction?</span>
+                      <i data-lucide="chevron-down" class="faq-chevron h-4 w-4 text-gray-500 transition-transform duration-200"></i>
+                    </button>
+                    <div class="faq-answer hidden px-3 pb-3 text-sm text-gray-500 dark:text-slate-400">
+                      Estimates are based on your vehicle specs and typical driving conditions. Real-world range may vary with traffic, weather, and driving style.
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -637,6 +669,22 @@
       const activeCarObj = JSON.parse(localStorage.getItem('active_car') || "null");
       if(headerUser) headerUser.textContent = localStorage.getItem('full_display_name') || 'User';
       if(headerCar && activeCarObj) headerCar.textContent = `${activeCarObj.brand} ${activeCarObj.model}`;
+
+      // Accordion Logic (Fix for missing JS when header is removed)
+      document.querySelectorAll('.acc-body').forEach(el => el.style.display = 'none');
+
+      document.querySelectorAll('[id$="Trigger"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const panel = btn.nextElementSibling;
+          if (panel && panel.classList.contains('acc-body')) {
+            const isHidden = panel.style.display === 'none';
+            panel.style.display = isHidden ? 'block' : 'none';
+            
+            const chevron = btn.querySelector('.acc-chevron');
+            if (chevron) chevron.style.transform = isHidden ? 'rotate(90deg)' : 'rotate(0deg)';
+          }
+        });
+      });
     </script>
   </body>
 </html>
