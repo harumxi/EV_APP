@@ -207,10 +207,12 @@ function validateAndCommitBattery(){
   if (!isBatteryValid(n)) {
     setBatteryError(true);
     batInput.value = String(lastValidBattery);
+    batInput.style.color = "";
     applyBatteryUI(lastValidBattery);
     return { ok:false, value:lastValidBattery };
   }
   setBatteryError(false);
+  batInput.style.color = "";
   const v = Math.round(n);
   lastValidBattery = v;
   batInput.value = String(v);
@@ -220,12 +222,26 @@ function validateAndCommitBattery(){
 
 batInput.addEventListener("input", () => {
   if (batInput.disabled) return;
-  const n = readBatteryRaw();
+
+  if (batInput.value.length > 3) {
+    batInput.value = batInput.value.slice(0, 3);
+  }
+
+  let n = readBatteryRaw();
+  if (n > 100) {
+    batInput.value = "100";
+    n = 100;
+  }
+
   if (isBatteryValid(n)) {
     setBatteryError(false);
+    batInput.style.color = "";
     applyBatteryUI(n);
   } else {
-    if (Number.isFinite(n) && (n < 0 || n > 100)) setBatteryError(true);
+    if (Number.isFinite(n) && (n < 0 || n > 100)) {
+      setBatteryError(true);
+      batInput.style.color = "red";
+    }
   }
 });
 
