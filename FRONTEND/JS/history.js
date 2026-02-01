@@ -14,6 +14,7 @@ let selectedIds = new Set();
 let activeTrip = null;
 let filterMode = 'drive'; // 'drive' | 'charge'
 let filterDate = null;
+let searchQuery = "";
 
 const app = document.getElementById('app');
 const detailModal = document.getElementById('detailModal');
@@ -98,6 +99,16 @@ function sortedTrips() {
   return trips
     .filter(t => {
         if (t.type !== filterMode) return false;
+        if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            const matches = (
+                (t.title && t.title.toLowerCase().includes(q)) ||
+                (t.location && t.location.toLowerCase().includes(q)) ||
+                (t.from && t.from.toLowerCase().includes(q)) ||
+                (t.to && t.to.toLowerCase().includes(q))
+            );
+            if (!matches) return false;
+        }
         if (filterDate) {
             const tripD = new Date(t.date);
             const filterD = new Date(filterDate + 'T00:00:00');
@@ -116,6 +127,11 @@ function setFilter(mode) {
 
 window.updateDateFilter = (val) => {
     filterDate = val;
+    render();
+};
+
+window.updateSearch = (val) => {
+    searchQuery = val;
     render();
 };
 
@@ -146,6 +162,15 @@ function openConfirm({ title, message, confirmText, onConfirm }) {
 function render() {
   const ms = masterState();
   const visibleTrips = sortedTrips();
+  
+  // Preserve focus state for search input
+  let restoreFocus = false;
+  let cursorPosition = 0;
+  const activeEl = document.activeElement;
+  if (activeEl && activeEl.id === 'historySearchInput') {
+      restoreFocus = true;
+      cursorPosition = activeEl.selectionStart;
+  }
 
   app.innerHTML = `
     <!-- Summary Header -->
@@ -185,21 +210,32 @@ function render() {
         </div>
       </div>
 
-      <!-- Tabs -->
-      <div class="flex flex-wrap items-center justify-between gap-3">
+      <div class="flex flex-col gap-3">
+          <!-- Filters -->
+          <div class="flex items-center gap-2">
+            <div class="relative group w-96">
+                <input id="historySearchInput" type="text" placeholder="Search..." 
+                    class="w-full bg-white/40 border border-white/60 text-xs font-medium text-gray-600 placeholder:text-gray-400 focus:bg-white focus:ring-0 px-3 py-1.5 h-9 rounded-xl shadow-sm backdrop-blur-sm pl-9 transition-all" 
+                    value="${searchQuery || ''}" 
+                    oninput="updateSearch(this.value)">
+                <svg class="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            </div>
+
+            <div class="flex items-center gap-2 bg-white/40 border border-white/60 p-1 rounded-xl shadow-sm backdrop-blur-sm shrink-0">
+                <input type="date" class="bg-transparent border-none text-xs font-medium text-gray-600 focus:ring-0 px-2 py-0.5 h-7" value="${filterDate || ''}" onchange="updateDateFilter(this.value)">
+                ${filterDate ? `
+                    <button onclick="clearDateFilter()" class="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition">
+                        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6 18 18"/></svg>
+                    </button>
+                ` : ''}
+            </div>
+          </div>
+
+          <!-- Tabs -->
           <div class="flex p-1 bg-gray-100/50 rounded-xl w-fit">
             <button onclick="setFilter('drive')" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${filterMode === 'drive' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}">Drives</button>
             <button onclick="setFilter('station_trip')" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${filterMode === 'station_trip' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}">Station Trips</button>
             <button onclick="setFilter('charge')" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${filterMode === 'charge' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}">Charging</button>
-          </div>
-
-          <div class="flex items-center gap-2 bg-white/40 border border-white/60 p-1 rounded-xl shadow-sm backdrop-blur-sm">
-            <input type="date" class="bg-transparent border-none text-xs font-medium text-gray-600 focus:ring-0 px-2 py-0.5 h-7" value="${filterDate || ''}" onchange="updateDateFilter(this.value)">
-            ${filterDate ? `
-                <button onclick="clearDateFilter()" class="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition">
-                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6 18 18"/></svg>
-                </button>
-            ` : ''}
           </div>
       </div>
 
@@ -371,6 +407,13 @@ function render() {
         render();
       });
     });
+  }
+  
+  // Restore focus if needed
+  if (restoreFocus) {
+      const input = document.getElementById('historySearchInput');
+      input.focus();
+      input.setSelectionRange(cursorPosition, cursorPosition);
   }
 
   document.querySelectorAll('.row-open').forEach(btn => {
