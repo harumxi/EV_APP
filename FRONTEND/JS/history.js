@@ -12,6 +12,7 @@ let trips = [];
 let isDeleteMode = false;
 let selectedIds = new Set();
 let activeTrip = null;
+let filterMode = 'drive'; // 'drive' | 'charge'
 
 const app = document.getElementById('app');
 const detailModal = document.getElementById('detailModal');
@@ -25,7 +26,8 @@ const ICONS = {
   calendar: `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>`,
   route: `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><line x1="6" y1="9" x2="6" y2="21"/><line x1="18" y1="3" x2="18" y2="15"/><path d="M6 21a3 3 0 0 0 3-3h6a3 3 0 0 1 3 3"/></svg>`,
   clock: `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`,
-  file: `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>`
+  file: `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>`,
+  zap: `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>`
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -40,9 +42,19 @@ async function fetchTrips() {
         const data = await res.json();
         
         if(data.ok && data.logs) {
-            trips = data.logs.map(log => ({
+            trips = data.logs.map(log => {
+                const isCharge = log.origin === 'Emergency Location';
+                const dest = (log.destination || '').toLowerCase();
+                const isStationTrip = !isCharge && (dest.includes('charging station') || dest.includes('hub') || dest.includes('e-vehicle'));
+                
+                let type = 'drive';
+                if (isCharge) type = 'charge';
+                else if (isStationTrip) type = 'station_trip';
+
+                return {
                 id: String(log.id),
-                title: `Trip to ${log.destination || 'Unknown'}`,
+                type: type,
+                title: isCharge ? `Charging at ${log.destination}` : `Trip to ${log.destination || 'Unknown'}`,
                 date: log.created_at,
                 from: log.origin || 'Unknown',
                 to: log.destination || 'Unknown',
@@ -56,7 +68,8 @@ async function fetchTrips() {
                 stops: [],
                 reflections: 'No notes added.',
                 fileName: `report-${log.id}.json`
-            }));
+                };
+            });
         }
     } catch(e) { 
         console.error("Fetch error", e);
@@ -81,11 +94,20 @@ function computeStats() {
 }
 
 function sortedTrips() {
-  return trips.slice().sort((a, b) => (a.date < b.date ? 1 : -1));
+  return trips
+    .filter(t => t.type === filterMode)
+    .sort((a, b) => (a.date < b.date ? 1 : -1));
+}
+
+function setFilter(mode) {
+  filterMode = mode;
+  selectedIds = new Set();
+  render();
 }
 
 function masterState() {
-  const total = trips.length;
+  const visibleTrips = sortedTrips();
+  const total = visibleTrips.length;
   const selected = selectedIds.size;
   return {
     checked: total > 0 && selected === total,
@@ -104,6 +126,7 @@ function openConfirm({ title, message, confirmText, onConfirm }) {
 
 function render() {
   const ms = masterState();
+  const visibleTrips = sortedTrips();
 
   app.innerHTML = `
     <!-- Summary Header -->
@@ -114,14 +137,14 @@ function render() {
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
           </div>
           <div>
-            <div class="text-xl font-bold tracking-tight text-gray-900">My trips</div>
+            <div class="text-xl font-bold tracking-tight text-gray-900">History</div>
             ${isDeleteMode ? `
               <div class="mt-0.5 text-sm text-gray-500 font-medium">
                 Select reports to delete.
               </div>
             ` : `
               <div class="mt-0.5 text-sm text-gray-500 font-medium">
-                Your recent travel history
+                Your recent activity
               </div>
             `}
           </div>
@@ -136,18 +159,25 @@ function render() {
               Done
             </button>
           ` : `
-            <button id="enterDeleteBtn" class="inline-flex items-center gap-2 rounded-xl border border-white/60 bg-white/40 px-3 py-2 text-xs font-bold text-gray-600 hover:bg-white/80 hover:text-gray-900 transition ${trips.length ? '' : 'opacity-50'}" ${trips.length ? '' : 'disabled'}>
+            <button id="enterDeleteBtn" class="inline-flex items-center gap-2 rounded-xl border border-white/60 bg-white/40 px-3 py-2 text-xs font-bold text-gray-600 hover:bg-white/80 hover:text-gray-900 transition ${visibleTrips.length ? '' : 'opacity-50'}" ${visibleTrips.length ? '' : 'disabled'}>
               Manage
             </button>
           `}
         </div>
       </div>
 
+      <!-- Tabs -->
+      <div class="flex p-1 bg-gray-100/50 rounded-xl w-fit">
+        <button onclick="setFilter('drive')" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${filterMode === 'drive' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}">Drives</button>
+        <button onclick="setFilter('station_trip')" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${filterMode === 'station_trip' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}">Station Trips</button>
+        <button onclick="setFilter('charge')" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${filterMode === 'charge' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}">Charging</button>
+      </div>
+
       ${isDeleteMode ? `
         <div class="mt-2 flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-gray-100/50">
           <div class="flex items-center gap-2">
-            <label class="inline-flex items-center gap-2 rounded-xl border border-white/60 bg-white/40 px-3 py-2 text-sm cursor-pointer hover:bg-white/60 transition ${trips.length ? '' : 'opacity-50'}">
-              <input id="masterCheckbox" type="checkbox" ${ms.checked ? 'checked' : ''} ${trips.length ? '' : 'disabled'} class="rounded border-gray-300 text-black focus:ring-black" />
+            <label class="inline-flex items-center gap-2 rounded-xl border border-white/60 bg-white/40 px-3 py-2 text-sm cursor-pointer hover:bg-white/60 transition ${visibleTrips.length ? '' : 'opacity-50'}">
+              <input id="masterCheckbox" type="checkbox" ${ms.checked ? 'checked' : ''} ${visibleTrips.length ? '' : 'disabled'} class="rounded border-gray-300 text-black focus:ring-black" />
               <span class="text-xs font-bold text-gray-700">${ms.checked ? 'Clear all' : 'Select all'}</span>
             </label>
             ${selectedIds.size ? `<span class="inline-flex items-center rounded-full bg-gray-900 px-2.5 py-1 text-xs font-bold text-white shadow-sm">${selectedIds.size} selected</span>` : ''}
@@ -163,12 +193,12 @@ function render() {
     <section class="rounded-[24px] border border-white/60 bg-white/40 shadow-sm backdrop-blur-xl overflow-hidden mt-4">
       <div class="${isDeleteMode ? 'grid grid-cols-[44px_1fr]' : 'grid grid-cols-1'} items-center border-b border-white/20 bg-white/30 px-4 py-3">
         ${isDeleteMode ? `<div class="flex items-center justify-center text-xs text-gray-400">✓</div>` : ''}
-        <div class="text-xs font-bold text-gray-400 uppercase tracking-wider">Recent Trips</div>
+        <div class="text-xs font-bold text-gray-400 uppercase tracking-wider">Recent ${filterMode === 'drive' ? 'Trips' : (filterMode === 'station_trip' ? 'Station Trips' : 'Sessions')}</div>
       </div>
 
-      ${sortedTrips().length ? `
+      ${visibleTrips.length ? `
         <div class="divide-y divide-gray-200">
-          ${sortedTrips().map(t => {
+          ${visibleTrips.map(t => {
             const checked = selectedIds.has(t.id);
             return `
               <div class="${isDeleteMode ? 'grid grid-cols-[44px_1fr]' : 'grid grid-cols-1'} items-stretch group transition-colors hover:bg-white/40 ${checked ? 'bg-blue-50/50' : ''}">
@@ -183,7 +213,7 @@ function render() {
                   
                   <!-- Leading Icon -->
                   <div class="hidden sm:flex flex-none w-10 h-10 rounded-full bg-white border border-white/60 shadow-sm items-center justify-center text-gray-400 group-hover:text-blue-600 group-hover:border-blue-100 transition-colors">
-                    ${ICONS.route}
+                    ${t.type === 'charge' ? ICONS.zap : ICONS.route}
                   </div>
 
                   <!-- Main Content -->
@@ -196,20 +226,27 @@ function render() {
                         <span class="w-0.5 h-0.5 rounded-full bg-gray-300"></span>
                         <span>${t.location}</span>
                     </div>
-                    <div class="text-[13px] text-gray-600 truncate font-normal flex items-center gap-1.5">
-                        <span class="text-gray-900">${t.from}</span>
-                        <svg class="w-3 h-3 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
-                        <span class="text-gray-900">${t.to}</span>
-                    </div>
+                    ${t.type === 'drive' || t.type === 'station_trip' ? `
+                        <div class="text-[13px] text-gray-600 truncate font-normal flex items-center gap-1.5">
+                            <span class="text-gray-900">${t.from}</span>
+                            <svg class="w-3 h-3 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+                            <span class="text-gray-900">${t.to}</span>
+                        </div>
+                    ` : `
+                        <div class="text-[13px] text-gray-600 truncate font-normal">
+                            Charging Session
+                        </div>
+                    `}
                   </div>
 
                   <!-- Right Actions -->
                   <div class="flex flex-col items-end gap-2 pl-2">
                     <!-- CO2 Pill -->
+                    ${t.type === 'drive' || t.type === 'station_trip' ? `
                     <div class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-emerald-50/40 border border-emerald-100/50 backdrop-blur-md">
                         <svg class="w-3 h-3 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-2.072-2.143-3-3-.928.857-1.928.857-3 3 0 1.071.5 1.693 1 3a2.5 2.5 0 0 0 2.5 2.5z"/><path d="M15.5 14.5A2.5 2.5 0 0 0 18 12c0-1.38-.5-2-1-3-1.072-2.143-2.072-2.143-3-3-.928.857-1.928.857-3 3 0 1.071.5 1.693 1 3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
                         <span class="text-xs font-bold text-emerald-600">${t.emissionsSavedKgCO2e} kg</span>
-                    </div>
+                    </div>` : ''}
                     
                     <!-- Report Ghost Button -->
                     <div class="flex items-center gap-1.5 px-2 py-1 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-black/5 transition-all">
@@ -226,10 +263,10 @@ function render() {
       ` : `
         <div class="p-12 text-center">
             <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3 text-gray-300">
-                <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 17h6"/><path d="M9 13h6"/><path d="M14 3H8c-2 0-3 1-3 3v12c0 2 1 3 3 3h8c2 0 3-1 3-3V8l-5-5Z"/><path d="M14 3v5h5"/></svg>
+                ${filterMode === 'charge' ? ICONS.zap : ICONS.route}
             </div>
-            <div class="text-sm font-medium text-gray-900">No trips found</div>
-            <div class="text-xs text-gray-500 mt-1">Your trip history will appear here.</div>
+            <div class="text-sm font-medium text-gray-900">No ${filterMode === 'drive' ? 'trips' : (filterMode === 'station_trip' ? 'station trips' : 'charging sessions')} found</div>
+            <div class="text-xs text-gray-500 mt-1">Your history will appear here.</div>
         </div>
       `}
     </section>
@@ -264,10 +301,11 @@ function render() {
       masterCheckbox.indeterminate = ms.indeterminate;
 
       masterCheckbox.onchange = () => {
-        if (!trips.length) return;
+        const visibleTrips = sortedTrips();
+        if (!visibleTrips.length) return;
         const next = new Set();
-        const shouldSelectAll = !(selectedIds.size === trips.length);
-        if (shouldSelectAll) trips.forEach(t => next.add(t.id));
+        const shouldSelectAll = !(selectedIds.size === visibleTrips.length);
+        if (shouldSelectAll) visibleTrips.forEach(t => next.add(t.id));
         selectedIds = next;
         render();
       };
