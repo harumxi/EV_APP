@@ -16,6 +16,8 @@
     <!-- Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Polyline Decoder (Required for real routes) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mapbox-polyline/1.1.1/polyline.min.js"></script>
 
     <!-- CSS -->
     <link rel="stylesheet" href="../CSS/trip_planner.css" />
@@ -276,6 +278,7 @@
         let animationFrameId = null;
         let cachedStations = [];
         let processedStationsList = []; // New Global Array to hold processed data
+        let currentRoutePoints = [];
         
         // UNIT PREFERENCES
         const PREF_UNIT = localStorage.getItem('pref_units') || 'KM';
@@ -505,8 +508,34 @@
                 </div>`;
             
             if(routePolyline) map.removeLayer(routePolyline);
-            const coords = [[userLat, userLng], [station.location.latitude, station.location.longitude]];
-            routePolyline = L.polyline(coords, {color: '#3b82f6', weight: 6}).addTo(map);
+            
+            // Fetch real route from Trip Planner API
+            try {
+                const res = await fetch('http://localhost/WEBPROG_PROJ/BACKEND/API/TRIPS/calculate.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        user_id: localStorage.getItem("user_id"),
+                        origin: { lat: userLat, lng: userLng },
+                        destination: { lat: station.location.latitude, lng: station.location.longitude },
+                        battery_percent: currentBattery
+                    })
+                });
+                const data = await res.json();
+                
+                if (data.ok && data.routes && data.routes.length > 0) {
+                    const geometry = data.routes[0].geometry;
+                    currentRoutePoints = polyline.decode(geometry);
+                    routePolyline = L.polyline(currentRoutePoints, {color: '#3b82f6', weight: 6, opacity: 0.8}).addTo(map);
+                } else {
+                    throw new Error("No route found");
+                }
+            } catch (e) {
+                console.warn("Route fetch failed, using straight line", e);
+                currentRoutePoints = [[userLat, userLng], [station.location.latitude, station.location.longitude]];
+                routePolyline = L.polyline(currentRoutePoints, {color: '#3b82f6', weight: 6, dashArray: '10, 10'}).addTo(map);
+            }
+            
             map.fitBounds(routePolyline.getBounds(), { padding: [50, 50] });
         }
 
@@ -524,20 +553,35 @@
             
             if(carMarker) map.removeLayer(carMarker);
             carMarker = L.marker([userLat, userLng], {icon: carIcon}).addTo(map);
-            let steps = 500; let step = 0;
-            const dLat = (selectedStation.location.latitude - userLat) / steps;
-            const dLng = (selectedStation.location.longitude - userLng) / steps;
             
-            function move() {
-                if(step >= steps) { arriveAtStation(); return; }
-                const lat = userLat + (dLat * step);
-                const lng = userLng + (dLng * step);
-                carMarker.setLatLng([lat, lng]);
-                map.panTo([lat, lng]);
-                step++;
-                animationFrameId = requestAnimationFrame(move);
+            // Use real route points if available
+            if (currentRoutePoints && currentRoutePoints.length > 2) {
+                let i = 0;
+                function movePoly() {
+                    if (i >= currentRoutePoints.length) { arriveAtStation(); return; }
+                    const newPos = currentRoutePoints[i];
+                    carMarker.setLatLng(newPos);
+                    map.panTo(newPos);
+                    i += 2; // Speed up slightly
+                    animationFrameId = requestAnimationFrame(movePoly);
+                }
+                movePoly();
+            } else {
+                // Fallback linear interpolation
+                let steps = 200; let step = 0;
+                const dLat = (selectedStation.location.latitude - userLat) / steps;
+                const dLng = (selectedStation.location.longitude - userLng) / steps;
+                function moveLinear() {
+                    if(step >= steps) { arriveAtStation(); return; }
+                    const lat = userLat + (dLat * step);
+                    const lng = userLng + (dLng * step);
+                    carMarker.setLatLng([lat, lng]);
+                    map.panTo([lat, lng]);
+                    step++;
+                    animationFrameId = requestAnimationFrame(moveLinear);
+                }
+                moveLinear();
             }
-            move();
         }
 
         function arriveAtStation() {
