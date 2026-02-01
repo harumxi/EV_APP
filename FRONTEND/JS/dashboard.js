@@ -134,7 +134,7 @@ function calculateStats() {
     if(effEl) effEl.innerText = Math.round(avgEfficiency / DIST_FACTOR) + ` Wh/${DIST_LABEL}`;
 
     const co2El = document.getElementById('stat-co2');
-    if(co2El) co2El.innerText = totalSavings.toFixed(1) + " kg CO₂e";
+    if(co2El) co2El.innerText = (totalEnergyWh / 1000).toFixed(1) + " kWh";
 
     const timeEl = document.getElementById('stat-time');
     if(timeEl) timeEl.innerText = (timeSaved * 60).toFixed(0) + " min";
@@ -155,7 +155,7 @@ function renderTable() {
     }
 
     recentTrips.forEach(trip => {
-        const savings = (trip.dist * 0.192).toFixed(1);
+        const energy = (trip.dist * 0.16).toFixed(1);
         
         const div = document.createElement('div');
         // Glass List Item: Frosted strip, lighter border, soft shadow
@@ -165,7 +165,7 @@ function renderTable() {
               <div class="text-sm font-bold text-gray-900">${trip.to}</div>
               <div class="text-xs text-gray-500 mt-1.5">${trip.date} · ${(trip.dist * DIST_FACTOR).toFixed(1)} ${DIST_LABEL}</div>
             </div>
-            <div class="px-3 py-1.5 rounded-full bg-white/60 border border-white/50 text-xs font-bold text-emerald-600 shadow-sm backdrop-blur-sm">${savings} kg saved</div>
+            <div class="px-3 py-1.5 rounded-full bg-white/60 border border-white/50 text-xs font-bold text-emerald-600 shadow-sm backdrop-blur-sm">${energy} kWh</div>
         `;
         container.appendChild(div);
     });
@@ -198,7 +198,7 @@ function renderCharts() {
             tDate.setHours(0,0,0,0);
             const key = tDate.getTime();
             if (dataMap.hasOwnProperty(key)) {
-                dataMap[key] += (t.dist * 0.192);
+                dataMap[key] += (t.dist * 0.16);
             }
         });
 
@@ -217,7 +217,7 @@ function renderCharts() {
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'CO₂ Saved',
+                    label: 'Energy Used',
                     data: data,
                     borderColor: '#10b981',
                     borderWidth: 3,
@@ -246,7 +246,7 @@ function renderCharts() {
                         cornerRadius: 16,
                         displayColors: false,
                         callbacks: {
-                            label: (context) => `${context.parsed.y} kg CO₂ Saved`
+                            label: (context) => `${context.parsed.y} kWh`
                         }
                     }
                 },

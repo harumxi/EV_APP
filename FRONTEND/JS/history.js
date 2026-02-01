@@ -65,6 +65,7 @@ async function fetchTrips() {
                 durationMinutes: Math.round(parseFloat(log.distance_km) * 1.5), // Estimate
                 etaMinutes: Math.round(parseFloat(log.distance_km) * 1.5),
                 emissionsSavedKgCO2e: (parseFloat(log.distance_km) * 0.192).toFixed(1),
+                energyKwh: (parseFloat(log.distance_km) * 0.16).toFixed(1), // Based on 160Wh/km
                 timeSavedMinutes: Math.round(parseFloat(log.distance_km) * 0.5),
                 energyEfficiencyWhPerKm: 160,
                 stops: [],
@@ -307,11 +308,11 @@ function render() {
 
                   <!-- Right Actions -->
                   <div class="flex flex-col items-end gap-2 pl-2">
-                    <!-- CO2 Pill -->
+                    <!-- Energy Pill -->
                     ${t.type === 'drive' || t.type === 'station_trip' ? `
                     <div class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-emerald-50/40 border border-emerald-100/50 backdrop-blur-md">
-                        <svg class="w-3 h-3 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-2.072-2.143-3-3-.928.857-1.928.857-3 3 0 1.071.5 1.693 1 3a2.5 2.5 0 0 0 2.5 2.5z"/><path d="M15.5 14.5A2.5 2.5 0 0 0 18 12c0-1.38-.5-2-1-3-1.072-2.143-2.072-2.143-3-3-.928.857-1.928.857-3 3 0 1.071.5 1.693 1 3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
-                        <span class="text-xs font-bold text-emerald-600">${t.emissionsSavedKgCO2e} kg</span>
+                        <svg class="w-3 h-3 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                        <span class="text-xs font-bold text-emerald-600">${t.energyKwh} kWh</span>
                     </div>` : ''}
                     
                     <!-- Report Ghost Button -->
@@ -446,8 +447,8 @@ function openDetailModal(id) {
 
     <div class="grid gap-3 sm:grid-cols-2">
       <div class="rounded-2xl border border-black/10 bg-white p-3">
-        <div class="text-xs text-black/60">Emissions saved</div>
-        <div class="mt-1 text-sm font-semibold">${activeTrip.emissionsSavedKgCO2e} kg CO₂e</div>
+        <div class="text-xs text-black/60">Energy Used</div>
+        <div class="mt-1 text-sm font-semibold">${activeTrip.energyKwh} kWh</div>
       </div>
       <div class="rounded-2xl border border-black/10 bg-white p-3">
         <div class="text-xs text-black/60">Energy efficiency</div>
