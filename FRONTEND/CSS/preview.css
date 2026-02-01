@@ -2,211 +2,431 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  font-family: "Segoe UI", sans-serif;
 }
 
 body {
-  background-color: #000;
+  background: #000;
   color: #fff;
-  height: 100vh;
-  overflow: hidden;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-family: "Montserrat", sans-serif;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
 }
 
-/* INTRO SCREEN */
-#intro-screen {
-  position: fixed;
-  inset: 0;
-  background: url("../IMAGES/darkbg.png") no-repeat center center;
-  background-size: cover;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-
-  /* ✅ This ensures space for the fixed bottom hint */
-  padding: 50px 40px;
-
-  cursor: pointer;
-  transition: opacity 0.15s ease, transform 0.15s ease;
-  will-change: opacity, transform;
-}
-
-/* BRAND */
-.brand-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-}
-
-.brand-name {
-  font-family: "Michroma", sans-serif;
-  font-size: 2.1rem;
-  letter-spacing: 12px;
-  text-transform: uppercase;
-  text-shadow: 0 4px 10px rgba(0, 0, 0, 0.9), 0 0 30px rgba(255, 255, 255, 0.25);
-}
-
-.logo-placeholder {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.15);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 9px;
-  color: rgba(255,255,255,0.4);
-}
-
-/* CAR STAGE */
-.model-stage {
+/* NAVBAR */
+.navbar {
+  padding: 40px 80px;
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  max-width: 1400px;
-
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  /* ✅ prevents the car block from pushing the bottom content away */
-  flex: 0 auto;
-  min-height: 240px;
-
-  /* ✅ move car higher */
-  margin: auto;
-  position: relative;
+  z-index: 10;
 }
 
-/* Ground Shadow */
-.model-stage::after {
+.nav-left {
+  display: flex;
+  gap: 40px;
+}
+
+.nav-left span {
+  font-size: 20px;
+  cursor: pointer;
+  opacity: 0.9;
+  font-weight: 500;
+}
+
+.nav-left span:hover {
+  opacity: 1;
+}
+
+/* DROPDOWN */
+.dropdown {
+  position: relative;
+  margin-right: 25px;
+}
+
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  top: 35px;
+  background: rgba(10, 10, 10, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 24px;
+  min-width: 300px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 255, 255, 0.05);
+  z-index: 100;
+}
+
+.dropdown-menu p {
+  margin: 12px 0;
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.7);
+  transition: color 0.2s, transform 0.2s;
+}
+
+.dropdown-menu p:hover {
+  color: #fff;
+  transform: translateX(5px);
+}
+
+.dropdown:hover .dropdown-menu {
+  display: block;
+}
+
+/* HERO */
+.hero {
+  height: 100vh;
+  background: #000;
+  display: flex;
+  align-items: center;
+  padding-left: 80px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Gradient Overlay for Text Readability */
+.hero::before {
   content: "";
   position: absolute;
-  bottom: 10px;
+  inset: 0;
+  background: linear-gradient(90deg, #000 0%, transparent 50%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.hero-content h1 {
+  font-size: 64px;
+  letter-spacing: -2px;
+  line-height: 0.9;
+  margin-bottom: 20px;
+  font-weight: 800;
+}
+
+.hero-content h1 span {
+  background: linear-gradient(135deg, #8b0000 0%, #dc143c 50%, #ff4500 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero-content p {
+  margin: 0 0 40px;
+  font-size: 16px;
+  opacity: 0.9;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  font-weight: 300;
+  line-height: 1.6;
+}
+
+.hero-content button {
+  padding: 18px 50px;
+  background: transparent;
+  border: 2px solid #fff;
+  color: #fff;
+  cursor: pointer;
+  transition: 0.3s;
+  font-size: 16px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+}
+
+.hero-content button:hover {
+  background: #fff;
+  color: #000;
+}
+
+.hero-image {
+  position: absolute;
+  top: 0;
+  right: -10%;
+  height: 100%;
+  width: 70%;
+  z-index: 0;
+}
+
+.hero-image img {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+
+/* ABOUT */
+.about {
+  position: relative;
+  height: 100vh;
+  background: url("../IMAGES/second.jpg") center/cover no-repeat;
+  overflow: hidden;
+}
+
+/* Cinematic Overlay */
+.about::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.9) 100%);
+  z-index: 1;
+}
+
+.about h2 {
+  position: absolute;
+  top: 15%;
   left: 50%;
   transform: translateX(-50%);
-  width: 85%;
-  height: 30px;
-  background: radial-gradient(ellipse at center, rgba(0,0,0,0.8) 0%, transparent 70%);
-  z-index: -1;
-  filter: blur(8px);
-  animation: shadow-pulse 1s ease-in-out infinite;
+  font-size: 86px;
+  font-weight: 800;
+  letter-spacing: -2px;
+  margin: 0;
+  z-index: 2;
+  text-transform: uppercase;
+  color: #fff;
 }
 
-/* HERO CAR (no border/frame) */
-.car-placeholder {
-  width: 100%;
+.about-details {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 900px;
+  text-align: center;
+  z-index: 2;
+}
 
-  /* ✅ responsive height so it fits on short screens */
-  height: min(650px, 60vh);
+.about p {
+  font-size: 18px;
+  line-height: 1.6;
+  opacity: 0.9;
+  margin-bottom: 5px;
+  font-weight: 400;
+}
 
-  background-image: url("../IMAGES/nobgcar.png");
-  background-repeat: no-repeat;
-  background-position: center center;
-  background-size: contain;
-
+.about hr {
   border: none;
-  box-shadow: none;
-  background-color: transparent;
+  height: 1px;
+  background: #fff;
+  width: 100%;
+  margin: 15px 0 0;
+  opacity: 0.8;
+}
 
-  animation: float 1s ease-in-out infinite;
-  will-change: transform;
-
-  /* For positioning and clipping reflections */
+/* VEHICLES */
+.vehicles {
   position: relative;
+  height: 100vh;
+  background: url("../IMAGES/prevbg.jpg") center/cover no-repeat;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   overflow: hidden;
 }
 
-/* Ambient Reflections (Cliffs/Road) */
-.car-placeholder::before {
-  display: none;
+.cars-container {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  width: 100%;
+  padding: 0 5%;
+  margin-bottom: 60px;
 }
 
-/* Lightning Flash Reflection */
-.car-placeholder::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    ellipse at 40% 30%,
-    rgba(200, 220, 255, 0.9) 0%,
-    transparent 60%
-  );
-  mix-blend-mode: color-dodge;
-  opacity: 0;
-  /* Stuttering flash effect */
-  animation: lightning-flash 4s ease-out infinite;
-  pointer-events: none;
-}
-
-/* SHADOW ANIMATION */
-@keyframes shadow-pulse {
-  0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.8; }
-  50% { transform: translateX(-50%) scale(0.8); opacity: 0.4; }
-}
-
-/* FLOAT */
-@keyframes float {
-  0%, 100% { transform: translateY(0) scale(1.1); }
-  50% { transform: translateY(-8px) scale(1.1); }
-}
-
-/* REFLECTION ANIMATIONS */
-@keyframes ambient-reflection {
-  from { transform: translateX(-8%); }
-  to { transform: translateX(8%); }
-}
-
-@keyframes lightning-flash {
-  0%, 90%, 100% { opacity: 0; transform: scale(1) skewX(-20deg); }
-  91% { opacity: 0.9; transform: scale(1.2) skewX(-20deg); }
-  92% { opacity: 0.2; transform: scale(1) skewX(-20deg); }
-  93% { opacity: 1; transform: scale(1.1) skewX(-20deg); }
-  94% { opacity: 0.1; transform: scale(1) skewX(-20deg); }
-}
-
-/* INFO */
-.info-section {
+.car-item {
   text-align: center;
-  max-width: 420px;
+  position: relative;
+  width: 40%;
 }
 
-.description {
-  font-family: "Michroma", sans-serif;
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: #e0e0e0;
-  font-weight: 700;
-  line-height: 1.6;
-  margin-top: 15px;
-}
-
-/* ✅ ALWAYS VISIBLE (even on compressed screens) */
-.touch-hint {
-  position: static;
-  transform: none;
-  margin-top: 25px;
-
-  font-family: "Michroma", sans-serif;
-  font-size: 0.6rem;
+.car-item h3 {
+  font-size: 24px;
+  margin-bottom: 60px;
   letter-spacing: 3px;
-  text-transform: uppercase;
-  font-weight: 700;
-
-  color: rgba(255, 255, 255, 0.4);
-  opacity: 1;
-
-  /* subtle premium feel */
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  font-weight: 600;
 }
 
-/* EXIT */
-.fade-out-up {
+.car-item img {
+  width: 100%;
+  height: auto;
+  display: block;
+  position: relative;
+  z-index: 2;
+  transition: transform 0.5s ease;
+}
+
+.car-item:first-child img:hover {
+  transform: scale(1.05);
+}
+
+/* Adjust Porsche vertical alignment */
+.car-item:last-child img {
+  transform: translateY(-75px) scale(1.15);
+}
+
+.car-item:last-child img:hover {
+  transform: translateY(-75px) scale(1.22);
+}
+
+.car-smoke {
+  position: absolute;
+  bottom: -30px;
+  left: 10%;
+  width: 80%;
+  height: 80px;
+  background: radial-gradient(ellipse at center, rgba(255,255,255,0.15) 0%, transparent 70%);
+  filter: blur(20px);
+  z-index: 1;
+}
+
+.contact-info {
+  position: absolute;
+  bottom: 80px;
+  left: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 10;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-size: 16px;
+  opacity: 0.9;
+  font-weight: 400;
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.8);
+}
+
+.contact-item span {
+  font-size: 24px;
+}
+
+.section-footer {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  text-align: center;
+  padding-bottom: 30px;
+  z-index: 10;
+}
+
+.section-footer hr {
+  width: 90%;
+  margin: 0 auto 20px;
+  border: none;
+  border-top: 1px solid rgba(255,255,255,0.3);
+}
+
+.section-footer p {
+  font-size: 14px;
+  opacity: 0.8;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+  .hero {
+    padding-left: 30px;
+  }
+
+  .about {
+    height: auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 80px 20px;
+  }
+
+  .about h2 {
+    position: relative;
+    top: auto;
+    right: auto;
+    left: auto;
+    transform: none;
+    font-size: 48px;
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .about-details {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    transform: none;
+    width: 100%;
+  }
+
+  .cars-container {
+    flex-direction: column;
+    align-items: center;
+    gap: 60px;
+  }
+
+  .car-item {
+    width: 80%;
+  }
+}
+
+/* --- ANIMATIONS --- */
+
+/* Keyframes */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInRight {
+  from { opacity: 0; transform: translateX(50px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Hero Section - Immediate Load */
+.navbar { animation: fadeInUp 1s ease-out; }
+.hero-content h1 { animation: fadeInUp 0.8s ease-out 0.2s backwards; }
+.hero-content p { animation: fadeInUp 0.8s ease-out 0.4s backwards; }
+.hero-content button { animation: fadeInUp 0.8s ease-out 0.6s backwards; }
+.hero-image { animation: fadeInRight 1.2s ease-out 0.2s backwards; }
+
+/* Scroll Elements - Initial Hidden State */
+.about h2, .about-details, .car-item, .contact-info, .section-footer {
   opacity: 0;
-  transform: translateY(-80px) scale(0.97);
-  pointer-events: none;
+  transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+}
+
+/* Default Hidden Positions (Desktop) */
+.car-item, .contact-info, .section-footer {
+  transform: translateY(30px);
+}
+
+/* Preserve existing centering for About section */
+.about h2, .about-details {
+  transform: translate(-50%, 30px);
+}
+
+/* Active State (Triggered by JS) */
+.show { opacity: 1 !important; }
+
+.car-item.show, .contact-info.show, .section-footer.show {
+  transform: translateY(0);
+}
+
+.about h2.show, .about-details.show {
+  transform: translate(-50%, 0); /* Restores translateX(-50%) */
+}
+
+/* Mobile Overrides for Animations */
+@media (max-width: 900px) {
+  .about h2, .about-details {
+    transform: translateY(30px);
+  }
+  .about h2.show, .about-details.show {
+    transform: translateY(0);
+  }
 }

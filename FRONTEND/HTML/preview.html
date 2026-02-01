@@ -2,48 +2,102 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>EnerGo Intro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ENERGO | Smart Energy Intelligence</title>
 
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Michroma&family=Montserrat:wght@200;300;400&display=swap" rel="stylesheet" />
-
-  <!-- CSS -->
   <link rel="stylesheet" href="../CSS/preview.css" />
 </head>
-
 <body>
-  <div id="intro-screen" onclick="startApp()">
 
-    <div class="brand-section">
-      <h1 class="brand-name">ENERGO</h1>
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="nav-left">
+
+      <div class="dropdown">
+        <span>Features &#9662;</span>
+        <div class="dropdown-menu">
+          <p>Smart energy monitoring</p>
+          <p>Battery optimization</p>
+          <p>Charging analytics</p>
+          <p>Real-time insights</p>
+        </div>
+      </div>
+
+      <div class="dropdown">
+        <span>Impact &#9662;</span>
+        <div class="dropdown-menu">
+          <p>Lower emissions</p>
+          <p>Energy efficiency</p>
+          <p>Sustainable mobility</p>
+        </div>
+      </div>
+
+      <div class="dropdown">
+        <span>Insights &#9662;</span>
+        <div class="dropdown-menu">
+          <p>Usage analytics</p>
+          <p>Charging behavior</p>
+          <p>Performance data</p>
+        </div>
+      </div>
+
+    </div>
+  </nav>
+
+  <!-- HERO SECTION -->
+  <section class="hero">
+    <div class="hero-content">
+      <h1>ENER<span>GO</span></h1>
+      <p>Smart Energy Intelligence for Electric Vehicles.</p>
+      <button id="getStartedBtn">Get Started</button>
     </div>
 
-    <div class="model-stage">
-      <div class="car-placeholder"></div>
+    <div class="hero-image">
+      <img src="../IMAGES/first.jpg" alt="EV Preview">
     </div>
+  </section>
 
-    <div class="info-section">
-      <p class="description">
-        Power your journey with smart energy.<br>
-        Seamless. Sustainable. Future-ready.
+  <!-- ABOUT -->
+  <section class="about">
+    <h2>ABOUT US</h2>
+    <div class="about-details">
+      <p>
+        ENERGO is a forward-thinking electric mobility brand focused on smart
+        energy intelligence for electric vehicles. We combine advanced
+        technology, data-driven insights, and sustainability to shape the future
+        of transportation.
       </p>
+      <hr>
+    </div>
+  </section>
+
+  <!-- VEHICLES -->
+  <section class="vehicles">
+    <div class="cars-container">
+      <div class="car-item">
+        <h3>TESLA MODEL 3</h3>
+        <img src="../IMAGES/teslamodel3nobg.png" alt="Tesla Model 3">
+        <div class="car-smoke"></div>
+      </div>
+
+      <div class="car-item">
+        <h3>PORSCHE TAYCAN</h3>
+        <img src="../IMAGES/porschenobg.png" alt="Porsche Taycan">
+        <div class="car-smoke"></div>
+      </div>
     </div>
 
-    <!-- ✅ Always visible on compressed screens -->
-    <div class="touch-hint">Touch anywhere to continue</div>
+    <div class="contact-info">
+      <div class="contact-item"><span>&#9742;</span> +1 (555) 123-4567</div>
+      <div class="contact-item"><span>&#9993;</span> energo@gmail.com</div>
+    </div>
 
-  </div>
+    <div class="section-footer">
+      <hr>
+      <p>© 2026 ENERGO. All Rights Reserved | Privacy Policy | Terms of Service</p>
+    </div>
+  </section>
 
-  <script>
-    function startApp() {
-      document.getElementById('intro-screen').classList.add('fade-out-up');
-      setTimeout(() => {
-        window.location.href = 'login.html';
-      }, 200);
-    }
-  </script>
+  <script src="../JS/preview.js"></script>
 </body>
 </html>

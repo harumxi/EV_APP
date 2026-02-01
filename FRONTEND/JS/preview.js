@@ -1,21 +1,17 @@
-const intro = document.getElementById("intro-screen");
+const getStartedBtn = document.getElementById("getStartedBtn");
 
-// Ensure the touch hint text is present
-if (!intro.querySelector(".touch-hint")) {
-  const hint = document.createElement("div");
-  hint.className = "touch-hint";
-  hint.textContent = "Touch anywhere to continue";
-  intro.appendChild(hint);
-}
-
-function closeIntro() {
-  intro.classList.add("fade-out-up");
-  setTimeout(() => {
-    window.location.href = "login.html";
-  }, 800);
-}
-
-document.addEventListener("click", closeIntro);
-document.addEventListener("keydown", (e) => {
-  if (e.code === "Space" || e.code === "Enter") closeIntro();
+getStartedBtn.addEventListener("click", () => {
+  window.location.href = "../HTML/login.html";
 });
+
+// Scroll Animation Observer
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach((entry) => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add("show");
+    }
+  });
+}, { threshold: 0.1 });
+
+const hiddenElements = document.querySelectorAll(".about h2, .about-details, .car-item, .contact-info, .section-footer");
+hiddenElements.forEach((el) => observer.observe(el));
