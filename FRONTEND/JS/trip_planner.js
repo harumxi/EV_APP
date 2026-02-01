@@ -488,6 +488,36 @@ window.closeLowBattModal = function() {
     if(lowBattModal) lowBattModal.classList.remove("active");
 }
 
+function showRangeExceededModal(battValue) {
+    const existing = document.getElementById('range-exceeded-modal');
+    if (existing) existing.remove();
+
+    const html = `
+        <div id="range-exceeded-modal" class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-gray-100 transform transition-all scale-100">
+                <div class="p-6 text-center">
+                    <div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-500"><path d="M19.07 4.93 4.93 19.07M22 12h-4M2 12h4M12 2v4M12 18v4"/></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Insufficient Range</h3>
+                    <p class="text-gray-600 text-sm mb-6">
+                        Destination is beyond your current battery range. We need to find a charging station.
+                    </p>
+                    <button id="range-modal-ok" class="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-sm shadow-lg transition transform active:scale-95">
+                        Find Charging Stations
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+
+    document.getElementById('range-modal-ok').onclick = () => {
+        document.getElementById('range-exceeded-modal').remove();
+        showLowBattModal(battValue);
+    };
+}
+
 window.proceedToCharging = function() {
     const val = modalBattLevel ? parseInt(modalBattLevel.textContent) : 0;
     localStorage.setItem("user_battery_level", val);
@@ -540,6 +570,14 @@ async function calculateRoutes() {
         
         if(!data.ok || !data.routes || data.routes.length === 0) {
             alert("No routes found.");
+            setInputsLocked(false);
+            return;
+        }
+
+        // Check if destination is reachable (battery > 0%)
+        const isReachable = data.routes.some(r => parseFloat(r.end_battery) > 0);
+        if (!isReachable) {
+            showRangeExceededModal(battRes.value);
             setInputsLocked(false);
             return;
         }
