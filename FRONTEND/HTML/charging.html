@@ -279,6 +279,8 @@
         let cachedStations = [];
         let processedStationsList = []; // New Global Array to hold processed data
         let currentRoutePoints = [];
+        let startMarker = null;
+        let endMarker = null;
         
         // UNIT PREFERENCES
         const PREF_UNIT = localStorage.getItem('pref_units') || 'KM';
@@ -288,6 +290,15 @@
         const userIcon = L.divIcon({ html: '<div style="width:16px; height:16px; background:#3b82f6; border:3px solid white; border-radius:50%; box-shadow:0 0 10px rgba(0,0,0,0.5);"></div>', className: '' });
         const chargerIcon = L.divIcon({ html: '<div style="font-size:32px; filter:drop-shadow(0 4px 6px rgba(0,0,0,0.4)); cursor: pointer;">⚡</div>', className: '', iconSize: [30, 40], iconAnchor: [15, 40] });
         const carIcon = L.divIcon({ html: '<div style="font-size:30px; transform: rotate(0deg); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">🚗</div>', className: 'car-marker', iconSize: [30, 30], iconAnchor: [15, 15] });
+
+        // Helper from Trip Planner for consistent markers
+        function addMarker(lat, lng, label, isStart){
+            const color = isStart ? '#16a34a' : '#dc2626'; 
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" stroke="white" stroke-width="2" style="filter:drop-shadow(0 3px 3px rgba(0,0,0,0.5))"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5" fill="white"/></svg>`;
+            const icon = L.divIcon({ html: svg, className: '', iconSize: [40, 40], iconAnchor: [20, 40], popupAnchor: [0, -40] });
+            const m = L.marker([lat, lng], {icon}).addTo(map).bindPopup(label);
+            return m;
+        }
 
         document.addEventListener("DOMContentLoaded", () => {
             let savedBatt = localStorage.getItem('user_battery_level') || localStorage.getItem('last_known_battery');
@@ -508,6 +519,11 @@
                 </div>`;
             
             if(routePolyline) map.removeLayer(routePolyline);
+            if(startMarker) map.removeLayer(startMarker);
+            if(endMarker) map.removeLayer(endMarker);
+
+            startMarker = addMarker(userLat, userLng, "Start", true);
+            endMarker = addMarker(station.location.latitude, station.location.longitude, "Destination", false);
             
             // Fetch real route from Trip Planner API
             try {
@@ -526,14 +542,14 @@
                 if (data.ok && data.routes && data.routes.length > 0) {
                     const geometry = data.routes[0].geometry;
                     currentRoutePoints = polyline.decode(geometry);
-                    routePolyline = L.polyline(currentRoutePoints, {color: '#3b82f6', weight: 6, opacity: 0.8}).addTo(map);
+                    routePolyline = L.polyline(currentRoutePoints, {color: '#2563eb', weight: 6, opacity: 1}).addTo(map);
                 } else {
                     throw new Error("No route found");
                 }
             } catch (e) {
                 console.warn("Route fetch failed, using straight line", e);
                 currentRoutePoints = [[userLat, userLng], [station.location.latitude, station.location.longitude]];
-                routePolyline = L.polyline(currentRoutePoints, {color: '#3b82f6', weight: 6, dashArray: '10, 10'}).addTo(map);
+                routePolyline = L.polyline(currentRoutePoints, {color: '#2563eb', weight: 6, dashArray: '10, 10', opacity: 1}).addTo(map);
             }
             
             map.fitBounds(routePolyline.getBounds(), { padding: [50, 50] });
