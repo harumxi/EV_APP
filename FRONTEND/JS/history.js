@@ -13,6 +13,7 @@ let isDeleteMode = false;
 let selectedIds = new Set();
 let activeTrip = null;
 let filterMode = 'drive'; // 'drive' | 'charge'
+let filterDate = null;
 
 const app = document.getElementById('app');
 const detailModal = document.getElementById('detailModal');
@@ -95,7 +96,15 @@ function computeStats() {
 
 function sortedTrips() {
   return trips
-    .filter(t => t.type === filterMode)
+    .filter(t => {
+        if (t.type !== filterMode) return false;
+        if (filterDate) {
+            const tripD = new Date(t.date);
+            const filterD = new Date(filterDate + 'T00:00:00');
+            if (tripD.toDateString() !== filterD.toDateString()) return false;
+        }
+        return true;
+    })
     .sort((a, b) => (a.date < b.date ? 1 : -1));
 }
 
@@ -104,6 +113,16 @@ function setFilter(mode) {
   selectedIds = new Set();
   render();
 }
+
+window.updateDateFilter = (val) => {
+    filterDate = val;
+    render();
+};
+
+window.clearDateFilter = () => {
+    filterDate = null;
+    render();
+};
 
 function masterState() {
   const visibleTrips = sortedTrips();
@@ -167,10 +186,21 @@ function render() {
       </div>
 
       <!-- Tabs -->
-      <div class="flex p-1 bg-gray-100/50 rounded-xl w-fit">
-        <button onclick="setFilter('drive')" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${filterMode === 'drive' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}">Drives</button>
-        <button onclick="setFilter('station_trip')" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${filterMode === 'station_trip' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}">Station Trips</button>
-        <button onclick="setFilter('charge')" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${filterMode === 'charge' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}">Charging</button>
+      <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex p-1 bg-gray-100/50 rounded-xl w-fit">
+            <button onclick="setFilter('drive')" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${filterMode === 'drive' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}">Drives</button>
+            <button onclick="setFilter('station_trip')" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${filterMode === 'station_trip' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}">Station Trips</button>
+            <button onclick="setFilter('charge')" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${filterMode === 'charge' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}">Charging</button>
+          </div>
+
+          <div class="flex items-center gap-2 bg-white/40 border border-white/60 p-1 rounded-xl shadow-sm backdrop-blur-sm">
+            <input type="date" class="bg-transparent border-none text-xs font-medium text-gray-600 focus:ring-0 px-2 py-0.5 h-7" value="${filterDate || ''}" onchange="updateDateFilter(this.value)">
+            ${filterDate ? `
+                <button onclick="clearDateFilter()" class="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition">
+                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6 18 18"/></svg>
+                </button>
+            ` : ''}
+          </div>
       </div>
 
       ${isDeleteMode ? `
