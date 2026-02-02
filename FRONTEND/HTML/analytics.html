@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Analytics</title>
+
+  <!-- Global styles -->
+  <link rel="stylesheet" href="../CSS/style.css">
+
+  <!-- Analytics page styles -->
+  <link rel="stylesheet" href="../CSS/analytics.css">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="brand-logo">
+        <i data-lucide="zap" style="width: 18px; height: 18px;"></i>
+      </div>
+      <span class="brand-name">EnerGo</span>
+    </div>
+    
+    <nav class="sidebar-menu">
+      <a href="overview.html" class="menu-item">
+        <i data-lucide="layout-dashboard" class="menu-icon"></i>
+        <span>Overview</span>
+      </a>
+      <a href="users.html" class="menu-item">
+        <i data-lucide="users" class="menu-icon"></i>
+        <span>Users</span>
+      </a>
+      <a href="#" class="menu-item active">
+        <i data-lucide="bar-chart-2" class="menu-icon"></i>
+        <span>Analytics</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="localStorage.clear(); window.location.href='login.html'">
+        <i data-lucide="log-out" class="menu-icon"></i>
+        <span>Log out</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main">
+    <div style="display: flex; align-items: center; gap: 1rem; padding-bottom: 1.5rem; border-bottom: 1px solid #e5e7eb; margin-bottom: 2rem;">
+      <button id="menu-btn">&#9776;</button>
+      <h1 style="margin: 0; font-size: 2rem; font-weight: 600; color: #111827; letter-spacing: -0.025em;">Analytics</h1>
+    </div>
+
+    <!-- Summary -->
+    <section class="summary-grid">
+      <div class="card" style="background-color: #eff6ff; border-color: #dbeafe;">
+        <p style="color: #1e40af;">Total Trips</p>
+        <h2 style="color: #1e3a8a;">1,020</h2>
+      </div>
+      <div class="card" style="background-color: #ecfdf5; border-color: #d1fae5;">
+        <p style="color: #065f46;">Charging Sessions</p>
+        <h2 style="color: #064e3b;">590</h2>
+      </div>
+      <div class="card" style="background-color: #f5f3ff; border-color: #ede9fe;">
+        <p style="color: #5b21b6;">Avg. Efficiency</p>
+        <h2 style="color: #4c1d95;">92%</h2>
+      </div>
+    </section>
+
+    <!-- Charts -->
+    <section class="charts">
+      <div class="card">
+        <h3>Trips (Locations)</h3>
+        <p class="chart-subtitle">Number of visits per city</p>
+        <div style="height: 300px; width: 100%;">
+          <canvas id="tripsChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Charging Stations</h3>
+        <p class="chart-subtitle">Active stations by region</p>
+        <div style="height: 300px; width: 100%;">
+          <canvas id="stationsChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sustainability -->
+    <section class="summary-grid">
+      <div class="card">
+        <p>Energy Used</p>
+        <h2>84,300 kWh</h2>
+      </div>
+      <div class="card">
+        <p>CO₂ Saved</p>
+        <h2>42,150 kg</h2>
+      </div>
+      <div class="card">
+        <p>Efficiency</p>
+        <h2>92%</h2>
+      </div>
+    </section>
+  </main>
+
+  <!-- Page Script -->
+  <script src="../JS/analytics.js"></script>
+  <script>
+    lucide.createIcons();
+    const menuBtn = document.getElementById('menu-btn');
+    const sidebar = document.querySelector('.sidebar');
+    const main = document.querySelector('.main');
+
+    menuBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('hidden');
+      if(main) main.classList.toggle('full-width');
+    });
+  </script>
+
+</body>
+</html>
