@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>User Management</title>
+
+  <!-- Global styles (if you have them) -->
+  <link rel="stylesheet" href="../CSS/style.css">
+
+  <!-- Users page styles -->
+  <link rel="stylesheet" href="../CSS/users.css">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f9fafb;
+      margin: 0;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .sidebar {
+      width: 260px;
+      min-width: 260px;
+      background-color: #ffffff;
+      border-right: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      padding: 1.5rem 1rem;
+      transition: width 0.3s ease, min-width 0.3s ease, padding 0.3s ease, opacity 0.3s ease;
+      height: 100vh;
+      overflow-y: auto;
+    }
+    .sidebar.hidden {
+      width: 0 !important;
+      min-width: 0 !important;
+      padding: 0 !important;
+      opacity: 0;
+      overflow: hidden;
+    }
+    .sidebar-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0 0.5rem 1.5rem 0.5rem;
+      margin-bottom: 0.5rem;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      background: #000000;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+    .brand-name {
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: #111827;
+      letter-spacing: -0.025em;
+    }
+    .sidebar-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      flex: 1;
+    }
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.625rem 0.875rem;
+      border-radius: 0.5rem;
+      color: #6b7280;
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .menu-item:hover {
+      background-color: #f3f4f6;
+      color: #111827;
+      transform: translateX(4px);
+    }
+    .menu-item.active {
+      background-color: #eff6ff;
+      color: #1d4ed8;
+      font-weight: 600;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .menu-icon {
+      width: 1.25rem;
+      height: 1.25rem;
+      stroke-width: 2px;
+    }
+    .sidebar-footer {
+      margin-top: auto;
+      padding-top: 1rem;
+      border-top: 1px solid #f3f4f6;
+      margin-bottom: 2rem;
+    }
+    .logout-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.625rem 0.875rem;
+      border-radius: 0.5rem;
+      color: #ef4444;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.2s;
+      text-align: left;
+    }
+    .logout-btn:hover {
+      background-color: #fef2f2;
+      transform: translateX(4px);
+    }
+    .main {
+      flex: 1;
+      padding: 2rem;
+      transition: margin-left 0.3s ease, width 0.3s ease;
+      overflow-y: auto;
+    }
+    .main.full-width {
+      margin-left: 0;
+      width: 100%;
+    }
+    #menu-btn {
+      font-size: 1.5rem; cursor: pointer; background: none; border: none;
+    }
+    /* Card & Table Styles */
+    .card {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    }
+    .table-wrapper {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      overflow-x: auto;
+      background: white;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      white-space: nowrap;
+    }
+    th {
+      text-align: left;
+      padding: 12px 24px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      color: #6b7280;
+      background-color: #f9fafb;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    td {
+      padding: 16px 24px;
+      font-size: 14px;
+      color: #111827;
+      border-bottom: 1px solid #f9fafb;
+      vertical-align: middle;
+    }
+    tbody tr {
+      transition: background-color 0.15s ease;
+    }
+    tbody tr:hover {
+      background-color: #f9fafb;
+    }
+    th:nth-child(3), td:nth-child(3) { text-align: center; }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    
+    /* Column Styles */
+    .user-name { font-weight: 600; color: #111827; }
+    .text-muted { color: #6b7280; }
+    
+    /* Status Badges */
+    .status-pill {
+      display: inline-flex; align-items: center; padding: 2px 10px;
+      border-radius: 9999px; font-size: 12px; font-weight: 600;
+      min-width: 70px; justify-content: center;
+    }
+    .status-active { background-color: #ecfdf5; color: #059669; }
+    .status-inactive { background-color: #f3f4f6; color: #4b5563; }
+
+    /* Actions Menu */
+    .action-cell { text-align: right; position: relative; }
+    .kebab-btn {
+      background: transparent; border: none; cursor: pointer; padding: 6px;
+      border-radius: 4px; color: #9ca3af; display: inline-flex;
+      align-items: center; justify-content: center; transition: all 0.2s;
+    }
+    .kebab-btn:hover { background-color: #f3f4f6; color: #111827; }
+    
+    .stats-popover {
+      position: absolute; right: 32px; top: 10px; width: 200px;
+      background: white; border: 1px solid #e5e7eb; border-radius: 12px;
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+      z-index: 50; display: none; flex-direction: column; padding: 16px;
+      text-align: left;
+    }
+    .stats-popover.show { display: flex; animation: fadeIn 0.2s ease-out; }
+    .stat-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .stat-row:last-child { margin-bottom: 0; }
+    .stat-label { font-size: 12px; color: #6b7280; font-weight: 500; }
+    .stat-value { font-size: 13px; color: #111827; font-weight: 600; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .users-controls input {
+      border: 1px solid #e5e7eb;
+      border-radius: 0.5rem;
+      padding: 0.5rem 1rem;
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="brand-logo">
+        <i data-lucide="zap" style="width: 18px; height: 18px;"></i>
+      </div>
+      <span class="brand-name">EnerGo</span>
+    </div>
+    
+    <nav class="sidebar-menu">
+      <a href="overview.html" class="menu-item">
+        <i data-lucide="layout-dashboard" class="menu-icon"></i>
+        <span>Overview</span>
+      </a>
+      <a href="#" class="menu-item active">
+        <i data-lucide="users" class="menu-icon"></i>
+        <span>Users</span>
+      </a>
+      <a href="analytics.html" class="menu-item">
+        <i data-lucide="bar-chart-2" class="menu-icon"></i>
+        <span>Analytics</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="localStorage.clear(); window.location.href='login.html'">
+        <i data-lucide="log-out" class="menu-icon"></i>
+        <span>Log out</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main">
+    <div style="display: flex; align-items: center; gap: 1rem; padding-bottom: 1.5rem; border-bottom: 1px solid #e5e7eb; margin-bottom: 2rem;">
+      <button id="menu-btn">&#9776;</button>
+      <h1 style="margin: 0; font-size: 2rem; font-weight: 600; color: #111827; letter-spacing: -0.025em;">User Management</h1>
+    </div>
+
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600; color: #111827;">All Users</h3>
+        <div class="users-controls" style="margin: 0; display: flex; gap: 10px; align-items: center;">
+          <input type="text" id="searchInput" placeholder="Search users..." style="width: 260px;">
+          <select id="statusFilter" style="border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 0.5rem 1rem; outline: none; font-size: 0.875rem; color: #374151;">
+            <option value="">All Status</option>
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+        </div>
+      </div>
+
+    <!-- Users Table -->
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Email</th>
+            <th>EV Count</th>
+            <th>Status</th>
+            <th>Joined</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="usersTable">
+          <!-- Rows injected by users.js -->
+        </tbody>
+      </table>
+    </div>
+    </div>
+  </main>
+
+  <!-- Users Page Script -->
+  <script src="../JS/users.js"></script>
+  <script>
+    lucide.createIcons();
+    const menuBtn = document.getElementById('menu-btn');
+    const sidebar = document.querySelector('.sidebar');
+    const main = document.querySelector('.main');
+
+    menuBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('hidden');
+      if(main) main.classList.toggle('full-width');
+    });
+  </script>
+
+</body>
+</html>
