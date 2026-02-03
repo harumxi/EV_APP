@@ -1,0 +1,166 @@
+/* Feedbacks Page Styles */
+
+.feedbacks-section {
+  margin-bottom: 2rem;
+}
+
+.feedbacks-section .card {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Feedback Table */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+table thead {
+  background-color: #f9fafb;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+table th {
+  text-align: left;
+  padding: 12px 0;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #6b7280;
+}
+
+table th:first-child {
+  text-align: center;
+}
+
+table tbody tr {
+  border-bottom: 1px solid #e5e7eb;
+  transition: background-color 0.2s ease;
+}
+
+table tbody tr:hover {
+  background-color: #fafafa;
+}
+
+table tbody td {
+  padding: 12px 0;
+  color: #374151;
+  font-size: 0.9375rem;
+}
+
+table tbody td:first-child {
+  text-align: center;
+}
+
+/* Star Ratings in Table */
+.feedback-star {
+  display: inline-block;
+  margin-right: 2px;
+}
+
+.feedback-star.filled {
+  color: #f59e0b;
+}
+
+.feedback-star.empty {
+  color: #d1d5db;
+}
+
+/* Status Badge */
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.status-new {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+.status-reviewed {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+/* Filter Controls */
+#searchInput,
+#ratingFilter,
+#sortBy {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.2s ease;
+}
+
+#searchInput:focus,
+#ratingFilter:focus,
+#sortBy:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+#searchInput::placeholder {
+  color: #9ca3af;
+}
+
+/* Empty State */
+#emptyState {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  color: #9ca3af;
+}
+
+#emptyState i {
+  width: 48px;
+  height: 48px;
+  color: #d1d5db;
+  margin: 0 auto 1rem;
+  display: block;
+}
+
+/* Responsive Table */
+@media (max-width: 1024px) {
+  table {
+    font-size: 0.875rem;
+  }
+
+  table th,
+  table td {
+    padding: 10px 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .feedbacks-section .card {
+    padding: 1rem;
+    overflow-x: auto;
+  }
+
+  table {
+    min-width: 600px;
+    font-size: 0.8125rem;
+  }
+
+  table th,
+  table td {
+    padding: 8px 4px;
+  }
+
+  #searchInput,
+  #ratingFilter,
+  #sortBy {
+    font-size: 0.8125rem;
+    padding: 0.4rem 0.6rem;
+  }
+}
+
