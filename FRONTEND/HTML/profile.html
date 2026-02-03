@@ -364,6 +364,20 @@
 
                 <div class="h-px bg-white/40 dark:bg-white/10"></div>
 
+                <!-- Prominent primary action: Write a review -->
+                <div class="px-4 py-3">
+                  <button
+                    id="openFeedbackBtn"
+                    type="button"
+                    class="w-full rounded-2xl bg-gradient-to-r from-black/90 to-black/70 text-white py-3 text-sm font-semibold shadow-md flex items-center justify-center gap-2 hover:scale-[1.01] transition-transform"
+                  >
+                    <i data-lucide="star" class="h-4 w-4"></i>
+                    Write a review
+                  </button>
+                </div>
+
+                <div class="h-px bg-white/40 dark:bg-white/10"></div>
+
                 <button
                   type="button"
                   id="openHelpBtn"
@@ -660,7 +674,75 @@
       </div>
     </div>
 
+    <!-- Feedback Modal (UI-only) -->
+    <div id="feedbackModal" class="fixed inset-0 z-50 hidden items-center justify-center px-4 py-6 backdrop-blur-sm">
+      <div class="absolute inset-0 bg-black/30" aria-hidden="true"></div>
+      <div class="relative w-full max-w-md rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-white/30 dark:border-white/10 backdrop-blur-xl shadow-lg p-5">
+        <button id="feedbackCloseBtn" class="absolute right-3 top-3 text-gray-600 dark:text-gray-300">
+          <i data-lucide="x" class="h-5 w-5"></i>
+        </button>
+
+        <div class="text-center">
+          <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Feedback</h3>
+          <p class="text-xs text-slate-600 dark:text-slate-400 mt-1">Help us improve your experience</p>
+        </div>
+
+        <form id="feedbackForm" class="mt-4 space-y-3">
+          <div class="flex items-center justify-center gap-2" aria-hidden>
+            <button type="button" data-star="1" class="star-btn p-2 rounded-full text-slate-400">
+              <i data-lucide="star" class="h-5 w-5"></i>
+            </button>
+            <button type="button" data-star="2" class="star-btn p-2 rounded-full text-slate-400">
+              <i data-lucide="star" class="h-5 w-5"></i>
+            </button>
+            <button type="button" data-star="3" class="star-btn p-2 rounded-full text-slate-400">
+              <i data-lucide="star" class="h-5 w-5"></i>
+            </button>
+            <button type="button" data-star="4" class="star-btn p-2 rounded-full text-slate-400">
+              <i data-lucide="star" class="h-5 w-5"></i>
+            </button>
+            <button type="button" data-star="5" class="star-btn p-2 rounded-full text-slate-400">
+              <i data-lucide="star" class="h-5 w-5"></i>
+            </button>
+          </div>
+
+          <input type="hidden" id="feedbackRating" name="rating" value="">
+
+          <div>
+            <label for="feedbackText" class="sr-only">Your feedback</label>
+            <textarea id="feedbackText" maxlength="500" class="w-full rounded-xl border px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-700 dark:text-white" rows="4" placeholder="Tell us what we can improve"></textarea>
+            <div id="feedbackCharToast" class="text-xs text-red-500 mt-2 hidden">Maximum 500 characters</div>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <div class="text-xs text-slate-500 dark:text-slate-400">We respect your privacy — feedback is anonymous.</div>
+            <button type="submit" class="ml-3 rounded-xl bg-black text-white px-4 py-2 text-sm font-semibold">Submit</button>
+          </div>
+
+          <div id="feedbackMessage" class="text-xs text-slate-600 dark:text-slate-400 mt-1"></div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Optional Floating Feedback Button -->
+    <button id="feedbackFloatingBtn" aria-label="Send feedback" class="fixed right-5 bottom-6 z-40 inline-flex items-center gap-2 rounded-full bg-white/90 dark:bg-slate-800/80 border border-white/40 dark:border-white/10 px-3 py-2 shadow-lg">
+      <i data-lucide="message-circle" class="h-4 w-4 text-slate-900 dark:text-white"></i>
+      <span class="text-xs font-medium text-slate-900 dark:text-white">Feedback</span>
+    </button>
+
+    <style>
+      /* Feedback modal styles (keeps existing soft-glass look) */
+      #feedbackModal { display: none; }
+      #feedbackModal.show { display: flex; }
+      #feedbackModal .star-btn.active i { color: #f59e0b; }
+      .feedback-toast { position: fixed; left: 50%; transform: translateX(-50%) translateY(-10px); top: 14px; background: #111827; color: white; padding: 8px 14px; border-radius: 999px; opacity: 0; transition: opacity 180ms, transform 220ms; z-index: 60; }
+      .feedback-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+      #feedbackModal .error { color: #ef4444; }
+      #feedbackModal .success { color: #10b981; }
+    </style>
+
     <!-- Your JS -->
+    <script src="../JS/feedback.js"></script>
     <script src="../JS/profile.js"></script>
     <script>
       // Populate Header User Info

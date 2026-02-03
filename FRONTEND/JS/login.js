@@ -13,6 +13,14 @@ document.addEventListener("DOMContentLoaded", () => {
     // if (localStorage.getItem("user_id")) {
     //     window.location.href = "garage.html";
     // }
+    
+    // Add event listener for password validation message
+    const signupPasswordField = document.getElementById("signupPassword");
+    if (signupPasswordField) {
+        signupPasswordField.addEventListener("input", function() {
+            updatePasswordValidationMessage(this.value);
+        });
+    }
 });
 
 // ===== UI TOGGLE FUNCTIONS (User's UI Logic) =====
@@ -139,6 +147,50 @@ function setLoading(btn, isLoading, text = "Submit") {
     }
 }
 
+// ===== PASSWORD VALIDATION =====
+function validatePassword(password) {
+    const errors = [];
+    
+    if (password.length < 8) {
+        errors.push("Password must be at least 8 characters long");
+    }
+    if (!/[A-Z]/.test(password)) {
+        errors.push("Password must contain at least one uppercase letter");
+    }
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+        errors.push("Password must contain at least one special character");
+    }
+    
+    return errors;
+}
+
+function updatePasswordValidationMessage(password) {
+    const validationMsg = document.getElementById("passwordValidationMessage");
+    if (!validationMsg) return;
+    
+    if (!password) {
+        validationMsg.innerHTML = "";
+        validationMsg.classList.remove("error");
+        return;
+    }
+    
+    const errors = validatePassword(password);
+    
+    if (errors.length === 0) {
+        validationMsg.innerHTML = "";
+        validationMsg.classList.remove("error");
+    } else if (errors.length === 1) {
+        // One requirement missing
+        validationMsg.innerHTML = `One password requirement is still missing.`;
+        validationMsg.classList.add("error");
+    } else {
+        // Multiple requirements missing - show as bullet list
+        const bulletList = errors.map(error => `<li>${error}</li>`).join("");
+        validationMsg.innerHTML = `<ul>${bulletList}</ul>`;
+        validationMsg.classList.add("error");
+    }
+}
+
 // ===== AUTH HANDLERS =====
 
 // LOGIN
@@ -215,6 +267,13 @@ document.getElementById("signupFormElement")?.addEventListener("submit", async f
     if (payload.password !== payload.confirmPassword) {
         setLoading(btn, false);
         return showSuccess("Passwords do not match.");
+    }
+
+    // Validate password strength
+    const passwordErrors = validatePassword(payload.password);
+    if (passwordErrors.length > 0) {
+        setLoading(btn, false);
+        return showSuccess(passwordErrors.join("\n"));
     }
 
     try {

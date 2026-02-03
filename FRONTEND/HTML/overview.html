@@ -234,15 +234,15 @@
     <section class="stats">
       <div class="card" style="background-color: #ecfdf5; border-color: #d1fae5;">
         <p style="color: #065f46;">Active Users</p>
-        <h2 style="color: #064e3b;">1,240</h2>
+        <h2 style="color: #064e3b;" id="activeUsersCount">--</h2>
       </div>
       <div class="card" style="background-color: #fffbeb; border-color: #fde68a;">
         <p style="color: #92400e;">Inactive Users</p>
-        <h2 style="color: #78350f;">320</h2>
+        <h2 style="color: #78350f;" id="inactiveUsersCount">--</h2>
       </div>
       <div class="card" style="background-color: #f3f4f6; border-color: #e5e7eb;">
-        <p style="color: #4b5563;">Archived Users</p>
-        <h2 style="color: #1f2937;">48</h2>
+        <p style="color: #4b5563;">Unverified Users</p>
+        <h2 style="color: #1f2937;" id="unverifiedUsersCount">--</h2>
       </div>
     </section>
 
@@ -269,15 +269,38 @@
     <section class="stats">
       <div class="card">
         <p>Energy Used (kWh)</p>
-        <h2>84,300</h2>
+        <h2 id="totalEnergyUsed">--</h2>
       </div>
       <div class="card">
         <p>CO₂ Saved (kg)</p>
-        <h2>42,150</h2>
+        <h2 id="co2Saved">--</h2>
       </div>
       <div class="card">
         <p>Avg Energy Efficiency</p>
-        <h2>92%</h2>
+        <h2 id="avgEfficiency">--</h2>
+      </div>
+    </section>
+
+    <!-- Recent Users -->
+    <section class="charts">
+      <div class="card">
+        <h3 style="margin: 0 0 1rem 0; font-size: 1.25rem; font-weight: 600; color: #111827;">All Users</h3>
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="border-bottom: 1px solid #e5e7eb;">
+                <th style="text-align: left; padding: 12px 0; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; color: #6b7280;">Name</th>
+                <th style="text-align: left; padding: 12px 0; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; color: #6b7280;">Email</th>
+                <th style="text-align: center; padding: 12px 0; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; color: #6b7280;">EVs</th>
+                <th style="text-align: left; padding: 12px 0; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; color: #6b7280;">Status</th>
+                <th style="text-align: left; padding: 12px 0; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; color: #6b7280;">Joined</th>
+              </tr>
+            </thead>
+            <tbody id="recentUsersBody">
+              <tr><td colspan="5" style="text-align: center; padding: 32px 12px; color: #6b7280;">Loading users...</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
   </main>
