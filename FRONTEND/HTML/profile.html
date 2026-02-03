@@ -688,30 +688,42 @@
         </div>
 
         <form id="feedbackForm" class="mt-4 space-y-3">
-          <div class="flex items-center justify-center gap-3" role="group" aria-label="Rating (1-5 stars)">
+          <div class="flex items-center justify-center gap-5" role="group" aria-label="Rating (1-5 stars)">
             <button type="button" data-star="1" class="star-btn relative inline-flex items-center justify-center p-2 rounded-full transition-all duration-200" aria-label="1 star">
-              <i data-lucide="star" class="star-outline absolute h-6 w-6 text-slate-300 dark:text-slate-500 transition-opacity duration-200"></i>
-              <i data-lucide="star" class="star-fill absolute h-6 w-6 text-amber-700/60 dark:text-amber-700/50 transition-opacity duration-200 opacity-0"></i>
+              <i data-lucide="star" class="star-outline absolute h-8 w-8 text-slate-300 dark:text-slate-500 transition-opacity duration-200"></i>
+              <i data-lucide="star" class="star-fill absolute h-8 w-8 text-amber-700/60 dark:text-amber-700/50 transition-opacity duration-200 opacity-0"></i>
             </button>
             <button type="button" data-star="2" class="star-btn relative inline-flex items-center justify-center p-2 rounded-full transition-all duration-200" aria-label="2 stars">
-              <i data-lucide="star" class="star-outline absolute h-6 w-6 text-slate-300 dark:text-slate-500 transition-opacity duration-200"></i>
-              <i data-lucide="star" class="star-fill absolute h-6 w-6 text-amber-700/60 dark:text-amber-700/50 transition-opacity duration-200 opacity-0"></i>
+              <i data-lucide="star" class="star-outline absolute h-8 w-8 text-slate-300 dark:text-slate-500 transition-opacity duration-200"></i>
+              <i data-lucide="star" class="star-fill absolute h-8 w-8 text-amber-700/60 dark:text-amber-700/50 transition-opacity duration-200 opacity-0"></i>
             </button>
             <button type="button" data-star="3" class="star-btn relative inline-flex items-center justify-center p-2 rounded-full transition-all duration-200" aria-label="3 stars">
-              <i data-lucide="star" class="star-outline absolute h-6 w-6 text-slate-300 dark:text-slate-500 transition-opacity duration-200"></i>
-              <i data-lucide="star" class="star-fill absolute h-6 w-6 text-amber-700/60 dark:text-amber-700/50 transition-opacity duration-200 opacity-0"></i>
+              <i data-lucide="star" class="star-outline absolute h-8 w-8 text-slate-300 dark:text-slate-500 transition-opacity duration-200"></i>
+              <i data-lucide="star" class="star-fill absolute h-8 w-8 text-amber-700/60 dark:text-amber-700/50 transition-opacity duration-200 opacity-0"></i>
             </button>
             <button type="button" data-star="4" class="star-btn relative inline-flex items-center justify-center p-2 rounded-full transition-all duration-200" aria-label="4 stars">
-              <i data-lucide="star" class="star-outline absolute h-6 w-6 text-slate-300 dark:text-slate-500 transition-opacity duration-200"></i>
-              <i data-lucide="star" class="star-fill absolute h-6 w-6 text-amber-700/60 dark:text-amber-700/50 transition-opacity duration-200 opacity-0"></i>
+              <i data-lucide="star" class="star-outline absolute h-8 w-8 text-slate-300 dark:text-slate-500 transition-opacity duration-200"></i>
+              <i data-lucide="star" class="star-fill absolute h-8 w-8 text-amber-700/60 dark:text-amber-700/50 transition-opacity duration-200 opacity-0"></i>
             </button>
             <button type="button" data-star="5" class="star-btn relative inline-flex items-center justify-center p-2 rounded-full transition-all duration-200" aria-label="5 stars">
-              <i data-lucide="star" class="star-outline absolute h-6 w-6 text-slate-300 dark:text-slate-500 transition-opacity duration-200"></i>
-              <i data-lucide="star" class="star-fill absolute h-6 w-6 text-amber-700/60 dark:text-amber-700/50 transition-opacity duration-200 opacity-0"></i>
+              <i data-lucide="star" class="star-outline absolute h-8 w-8 text-slate-300 dark:text-slate-500 transition-opacity duration-200"></i>
+              <i data-lucide="star" class="star-fill absolute h-8 w-8 text-amber-700/60 dark:text-amber-700/50 transition-opacity duration-200 opacity-0"></i>
             </button>
           </div>
 
           <input type="hidden" id="feedbackRating" name="rating" value="">
+
+          <div>
+            <label for="feedbackCategory" class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Category (Optional)</label>
+            <select id="feedbackCategory" name="category" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-400 dark:focus:ring-slate-600">
+              <option value="">Select category...</option>
+              <option value="dashboard">Dashboard</option>
+              <option value="trip_planner">Trip Planner</option>
+              <option value="charging_hub">Charging Hub</option>
+              <option value="profile">Profile</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
 
           <div>
             <label for="feedbackText" class="sr-only">Your feedback</label>
@@ -766,6 +778,29 @@
 
       #feedbackModal .star-btn.active .star-fill {
         opacity: 1; /* Show fill when active - continuous across all selected stars */
+      }
+
+      /* Category Dropdown Styles */
+      #feedbackCategory {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23111827' d='M10.293 3.293L6 7.586 1.707 3.293A1 1 0 00.293 4.707l5 5a1 1 0 001.414 0l5-5a1 1 0 10-1.414-1.414z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        padding-right: 2.5rem;
+      }
+
+      #feedbackCategory::-webkit-outer-spin-button,
+      #feedbackCategory::-webkit-inner-spin-button {
+        display: none;
+      }
+
+      #feedbackCategory:focus {
+        ring: 2px;
+        ring-color: rgba(100, 116, 139, 0.25);
+      }
+
+      .dark #feedbackCategory {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23f1f5f9' d='M10.293 3.293L6 7.586 1.707 3.293A1 1 0 00.293 4.707l5 5a1 1 0 001.414 0l5-5a1 1 0 10-1.414-1.414z'/%3E%3C/svg%3E");
       }
 
       .feedback-toast { position: fixed; left: 50%; transform: translateX(-50%) translateY(-10px); top: 14px; background: #111827; color: white; padding: 8px 14px; border-radius: 999px; opacity: 0; transition: opacity 180ms, transform 220ms; z-index: 60; }

@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const floatingBtn = document.getElementById('feedbackFloatingBtn');
   const starButtons = document.querySelectorAll('[data-star]');
   const ratingInput = document.getElementById('feedbackRating');
+  const categoryInput = document.getElementById('feedbackCategory');
   const feedbackForm = document.getElementById('feedbackForm');
   const feedbackMessage = document.getElementById('feedbackMessage');
   const feedbackTextarea = document.getElementById('feedbackText');
@@ -24,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ratingInput.value = '';
     updateStars(0);
     feedbackTextarea.value = '';
+    if (categoryInput) { categoryInput.value = ''; }
     if (charToast) { charToast.classList.add('hidden'); }
     feedbackMessage.textContent = '';
   }
