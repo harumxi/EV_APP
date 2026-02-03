@@ -95,6 +95,24 @@ document.addEventListener('DOMContentLoaded', () => {
       feedbackTextarea.value = feedbackTextarea.value.slice(0, 500);
     }
 
+    // Build feedback object (anonymous)
+    const feedbackObj = {
+      rating: rating,
+      text: (feedbackTextarea && feedbackTextarea.value) ? feedbackTextarea.value.trim() : '',
+      category: (categoryInput && categoryInput.value) ? categoryInput.value : '',
+      created_at: new Date().toISOString(),
+      reviewed: false
+    };
+
+    // Persist locally so admin view can pick it up (anonymous)
+    try {
+      const existing = JSON.parse(localStorage.getItem('user_feedbacks') || '[]');
+      existing.push(feedbackObj);
+      localStorage.setItem('user_feedbacks', JSON.stringify(existing));
+    } catch (err) {
+      console.warn('Unable to persist feedback locally', err);
+    }
+
     // Show subtle success confirmation and close modal
     feedbackMessage.textContent = 'Thanks — your feedback was received.';
     feedbackMessage.classList.remove('error');

@@ -22,25 +22,38 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load feedbacks from API
   async function loadFeedbacks() {
     try {
-      // Fetch user feedbacks - anonymous, from the feedbackForm submission
-      const response = await fetch('/BACKEND/API/FEEDBACK/get_all_feedbacks.php');
-      if (!response.ok) {
-        throw new Error('Failed to load feedbacks');
+      const res = await fetch('/BACKEND/API/FEEDBACK/get_all_feedbacks.php');
+      if (!res.ok) {
+        console.warn('Feedbacks API returned non-ok response, falling back to local only');
+        allFeedbacks = [];
+      } else {
+        const data = await res.json();
+        allFeedbacks = data.feedbacks || [];
       }
-      const data = await response.json();
-      allFeedbacks = (data.feedbacks || []).map(feedback => ({
-        ...feedback,
-        reviewed: feedback.reviewed || false, // Default status
-        source: feedback.source || 'App' // Default source
-      }));
-      updateStats();
-      displayFeedbacks();
     } catch (error) {
-      console.error('Error loading feedbacks:', error);
-      showEmptyState('No feedbacks available or error loading data');
+      console.warn('Could not load feedbacks from backend', error);
+      allFeedbacks = [];
     }
-  }
 
+    // Merge locally-submitted anonymous feedbacks from localStorage
+    try {
+      const local = JSON.parse(localStorage.getItem('user_feedbacks') || '[]');
+      if (Array.isArray(local) && local.length) {
+        allFeedbacks = allFeedbacks.concat(local.map(f => ({
+          rating: f.rating || 0,
+          text: f.text || '',
+          category: f.category || '',
+          created_at: f.created_at || new Date().toISOString(),
+          reviewed: f.reviewed || false
+        })));
+      }
+    } catch (err) {
+      console.warn('Could not read local feedbacks', err);
+    }
+
+    updateStats();
+    displayFeedbacks();
+  }
   // Update summary statistics
   function updateStats() {
     const total = allFeedbacks.length;
@@ -104,9 +117,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // Create table row for feedback
   function createTableRow(feedback) {
     const rating = parseInt(feedback.rating) || 0;
-    const stars = Array.from({length: 5}, (_, i) => 
-      `<i data-lucide="star" class="feedback-star ${i < rating ? 'filled' : 'empty'}" style="width: 16px; height: 16px; display: inline-block;"></i>`
-    ).join('');
+    // Show numeric rating with a single muted star for readability
+    const ratingDisplay = `
+      <span style="display:inline-flex; align-items:center; gap:8px; color: #6b7280; font-weight:600;">
+        <span style="font-size:0.95rem;">${rating}</span>
+        <span aria-hidden="true" style="font-size:16px; line-height:1; color: #6b7280;">★</span>
+      </span>
+    `;
 
     const date = new Date(feedback.created_at || new Date());
     const dateStr = date.toLocaleDateString('en-US', { 
@@ -119,7 +136,8 @@ document.addEventListener('DOMContentLoaded', () => {
       minute: '2-digit'
     });
 
-    const source = sourceMap[feedback.source?.toLowerCase()] || feedback.source || 'App';
+    // Prefer explicit category submitted from the feedback modal; fall back to mapped source
+    const categoryDisplay = feedback.category || sourceMap[feedback.source?.toLowerCase()] || feedback.source || 'App';
     const status = feedback.reviewed ? 'Reviewed' : 'New';
     const statusColor = feedback.reviewed ? '#6b7280' : '#2563eb';
     const statusBgColor = feedback.reviewed ? '#f3f4f6' : '#eff6ff';
@@ -132,15 +150,13 @@ document.addEventListener('DOMContentLoaded', () => {
     return `
       <tr style="border-bottom: 1px solid #e5e7eb; hover-background: #f9fafb;">
         <td style="text-align: center; padding: 12px 0; color: #6b7280;">
-          <div style="display: flex; gap: 2px; justify-content: center;">
-            ${stars}
-          </div>
+          ${ratingDisplay}
         </td>
         <td style="text-align: left; padding: 12px 0; color: #374151; font-size: 0.9375rem;" title="${feedbackText}">
           ${truncatedText}
         </td>
         <td style="text-align: left; padding: 12px 0; color: #6b7280; font-size: 0.875rem;">
-          ${source}
+          ${escapeHtml(categoryDisplay)}
         </td>
         <td style="text-align: left; padding: 12px 0; color: #6b7280; font-size: 0.875rem;">
           ${dateStr}<br><span style="font-size: 0.8125rem; color: #9ca3af;">${timeStr}</span>
