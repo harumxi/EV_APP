@@ -688,21 +688,26 @@
         </div>
 
         <form id="feedbackForm" class="mt-4 space-y-3">
-          <div class="flex items-center justify-center gap-2" aria-hidden>
-            <button type="button" data-star="1" class="star-btn p-2 rounded-full text-slate-400">
-              <i data-lucide="star" class="h-5 w-5"></i>
+          <div class="flex items-center justify-center gap-3" role="group" aria-label="Rating (1-5 stars)">
+            <button type="button" data-star="1" class="star-btn relative inline-flex items-center justify-center p-2 rounded-full transition-all duration-200" aria-label="1 star">
+              <i data-lucide="star" class="star-outline absolute h-6 w-6 text-slate-300 dark:text-slate-500 transition-opacity duration-200"></i>
+              <i data-lucide="star" class="star-fill absolute h-6 w-6 text-amber-700/60 dark:text-amber-700/50 transition-opacity duration-200 opacity-0"></i>
             </button>
-            <button type="button" data-star="2" class="star-btn p-2 rounded-full text-slate-400">
-              <i data-lucide="star" class="h-5 w-5"></i>
+            <button type="button" data-star="2" class="star-btn relative inline-flex items-center justify-center p-2 rounded-full transition-all duration-200" aria-label="2 stars">
+              <i data-lucide="star" class="star-outline absolute h-6 w-6 text-slate-300 dark:text-slate-500 transition-opacity duration-200"></i>
+              <i data-lucide="star" class="star-fill absolute h-6 w-6 text-amber-700/60 dark:text-amber-700/50 transition-opacity duration-200 opacity-0"></i>
             </button>
-            <button type="button" data-star="3" class="star-btn p-2 rounded-full text-slate-400">
-              <i data-lucide="star" class="h-5 w-5"></i>
+            <button type="button" data-star="3" class="star-btn relative inline-flex items-center justify-center p-2 rounded-full transition-all duration-200" aria-label="3 stars">
+              <i data-lucide="star" class="star-outline absolute h-6 w-6 text-slate-300 dark:text-slate-500 transition-opacity duration-200"></i>
+              <i data-lucide="star" class="star-fill absolute h-6 w-6 text-amber-700/60 dark:text-amber-700/50 transition-opacity duration-200 opacity-0"></i>
             </button>
-            <button type="button" data-star="4" class="star-btn p-2 rounded-full text-slate-400">
-              <i data-lucide="star" class="h-5 w-5"></i>
+            <button type="button" data-star="4" class="star-btn relative inline-flex items-center justify-center p-2 rounded-full transition-all duration-200" aria-label="4 stars">
+              <i data-lucide="star" class="star-outline absolute h-6 w-6 text-slate-300 dark:text-slate-500 transition-opacity duration-200"></i>
+              <i data-lucide="star" class="star-fill absolute h-6 w-6 text-amber-700/60 dark:text-amber-700/50 transition-opacity duration-200 opacity-0"></i>
             </button>
-            <button type="button" data-star="5" class="star-btn p-2 rounded-full text-slate-400">
-              <i data-lucide="star" class="h-5 w-5"></i>
+            <button type="button" data-star="5" class="star-btn relative inline-flex items-center justify-center p-2 rounded-full transition-all duration-200" aria-label="5 stars">
+              <i data-lucide="star" class="star-outline absolute h-6 w-6 text-slate-300 dark:text-slate-500 transition-opacity duration-200"></i>
+              <i data-lucide="star" class="star-fill absolute h-6 w-6 text-amber-700/60 dark:text-amber-700/50 transition-opacity duration-200 opacity-0"></i>
             </button>
           </div>
 
@@ -734,7 +739,35 @@
       /* Feedback modal styles (keeps existing soft-glass look) */
       #feedbackModal { display: none; }
       #feedbackModal.show { display: flex; }
-      #feedbackModal .star-btn.active i { color: #f59e0b; }
+
+      /* Star Rating Interactive Styles */
+      #feedbackModal .star-btn {
+        cursor: pointer;
+        background: transparent;
+        border: none;
+        transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      /* Default state: outline visible, fill hidden */
+      #feedbackModal .star-btn .star-outline {
+        opacity: 1;
+        transition: opacity 200ms ease;
+      }
+
+      #feedbackModal .star-btn .star-fill {
+        opacity: 0; /* Hidden by default */
+        transition: opacity 200ms ease;
+      }
+
+      /* When star is selected (active class): show fill, hide outline */
+      #feedbackModal .star-btn.active .star-outline {
+        opacity: 0; /* Hide outline when filled */
+      }
+
+      #feedbackModal .star-btn.active .star-fill {
+        opacity: 1; /* Show fill when active - continuous across all selected stars */
+      }
+
       .feedback-toast { position: fixed; left: 50%; transform: translateX(-50%) translateY(-10px); top: 14px; background: #111827; color: white; padding: 8px 14px; border-radius: 999px; opacity: 0; transition: opacity 180ms, transform 220ms; z-index: 60; }
       .feedback-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
       #feedbackModal .error { color: #ef4444; }

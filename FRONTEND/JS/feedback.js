@@ -12,11 +12,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const feedbackTextarea = document.getElementById('feedbackText');
   const charToast = document.getElementById('feedbackCharToast');
 
+  // Track current rating for persistence during hover
+  let currentRating = 0;
+
   function openModal() {
     if (!feedbackModal) return;
     feedbackModal.classList.remove('hidden');
     setTimeout(() => feedbackModal.classList.add('show'), 10);
     // reset
+    currentRating = 0;
     ratingInput.value = '';
     updateStars(0);
     feedbackTextarea.value = '';
@@ -33,22 +37,33 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateStars(rating) {
     starButtons.forEach(btn => {
       const val = Number(btn.getAttribute('data-star'));
-      if (val <= rating) btn.classList.add('active'); else btn.classList.remove('active');
+      if (val <= rating) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
     });
-    ratingInput.value = rating;
+    ratingInput.value = rating || '';
   }
 
   starButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
+    // Click to set persistent rating
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const val = Number(btn.getAttribute('data-star'));
+      currentRating = val;
+      updateStars(val);
+    });
+
+    // Hover to preview rating (show temporary filled state)
+    btn.addEventListener('mouseenter', () => {
       const val = Number(btn.getAttribute('data-star'));
       updateStars(val);
     });
-    btn.addEventListener('mouseover', () => {
-      const val = Number(btn.getAttribute('data-star'));
-      updateStars(val);
-    });
-    btn.addEventListener('mouseout', () => {
-      updateStars(Number(ratingInput.value) || 0);
+
+    // Leave to restore persisted rating
+    btn.addEventListener('mouseleave', () => {
+      updateStars(currentRating);
     });
   });
 
