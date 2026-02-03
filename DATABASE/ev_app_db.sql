@@ -16,12 +16,7 @@ SET time_zone = "+00:00";
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
 /*!40101 SET NAMES utf8mb4 */;
- 
--- Create database and prepare import-friendly environment
-DROP DATABASE IF EXISTS `ev_app_db`;
-CREATE DATABASE IF NOT EXISTS `ev_app_db` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-USE `ev_app_db`;
-SET FOREIGN_KEY_CHECKS = 0;
+
 --
 -- Database: `ev_app_db`
 --
@@ -1083,7 +1078,6 @@ ALTER TABLE `user_garage`
 --
 ALTER TABLE `weather_snapshots`
   ADD CONSTRAINT `weather_snapshots_ibfk_1` FOREIGN KEY (`trip_id`) REFERENCES `trips` (`trip_id`) ON DELETE CASCADE;
-SET FOREIGN_KEY_CHECKS = 1;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
